@@ -98,10 +98,10 @@ Onde a preocupação se sustenta é em fundo escuro, e o erro cresce rápido:
 | 0,017 | 0,009% | 0,005% |
 | 0,05 | 0,017% | 0,001% |
 
-Dado real de Seestar/S30 fica em torno de 0,017 — a medida do stack do Bubble
-foi 0,017060. Nessa faixa o histograma é irrelevante. Abaixo de 0,005 ele
-começa a doer, e a calibração de cor do Módulo 2 deriva ganhos de razões entre
-medianas.
+Dado real de Seestar/S30 fica em torno de 0,017 — a medida de um stack de
+parceiro de teste foi 0,017060. Nessa faixa o histograma é irrelevante. Abaixo
+de 0,005 ele começa a doer, e a calibração de cor do Módulo 2 deriva ganhos de
+razões entre medianas.
 
 **Não é bloqueio.** É uma linha na spec: se a mediana de um canal cair abaixo
 de 0,005, trocar o estimador por seleção exata antes de derivar ganho.
