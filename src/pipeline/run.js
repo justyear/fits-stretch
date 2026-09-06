@@ -187,6 +187,7 @@ async function runPipeline(buffer, fileName, post, opts){
     pattern: patternInfo || { pattern: null, source: null, corrected: false, notes: [] },
     outChannels: outChannels,
     channels: channels,
+    records: records,
     exportScaled: false, exportW: w, exportH: h,
     stretch: {
       nonLinear: nonLinear, globalMedian: globalMedian, historyHits: historyHits,
