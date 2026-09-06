@@ -1,0 +1,266 @@
+{
+  "fixture": "fixture-gradient.fit",
+  "frame": [
+    1600,
+    1200,
+    3
+  ],
+  "smoothing": 0.1,
+  "tolerance": 1,
+  "samples": {
+    "generated": 108,
+    "accepted": 93,
+    "rejected": {
+      "bright": 15,
+      "edge": 0,
+      "clipped": 0,
+      "nan": 0
+    },
+    "boxSizeEffective": 25
+  },
+  "surface": {
+    "lambda": 0.01280414580131101,
+    "kernelScale": 0.1280414580131101,
+    "gridDivisor": 8,
+    "gridSize": [
+      201,
+      151
+    ],
+    "maxInterpErrorLevels": 0.0004,
+    "interpLimitLevels": 0.5
+  },
+  "residualVsGradient": {
+    "frame": {
+      "maxLevels": 0.8395,
+      "meanLevels": 0.1587,
+      "pixels": 1440000
+    },
+    "outsideObject": {
+      "maxLevels": 0.1679,
+      "meanLevels": 0.0305,
+      "pixels": 888039
+    },
+    "insideObject": {
+      "maxLevels": 0.8395,
+      "meanLevels": 0.6485,
+      "pixels": 172947
+    },
+    "rejectedCorner": {
+      "maxLevels": 0.1679,
+      "meanLevels": 0.0674,
+      "pixels": 38843
+    },
+    "worst": {
+      "levels": 0.839,
+      "x": 456,
+      "y": 856,
+      "channel": "R"
+    }
+  },
+  "objectContamination": {
+    "objectPeakLevels": 13.39,
+    "absorbedLevels": 0.839,
+    "absorbedPercentOfPeak": 6.27,
+    "note": "GraXpert measured 12.5% of an M31 arm removed; 5% for the manual fit. Section 1."
+  },
+  "blockMap": {
+    "cols": 10,
+    "rows": 8,
+    "maxLevels": [
+      0.07,
+      0.05,
+      0.04,
+      0.06,
+      0.05,
+      0.06,
+      0.06,
+      0.04,
+      0.08,
+      0.13,
+      0.06,
+      0.08,
+      0.04,
+      0.08,
+      0.07,
+      0.08,
+      0.09,
+      0.04,
+      0.08,
+      0.11,
+      0.05,
+      0.05,
+      0.05,
+      0.05,
+      0.04,
+      0.04,
+      0.05,
+      0.03,
+      0.05,
+      0.07,
+      0.2,
+      0.28,
+      0.3,
+      0.31,
+      0.25,
+      0.11,
+      0.04,
+      0.05,
+      0.09,
+      0.07,
+      0.6,
+      0.71,
+      0.74,
+      0.76,
+      0.69,
+      0.33,
+      0.15,
+      0.05,
+      0.09,
+      0.07,
+      0.7,
+      0.82,
+      0.84,
+      0.84,
+      0.73,
+      0.4,
+      0.22,
+      0.07,
+      0.11,
+      0.09,
+      0.68,
+      0.8,
+      0.83,
+      0.82,
+      0.68,
+      0.4,
+      0.21,
+      0.07,
+      0.09,
+      0.08,
+      0.42,
+      0.58,
+      0.63,
+      0.62,
+      0.46,
+      0.25,
+      0.1,
+      0.1,
+      0.14,
+      0.17
+    ]
+  },
+  "probes": [
+    {
+      "probe": [
+        218,
+        216
+      ],
+      "box": [
+        218,
+        216
+      ],
+      "state": "accepted",
+      "truthG": 0.012555,
+      "modelG": 0.012817,
+      "residualLevels": 0.067
+    },
+    {
+      "probe": [
+        606,
+        216
+      ],
+      "box": [
+        606,
+        216
+      ],
+      "state": "accepted",
+      "truthG": 0.013836,
+      "modelG": 0.014145,
+      "residualLevels": 0.079
+    },
+    {
+      "probe": [
+        994,
+        216
+      ],
+      "box": [
+        994,
+        216
+      ],
+      "state": "accepted",
+      "truthG": 0.01487,
+      "modelG": 0.01521,
+      "residualLevels": 0.087
+    },
+    {
+      "probe": [
+        1382,
+        216
+      ],
+      "box": [
+        1382,
+        216
+      ],
+      "state": "accepted",
+      "truthG": 0.015657,
+      "modelG": 0.015981,
+      "residualLevels": 0.083
+    },
+    {
+      "probe": [
+        1382,
+        600
+      ],
+      "box": [
+        1382,
+        600
+      ],
+      "state": "accepted",
+      "truthG": 0.017406,
+      "modelG": 0.017752,
+      "residualLevels": 0.088
+    },
+    {
+      "probe": [
+        1382,
+        856
+      ],
+      "box": [
+        1382,
+        856
+      ],
+      "state": "accepted",
+      "truthG": 0.018721,
+      "modelG": 0.019135,
+      "residualLevels": 0.106
+    },
+    {
+      "probe": [
+        994,
+        856
+      ],
+      "box": [
+        994,
+        856
+      ],
+      "state": "accepted",
+      "truthG": 0.017818,
+      "modelG": 0.018545,
+      "residualLevels": 0.186
+    },
+    {
+      "probe": [
+        1252,
+        1100
+      ],
+      "box": [
+        1253,
+        1112
+      ],
+      "state": "rejected-bright",
+      "truthG": 0.019865,
+      "modelG": 0.019714,
+      "residualLevels": 0.039
+    }
+  ]
+}

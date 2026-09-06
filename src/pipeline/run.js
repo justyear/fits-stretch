@@ -245,7 +245,8 @@ async function openFile(buffer, fileName, opts, post){
     bgSamplesPerRow: 12,
     bgBoxSize: 25,
     bgTolerance: 1.0,
-    bgEdgeMargin: 0.02
+    bgEdgeMargin: 0.02,
+    bgSmoothing: 0.10
   };
 
   SESSION = {
@@ -328,6 +329,7 @@ async function runChain(params, mode, post){
     boxSize: params.bgBoxSize,
     tolerance: params.bgTolerance,
     edgeMargin: params.bgEdgeMargin,
+    smoothing: params.bgSmoothing,
     // Which buffer this is, expressed as a fraction of the frame the user is
     // working on. The step scales its sample box by it. Full runs are 1 by
     // definition; the preview is whatever downscaleFloat produced.

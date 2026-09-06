@@ -1283,6 +1283,23 @@ var BG_MIN_SAMPLES = 8;
 var BG_CLIP_LEVEL = 1 - 1e-6;
 var BG_CLIP_FRACTION = 0.05;
 
+// The surface is evaluated on a lattice of every Nth pixel and interpolated
+// between, because evaluating a thin-plate spline at every pixel of an 8 Mpx
+// frame with 100 centres is 800 million kernel evaluations and the lattice is
+// 12 million. The divisor halves until the interpolation error measured against
+// direct evaluation is under the limit — it is not assumed to be negligible,
+// it is measured, every run, and recorded.
+var BG_GRID_DIVISOR = 8;
+var BG_INTERP_LIMIT_LEVELS = 0.5;
+var BG_INTERP_PROBES = 1000;
+
+// A prime stride over the pixel index, so the probes scatter deterministically
+// instead of landing on a pattern. 104729 is odd and coprime with every power
+// of two, so consecutive probes fall at different phases within a lattice cell
+// — which is where the interpolation error actually lives. A stride sharing a
+// factor with the divisor would sample the cell corners and report zero.
+var BG_PROBE_STRIDE = 104729;
+
 /**
  * Collects one box for one channel: median, plus the two counts that can
  * disqualify it. One pass, because the box is read once and asked three
@@ -1307,6 +1324,239 @@ function bgCollectBox(data, base, w, cx, cy, half, scratch){
   // lexicographic sort that bites Array.prototype.sort on numbers.
   scratch.sort();
   return { median: scratch[n >> 1], nonFinite: nonFinite, clipped: clipped, count: n };
+}
+
+/* ------------------------------------------------------------------ *
+ * Thin-plate spline
+ *
+ * phi(r) = r^2 * ln(r), phi(0) = 0. Written as 0.5 * r2 * ln(r2) so the square
+ * root never happens: r^2 ln r = r^2 * (1/2) ln(r^2), exactly, and the kernel
+ * is called a few million times.
+ * ------------------------------------------------------------------ */
+function bgPhi(r2){
+  if (r2 <= 0) return 0;
+  return 0.5 * r2 * Math.log(r2);
+}
+
+/**
+ * Gauss elimination with partial pivoting, several right-hand sides at once.
+ *
+ * The three channels share the same points, so they share the same matrix and
+ * differ only in what is being interpolated. Eliminating once and carrying
+ * three vectors through is the same arithmetic as one solve plus two extra
+ * back-substitutions, instead of three full eliminations.
+ *
+ * The system is symmetric but indefinite — the polynomial block makes it a
+ * saddle point, not a positive definite one — so Cholesky is not available and
+ * pivoting is not optional.
+ *
+ * Returns null on a singular matrix rather than dividing by zero and returning
+ * a surface made of Infinity. Duplicate sample positions are the way that
+ * happens, and a caller that gets null reports no surface.
+ */
+function bgSolve(M, rhs, n, nrhs){
+  var i, j, k, r;
+  for (k = 0; k < n; k++){
+    var piv = k, best = Math.abs(M[k][k]);
+    for (i = k + 1; i < n; i++){
+      var av = Math.abs(M[i][k]);
+      if (av > best){ best = av; piv = i; }
+    }
+    if (!(best > 0)) return null;
+    if (piv !== k){
+      var tm = M[k]; M[k] = M[piv]; M[piv] = tm;
+      for (r = 0; r < nrhs; r++){ var tv = rhs[r][k]; rhs[r][k] = rhs[r][piv]; rhs[r][piv] = tv; }
+    }
+    var d = M[k][k];
+    for (i = k + 1; i < n; i++){
+      var f = M[i][k] / d;
+      if (f === 0) continue;
+      var Mi = M[i], Mk = M[k];
+      for (j = k; j < n; j++) Mi[j] -= f * Mk[j];
+      for (r = 0; r < nrhs; r++) rhs[r][i] -= f * rhs[r][k];
+    }
+  }
+  var out = [];
+  for (r = 0; r < nrhs; r++){
+    var x = new Float64Array(n);
+    for (k = n - 1; k >= 0; k--){
+      var acc = rhs[r][k];
+      var Mk2 = M[k];
+      for (j = k + 1; j < n; j++) acc -= Mk2[j] * x[j];
+      x[k] = acc / Mk2[k];
+    }
+    out.push(x);
+  }
+  return out;
+}
+
+// The model at one normalised coordinate, evaluated directly from the centres.
+function bgEvalTPS(fit, c, uu, vv){
+  var n = fit.n, u = fit.u, v = fit.v, wts = fit.weights[c];
+  var sum = wts[n] + wts[n + 1] * uu + wts[n + 2] * vv;
+  for (var i = 0; i < n; i++){
+    var du = uu - u[i], dv = vv - v[i];
+    sum += wts[i] * bgPhi(du * du + dv * dv);
+  }
+  return sum;
+}
+
+// The model at one pixel, read off the lattice by bilinear interpolation. This
+// is what the correction will actually use; bgEvalTPS is what it is checked
+// against.
+function bgSampleGrid(surface, c, x, y){
+  var d = surface.divisor, gw = surface.gw, g = surface.grid[c];
+  var fx = x / d, fy = y / d;
+  var gx = fx | 0, gy = fy | 0;
+  var tx = fx - gx, ty = fy - gy;
+  var i00 = gy * gw + gx;
+  var a = g[i00] + (g[i00 + 1] - g[i00]) * tx;
+  var b = g[i00 + gw] + (g[i00 + gw + 1] - g[i00 + gw]) * tx;
+  return a + (b - a) * ty;
+}
+
+/**
+ * Fits a thin-plate spline to the accepted samples, one surface per channel,
+ * and evaluates it onto a lattice.
+ *
+ * COORDINATES ARE NORMALISED, and isotropically. Section 2.3 asks for [0,1] and
+ * the reason it gives is conditioning: at pixel scale the kernel argument runs
+ * to millions and the matrix is ill-conditioned on a large frame. Dividing x
+ * and y by their own extents would put both exactly in [0,1] but would squash
+ * the frame to a square — a 4:3 image would become 33% stiffer along one axis
+ * than the other, for no reason anyone chose. The kernel is radial and assumes
+ * distance means the same thing in both directions, so both axes are divided by
+ * the SAME number, the longer extent. The long axis lands on [0,1], the short
+ * one on [0, h/w], and the conditioning point of the section is satisfied.
+ *
+ * THE REGULARISATION SCALE IS NOT THE DIAGONAL OF A. Section 2.3 says to scale
+ * lambda by "the mean of the diagonal of A". For a thin-plate spline that mean
+ * is exactly zero: A[i][i] = phi(0) = 0, by definition, for every i. Taken
+ * literally the rule sets lambda to 0 and smoothing does nothing. The intent —
+ * a lambda that means the same thing whatever the image scale — is kept by
+ * scaling with the mean of |A[i][j]| over the off-diagonal entries, which is
+ * the magnitude the kernel actually has here. The spec is wrong on the letter
+ * and right on the purpose; this follows the purpose and says so.
+ */
+function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
+  var i, j, c, k;
+
+  var acc = [];
+  for (i = 0; i < points.length; i++) if (points[i].state === 'accepted') acc.push(points[i]);
+  var n = acc.length;
+  if (n < BG_MIN_SAMPLES) return null;
+
+  var norm = Math.max(w - 1, h - 1);
+  var u = new Float64Array(n), v = new Float64Array(n);
+  for (i = 0; i < n; i++){ u[i] = acc[i].x / norm; v[i] = acc[i].y / norm; }
+
+  var m = n + 3;
+  var M = [];
+  for (i = 0; i < m; i++) M.push(new Float64Array(m));
+
+  var sumAbs = 0, cnt = 0;
+  for (i = 0; i < n; i++){
+    for (j = i + 1; j < n; j++){
+      var du = u[i] - u[j], dv = v[i] - v[j];
+      var p = bgPhi(du * du + dv * dv);
+      M[i][j] = p; M[j][i] = p;
+      sumAbs += Math.abs(p); cnt++;
+    }
+  }
+  var scaleA = cnt > 0 ? sumAbs / cnt : 1;
+  var lambda = smoothing * scaleA;
+  for (i = 0; i < n; i++) M[i][i] = lambda;      // phi(0) is 0, so this IS the ridge
+
+  // Degree-1 polynomial block: the affine part the spline does not have to bend
+  // to produce. Without it a tilted background is paid for in bending energy
+  // and the fit sags between points.
+  for (i = 0; i < n; i++){
+    M[i][n] = 1;     M[n][i] = 1;
+    M[i][n + 1] = u[i]; M[n + 1][i] = u[i];
+    M[i][n + 2] = v[i]; M[n + 2][i] = v[i];
+  }
+
+  var rhs = [];
+  for (c = 0; c < nch; c++){
+    var z = new Float64Array(m);
+    for (i = 0; i < n; i++) z[i] = acc[i].median[c];
+    rhs.push(z);
+  }
+
+  var weights = bgSolve(M, rhs, m, nch);
+  if (!weights) return null;
+
+  var fit = { n: n, u: u, v: v, weights: weights, norm: norm };
+
+  // --- lattice, refined until the interpolation error is under the limit ---
+  var N = w * h;
+  var divisor = startDivisor, surface = null, maxErr = 0;
+
+  for (;;){
+    var gw = Math.ceil((w - 1) / divisor) + 1;
+    var gh = Math.ceil((h - 1) / divisor) + 1;
+    var grid = [];
+    for (c = 0; c < nch; c++){
+      var g = new Float64Array(gw * gh);
+      for (var gy = 0; gy < gh; gy++){
+        var vv = (gy * divisor) / norm;
+        for (var gx = 0; gx < gw; gx++){
+          g[gy * gw + gx] = bgEvalTPS(fit, c, (gx * divisor) / norm, vv);
+        }
+      }
+      grid.push(g);
+    }
+    surface = { grid: grid, gw: gw, gh: gh, divisor: divisor };
+
+    maxErr = 0;
+    for (k = 0; k < BG_INTERP_PROBES; k++){
+      var idx = (k * BG_PROBE_STRIDE) % N;
+      var px = idx % w, py = (idx / w) | 0;
+      for (c = 0; c < nch; c++){
+        var e = Math.abs(bgEvalTPS(fit, c, px / norm, py / norm) - bgSampleGrid(surface, c, px, py));
+        if (e > maxErr) maxErr = e;
+      }
+    }
+
+    if (maxErr * 255 <= BG_INTERP_LIMIT_LEVELS || divisor <= 1) break;
+    divisor = divisor >> 1;
+  }
+
+  // --- per-channel statistics of the model itself ---
+  //
+  // Taken over the lattice, not over every pixel. The lattice is a uniform
+  // sample of a surface that is smooth by construction, so its median is the
+  // spatial median to within the interpolation error just measured — and
+  // materialising the full-resolution model here, only to measure it, would
+  // cost the memory the lattice exists to avoid.
+  var perChannel = [];
+  for (c = 0; c < nch; c++){
+    var gg = surface.grid[c];
+    var lo = Infinity, hi = -Infinity;
+    for (i = 0; i < gg.length; i++){
+      if (gg[i] < lo) lo = gg[i];
+      if (gg[i] > hi) hi = gg[i];
+    }
+    var sorted = Float64Array.from(gg);
+    sorted.sort();
+    var med = sorted[sorted.length >> 1];
+    perChannel.push({
+      modelMin: lo, modelMax: hi, modelMedian: med,
+      // 'model-median' pedestal, section 2.4: give back the model's own median,
+      // per channel, so the level survives and only the variation is removed.
+      // Recorded here because it is a property of the surface; it is not
+      // applied to anything until the correction lands.
+      pedestal: med
+    });
+  }
+
+  return {
+    fit: fit,
+    grid: surface.grid, gw: surface.gw, gh: surface.gh, divisor: surface.divisor,
+    lambda: lambda, scaleA: scaleA,
+    maxInterpErrorLevels: maxErr * 255,
+    perChannel: perChannel
+  };
 }
 
 // Five decimals for a value on the [0,1] axis, one for a percentage. These end
@@ -1468,6 +1718,31 @@ function stepBackground(img, params, report){
   var generated = cols * rows;
   var rejected = counts.bright + counts.edge + counts.clipped + counts.nan;
 
+  // --- the surface -------------------------------------------------
+  //
+  // Fitted, measured and reported. Not applied: the correction and the pedestal
+  // land in step 6, and until they do no pixel moves. Fitting it now is what
+  // makes it testable now — the fixture carries the true gradient in its HISTORY
+  // cards, so the model can be checked against the answer instead of against
+  // yesterday, before anything depends on it being right.
+  var surface = bgFitSurface(points, w, h, nch, params.smoothing, BG_GRID_DIVISOR);
+  var surfaceRecord = null;
+  if (surface){
+    surfaceRecord = {
+      method: 'thin-plate-spline',
+      // One lambda, not three: A is built from the sample POSITIONS, which the
+      // channels share. Only the right-hand side differs.
+      lambda: surface.lambda,
+      kernelScale: surface.scaleA,
+      gridDivisor: surface.divisor,
+      gridSize: [surface.gw, surface.gh],
+      maxInterpErrorLevels: surface.maxInterpErrorLevels,
+      interpProbes: BG_INTERP_PROBES,
+      interpLimitLevels: BG_INTERP_LIMIT_LEVELS,
+      perChannel: surface.perChannel
+    };
+  }
+
   // --- what the record says, and why it says applied: false ---------
   //
   // Two different falsehoods would be available here and neither is taken. The
@@ -1477,9 +1752,12 @@ function stepBackground(img, params, report){
   if (accepted < BG_MIN_SAMPLES){
     skipReason = 'only ' + accepted + ' of ' + generated + ' samples survived rejection, ' +
                  'and a surface is never fitted to fewer than ' + BG_MIN_SAMPLES + ' points';
+  } else if (!surfaceRecord){
+    skipReason = 'the ' + accepted + ' accepted samples do not define a surface: the linear ' +
+                 'system is singular, which means two samples share a position';
   } else {
-    skipReason = 'sampling only: this build places and judges the samples, fits no surface ' +
-                 'and changes no pixel';
+    skipReason = 'the surface is fitted and reported but not applied: this build models the ' +
+                 'background and changes no pixel';
   }
 
   var notes = [
@@ -1499,6 +1777,16 @@ function stepBackground(img, params, report){
                ' px for this ' + w + ' x ' + h + ' buffer, so a sample covers the same sky ' +
                'here as it does at full resolution.');
   }
+  if (surfaceRecord){
+    notes.push('Thin-plate spline through the ' + accepted + ' accepted samples, smoothing ' +
+               params.smoothing + ', per channel and unlinked.');
+    notes.push('Evaluated on every ' + surfaceRecord.gridDivisor + 'th pixel and interpolated ' +
+               'between; measured against direct evaluation at ' + BG_INTERP_PROBES +
+               ' pixels, worst case ' + bgFixed(surfaceRecord.maxInterpErrorLevels) +
+               ' of one 8-bit level.');
+    notes.push('Background level preserved per channel; the colour balance between channels ' +
+               'is not touched.');
+  }
 
   report({
     id: 'background',
@@ -1512,7 +1800,8 @@ function stepBackground(img, params, report){
       samplesPerRow: cols,
       boxSize: params.boxSize,
       tolerance: params.tolerance,
-      edgeMargin: params.edgeMargin
+      edgeMargin: params.edgeMargin,
+      smoothing: params.smoothing
     },
     samples: {
       generated: generated,
@@ -1528,7 +1817,7 @@ function stepBackground(img, params, report){
       grid: { cols: cols, rows: rows, marginPx: margin, spacingX: dx, spacingY: dy },
       points: points
     },
-    surface: null,
+    surface: surfaceRecord,
     before: before,
     // Nothing was measured after, because nothing happened after. A copy of
     // `before` under a name that says "after" would be a measurement that was
@@ -2160,7 +2449,8 @@ async function openFile(buffer, fileName, opts, post){
     bgSamplesPerRow: 12,
     bgBoxSize: 25,
     bgTolerance: 1.0,
-    bgEdgeMargin: 0.02
+    bgEdgeMargin: 0.02,
+    bgSmoothing: 0.10
   };
 
   SESSION = {
@@ -2243,6 +2533,7 @@ async function runChain(params, mode, post){
     boxSize: params.bgBoxSize,
     tolerance: params.bgTolerance,
     edgeMargin: params.bgEdgeMargin,
+    smoothing: params.bgSmoothing,
     // Which buffer this is, expressed as a fraction of the frame the user is
     // working on. The step scales its sample box by it. Full runs are 1 by
     // definition; the preview is whatever downscaleFloat produced.

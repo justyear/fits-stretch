@@ -174,6 +174,45 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### Acoplamento posicional a `records[]` falha em silêncio, e o sintoma aponta para o lugar errado
+
+**Classe de erro, não incidente.** Aconteceu duas vezes no mesmo dia, em dois
+arquivos escritos por motivos diferentes, e as duas por escrever `records[0]`
+onde o que se queria era "o record da etapa X".
+
+Enquanto a cadeia tem uma etapa, `records[0]` e "o record do stretch" são a
+mesma coisa, e o código está certo por coincidência. No dia em que uma etapa
+entra na frente, `records[0]` passa a ser outra coisa **sem que nada avise**:
+
+- `run.js` construía o log e o diagnóstico de `records[0].before`. Passaria a
+  imprimir a medição da etapa de fundo sob os rótulos do autostretch. O log é a
+  entrega do produto.
+- `compare-reference.ps1` comparava `records[0].before/after` contra os números
+  do Python. Passaria a comparar a etapa errada contra a referência certa.
+
+**O que torna a classe perigosa é o sintoma.** O segundo caso só apareceu como
+crash porque a etapa de fundo reporta `after: null` — sorte. Se ela reportasse
+uma medição preenchida, o comparador teria produzido **FAIL numérico em 24
+campos**, e o FAIL diria "as medianas do canal R divergem da referência". Um FAIL
+assim se lê como regressão de pipeline. A investigação começaria no decode, no
+histograma, no autostretch — em tudo, menos na linha que escolheu o record
+errado. Horas caçando um bug que não existe, num lugar onde ele não está.
+
+**Regra:** record se seleciona por `id`, nunca por posição, e a ausência é erro
+explícito e não `undefined` seguindo adiante.
+
+```js
+var rec = null;
+for (var i = 0; i < records.length; i++) if (records[i].id === 'stretch-mtf') rec = records[i];
+if (!rec) throw FitsError('unknown', 'the chain produced no stretch record');
+```
+
+Vale para qualquer coleção cuja ordem seja consequência de outra decisão:
+`records`, `perChannel` quando o número de canais varia, `CATALOGUE`. A pergunta
+que expõe o problema é **"o que quebra quando alguém inserir um item antes deste
+aqui?"** — se a resposta for "nada visível, e depois números errados", o índice
+tem que virar busca.
+
 ### Mediana da caixa, não média — agora com número
 
 A §2.1 do Módulo 1 manda usar a **mediana** da caixa de amostra, não a média,
