@@ -46,6 +46,7 @@ $Sources = @(
     'src\pipeline\fits\header.js',
     'src\pipeline\fits\rice.js',
     'src\pipeline\fits\normalise.js',
+    'src\pipeline\image.js',
     'src\pipeline\stats.js',
     'src\pipeline\cfa.js',
     'src\pipeline\steps\stretch-mtf.js',

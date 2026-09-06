@@ -57,3 +57,31 @@ function analysePlane(data, off, n, stride){
   };
 }
 
+// The per-channel measurement a step records before and after itself.
+//
+// The entries are the analysePlane results themselves, not a reduced copy of
+// them, for two reasons.
+//
+// A step needs percentiles the record format does not carry: the autostretch
+// black point is the 0.05% percentile, which is neither p001 nor p999. Handing
+// the live object over means the step asks for what it needs instead of the
+// record growing a field per caller.
+//
+// And there must be exactly one measurement object per channel per point in
+// the chain. Two objects describing the same pixels are two things that can
+// disagree, which is the failure that already cost a day once — see NOTAS,
+// "Quantil de dois estágios que conta duas vezes".
+function measure(img, stride){
+  stride = stride || 1;
+  var out = [];
+  for (var c = 0; c < img.channels; c++){
+    var s = analysePlane(img.data, c * img.N, img.N, stride);
+    if (!s) throw FitsError('empty', 'channel ' + c + ' has no usable pixels');
+    s.p001 = s.percentile(0.001);
+    s.p999 = s.percentile(0.999);
+    s.totalPixels = img.N;
+    out.push(s);
+  }
+  return { perChannel: out };
+}
+

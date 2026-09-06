@@ -21,6 +21,11 @@ O build resultante, rodando no mesmo arquivo FITS de entrada, deve produzir:
 Se qualquer um dos três divergir, a refatoração está errada. Não "melhore" nada no
 caminho. A oportunidade de melhorar vem nos módulos 1 a 3.
 
+Este critério tem prazo. Ele vale enquanto a cadeia tiver uma etapa só; quando a
+segunda entrar, o quantise passa a acontecer uma vez no fim, a saída muda de
+propósito e a comparação vira tolerância relativa. Ver a decisão registrada
+na §4.
+
 Antes de começar, gere os três artefatos de referência a partir do arquivo atual e
 guarde em `test/golden/`.
 
@@ -267,6 +272,37 @@ entra como parâmetro.
 
 **Não mexa na matemática.** Nem no LUT de 2^20 entradas. O asinh entra no Módulo 3.
 
+> **Decisão (tomada no passo 4, com prazo de validade no Módulo 1): o quantise
+> acontece uma vez só, no fim.**
+>
+> `stepStretchMTF` hoje devolve float com valor de 8 bits — cada pixel volta
+> como `k/255` para o `k` que o LUT produziu. Não dá para fazer diferente e
+> manter a identidade deste módulo: o LUT quantiza `u` em 2^20 níveis antes de
+> avaliar o MTF, então recalcular em precisão plena move os pixels que caem em
+> cima da fronteira de arredondamento.
+>
+> Isso é aceitável **enquanto houver uma etapa só**, porque o 8 bits é a última
+> coisa que acontece antes da tela. Deixa de ser no instante em que existir uma
+> segunda: a extração de fundo é a **primeira** da cadeia e entrega para a
+> seguinte, e uma cadeia em que cada etapa devolve 256 níveis perde a sombra —
+> que é exatamente onde a nebulosa fraca vive. Duas etapas em 8 bits não perdem
+> o dobro de uma; perdem a faixa inteira em que o Módulo 1 trabalha.
+>
+> **Regra a partir da segunda etapa:** a cadeia é float pleno de ponta a ponta,
+> e `quantise` roda uma única vez, no fim.
+>
+> **Consequência aceita:** a identidade byte a byte do Módulo 0 morre nesse
+> momento, por construção. Não é regressão e não deve ser tratada como uma — é
+> o preço, e ele está sendo pago com os olhos abertos.
+>
+> **O Módulo 5 precisa saber disto antes de começar:** o golden deixa de ser
+> comparação byte a byte e passa a ser comparação com tolerância.
+> `compare-golden.ps1` tem que ganhar tolerância relativa antes daquele ponto, e
+> o PNG deixa de ser critério útil — o critério passa a ser `record.before` e
+> `record.after`, por etapa e por canal. É a mesma conclusão da §7: sem os
+> números do Python sobre os fixtures, essa comparação não tem contra o que
+> pousar.
+
 ---
 
 ## 5. `steps/registry.js` — o catálogo
@@ -431,15 +467,34 @@ fixa, e reprodutíveis byte a byte.
 
 **Pendências de cobertura:**
 
+- **O codificador Rice do `fixture-rice.fit.fz` não tem verificação
+  independente.** Ele foi escrito como inverso exato do `riceDecompress` deste
+  mesmo repositório, então o par é **auto-consistente**: um erro simétrico —
+  mesma convenção errada nos dois lados — passa nos nove checks sem deixar
+  rastro. O que o fixture prova hoje é que o decodificador não regride; não
+  prova que ele lê RICE_1 como o resto do mundo escreve.
+
+  Fecha abrindo o `fixture-rice.fit.fz` em software externo (Siril, ou
+  `funpack` + astropy) e confirmando dimensões, medianas por canal e o patch de
+  zeros. Enquanto não fechar, a evidência de conformidade continua sendo a
+  histórica: 12/12 valores batendo com astropy num `.fz` real do Siril — que
+  não está mais aqui.
+
 - **`.fz` que ainda seja mosaico CFA.** Descompressão e debayer estão cobertos
   em separado, nunca combinados. O gerador já sabe escrever Rice e já sabe
   escrever CFA; falta juntar os dois num fixture.
 - **BYTEPIX 1 e 2 no Rice, e BITPIX −64.** Implementados, exercidos zero vezes.
-- **Medidas do pipeline Python.** As referências existentes foram medidas em
-  arquivos de parceiro que não estão mais aqui. Para os módulos 1 a 3, a
-  comparação com o Python tem que ser refeita **sobre os fixtures sintéticos** —
-  rodar o Python neles e guardar os números. Enquanto isso não acontecer, o
-  harness prova não-regressão, não correção contra uma segunda implementação.
+
+**Bloqueio do Módulo 1** (não do passo 4):
+
+- **Medidas de referência do pipeline Python.** As que existiam foram medidas em
+  arquivos de parceiro que não estão mais aqui. Antes do Módulo 1 começar, os
+  números têm que ser gerados por fora **sobre os fixtures sintéticos** e
+  trazidos para cá. Enquanto isso não acontecer, o harness prova
+  não-regressão — que a saída de hoje é a de ontem — e **não** prova correção
+  contra uma segunda implementação. A extração de fundo do Módulo 1 muda os
+  números de propósito, e num mundo sem segunda opinião não haveria como
+  distinguir "mudou porque melhorou" de "mudou porque quebrou".
 
 ---
 
