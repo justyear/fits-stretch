@@ -465,36 +465,70 @@ fixa, e reprodutíveis byte a byte.
 | `fixture-rice.fit.fz` | RICE_1, dither 2, sentinela de zero exato, 3 planos, `view.factor` 2 |
 | `fixture-nonlinear.fit` | float32 cru, TOP-DOWN, ramo não-linear (mediana 0,25 + HISTORY) |
 
+**FECHADO — o codificador Rice tem verificação independente.** O
+`fixture-rice.fit.fz` foi lido por dois softwares que não são este: astropy
+mediu R/G = 1,0998 e B/G = 0,9201 contra os 1,099 / 0,920 daqui, e o Siril abriu
+o arquivo como `3 layer(s), 2600x1000, 32 bits`. O par
+codificador/decodificador era auto-consistente e um erro simétrico teria
+passado nos nove checks; não passou por fora. `RICE_1` com `BYTEPIX 4`,
+`SUBTRACTIVE_DITHER_2` e o sentinela de zero exato estão conformes.
+
+**FECHADO — as medidas de referência do Python existem.** Geradas sobre os três
+fixtures sintéticos, em `REFERENCIA-PYTHON.md` e `justyear-referencia.json`.
+Independentes em linguagem, leitor de FITS, descompressão, precisão (float64
+contra float32), estatística (exata contra histograma) e transferência (MTF
+direta contra LUT). **Não** independentes na fórmula, que foi lida daqui — então
+validam aritmética, não escolha de algoritmo. Um erro na fórmula do autostretch
+continua invisível para as duas.
+
 **Pendências de cobertura:**
-
-- **O codificador Rice do `fixture-rice.fit.fz` não tem verificação
-  independente.** Ele foi escrito como inverso exato do `riceDecompress` deste
-  mesmo repositório, então o par é **auto-consistente**: um erro simétrico —
-  mesma convenção errada nos dois lados — passa nos nove checks sem deixar
-  rastro. O que o fixture prova hoje é que o decodificador não regride; não
-  prova que ele lê RICE_1 como o resto do mundo escreve.
-
-  Fecha abrindo o `fixture-rice.fit.fz` em software externo (Siril, ou
-  `funpack` + astropy) e confirmando dimensões, medianas por canal e o patch de
-  zeros. Enquanto não fechar, a evidência de conformidade continua sendo a
-  histórica: 12/12 valores batendo com astropy num `.fz` real do Siril — que
-  não está mais aqui.
 
 - **`.fz` que ainda seja mosaico CFA.** Descompressão e debayer estão cobertos
   em separado, nunca combinados. O gerador já sabe escrever Rice e já sabe
   escrever CFA; falta juntar os dois num fixture.
 - **BYTEPIX 1 e 2 no Rice, e BITPIX −64.** Implementados, exercidos zero vezes.
+- **Debayer contra segunda implementação.** O Python não implementou o debayer,
+  então o `fixture-seestar` só tem referência de mosaico, antes da interpolação.
+- **Fundo abaixo de 0,005.** Nenhum fixture chega lá, e é onde o histograma de
+  `BINS = 65536` começa a degradar de verdade (2,3% de erro na mediana a 0,0005,
+  contra 0,009% a 0,017). A calibração de cor do Módulo 2 deriva ganhos de
+  razões entre medianas: se a mediana de um canal cair abaixo de 0,005, trocar o
+  estimador por seleção exata antes de derivar ganho.
 
-**Bloqueio do Módulo 1** (não do passo 4):
+### Tolerância da comparação contra a segunda implementação
 
-- **Medidas de referência do pipeline Python.** As que existiam foram medidas em
-  arquivos de parceiro que não estão mais aqui. Antes do Módulo 1 começar, os
-  números têm que ser gerados por fora **sobre os fixtures sintéticos** e
-  trazidos para cá. Enquanto isso não acontecer, o harness prova
-  não-regressão — que a saída de hoje é a de ontem — e **não** prova correção
-  contra uma segunda implementação. A extração de fundo do Módulo 1 muda os
-  números de propósito, e num mundo sem segunda opinião não haveria como
-  distinguir "mudou porque melhorou" de "mudou porque quebrou".
+O golden é comparado byte a byte; a referência do Python **não pode ser**, e não
+por frouxidão. As duas implementações medem a mesma coisa por caminhos
+diferentes, e o piso do erro é a resolução do histograma daqui, não desacordo.
+
+    valor na escala [0,1]  (mediana, q1, q3, percentis, shadows, midtones):
+        |a − b| ≤ max( 1e-4 × |ref| ,  4 / 65535 )
+
+    MAD e MADN:
+        |a − b| ≤ max( 1e-4 × |ref| ,  8 × span / 65535 )
+        onde span = 3 × (q3 − q1) do canal, ou 1/65535 se o IQR for zero
+
+    saída em 8 bits, por pixel:   até 1 nível
+    contagem de clip:             0,05% do total
+
+**Por que 1e-4 relativo sozinho não serve:** um bin vale 1/65535 = 1,53e-5, que
+numa mediana de 0,017 já são 9e-4 relativos. Um limite de 1e-4 reprovaria 14 dos
+24 valores de uma implementação correta — o mesmo erro que reprovar o LUT por
+±1 nível.
+
+**Por que MAD e MADN precisam de outro piso:** eles não vivem em [0,1]. Saem do
+segundo histograma do `analysePlane`, que usa escala adaptativa
+`span = 3×(q3−q1)`, então o bin deles é `span/65535`. Nos fixtures lineares o
+span fica em torno de 0,007, o que faria o piso plano de `4/65535` valer entre
+500 e 800 bins de MADN — passaria erro quinhentas vezes maior que a resolução
+real. O piso tem que acompanhar a escala.
+
+Verificado nos 24 valores das duas tabelas: nenhum reprovado, pior caso 2,76
+bins em [0,1] (limite 4) e 7,25 bins de span em MADN (limite 8). As margens são
+estreitas de propósito — o critério é o piso do instrumento, não folga.
+
+Para que a segunda linha seja calculável, `measure()` expõe `span` junto do MAD.
+É campo de diagnóstico e não muda comportamento.
 
 ---
 

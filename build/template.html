@@ -323,7 +323,45 @@ function startInline(onMessage){
 
 var runner = null, runnerIsWorker = false;
 
-function process(buffer, fileName, byteSize, opts){
+// Set while a Download-FITS click is waiting on the worker, so an error that
+// arrives during an export is reported as a failed export instead of tearing
+// down the result screen the user is looking at.
+var pendingExport = null;
+
+function onMessage(ev){
+  var m = ev.data;
+  if (!m || m.type === 'ready') return;
+  if (m.type === 'progress'){
+    elStage.textContent = m.stage;
+    elBar.style.width = m.pct + '%';
+  } else if (m.type === 'error'){
+    if (pendingExport){
+      var btn = pendingExport; pendingExport = null;
+      btn.disabled = false;
+      btn.textContent = 'Download uncompressed FITS';
+      toast('Could not write the FITS' + (runnerIsWorker ? '' : ' — ' + m.message));
+      return;
+    }
+    showError(m.kind, runnerIsWorker ? '' : m.message);
+  } else if (m.type === 'opened'){
+    opened(m);
+  } else if (m.type === 'rendered'){
+    elBar.style.width = '100%';
+    finish(m);
+  } else if (m.type === 'exported'){
+    exported(m);
+  }
+}
+
+// Ask the worker to run the chain again with different parameters. Nothing in
+// the UI calls this yet — open() already fires a full run of its own — but it
+// is the whole reason the decoded frame is now kept on the other side.
+function requestRun(params, mode){
+  if (!runner) return;
+  runner.postMessage({ cmd: 'run', params: params || null, mode: mode || 'full' });
+}
+
+function open(buffer, fileName, byteSize, opts){
   elErr.classList.remove('on');
   elOut.classList.remove('on');
   elDrop.classList.add('hide');
@@ -334,21 +372,12 @@ function process(buffer, fileName, byteSize, opts){
     ? (byteSize / 1048576).toFixed(0) + ' MB — large frames take a few seconds'
     : '';
 
-  if (runner) { try { runner.terminate(); } catch (e){} runner = null; }
+  // A second file must not inherit the first one's export.
+  state.fitsMeta = null;
+  state.fitsData = null;
+  pendingExport = null;
 
-  function onMessage(ev){
-    var m = ev.data;
-    if (!m || m.type === 'ready') return;
-    if (m.type === 'progress'){
-      elStage.textContent = m.stage;
-      elBar.style.width = m.pct + '%';
-    } else if (m.type === 'error'){
-      showError(m.kind, runnerIsWorker ? '' : m.message);
-    } else if (m.type === 'done'){
-      elBar.style.width = '100%';
-      finish(m);
-    }
-  }
+  if (runner) { try { runner.terminate(); } catch (e){} runner = null; }
 
   var settled = false;
 
@@ -356,7 +385,7 @@ function process(buffer, fileName, byteSize, opts){
     try {
       // The buffer is handed over only once the executor has proved it is
       // alive; transferring it earlier would leave nothing to retry with.
-      runner.postMessage({ buffer: buffer, fileName: fileName, opts: opts || null },
+      runner.postMessage({ cmd: 'open', buffer: buffer, fileName: fileName, opts: opts || null },
                          runnerIsWorker ? [buffer] : undefined);
     } catch (e){
       showError('memory', String(e && e.message || e));
@@ -399,19 +428,30 @@ function process(buffer, fileName, byteSize, opts){
   }, 2000);
 }
 
+// The worker finished decoding. Everything here describes the frame; the
+// picture arrives with the render that follows.
+function opened(m){
+  state.opened = m;
+  state.defaults = m.defaults;
+  state.canExportFits = !!m.canExportFits;
+  $('dlfits').hidden = !state.canExportFits;
+  $('fitshint').hidden = !state.canExportFits;
+}
+
 function finish(m){
-  state.log = m.log;
-  state.diag = m.diag;
+  state.records = m.records;
   state.w = m.width;
   state.h = m.height;
   state.view = { data: new Uint8ClampedArray(m.viewData), w: m.view.w, h: m.view.h };
-  state.full = m.fullData ? new Uint8ClampedArray(m.fullData) : null;
-  state.fitsMeta = m.fitsMeta || null;
-  state.fitsData = m.fitsData ? new Float32Array(m.fitsData) : null;
+  state.full = m.rgba ? new Uint8ClampedArray(m.rgba) : null;
 
-  var canFits = !!(state.fitsMeta && state.fitsData);
-  $('dlfits').hidden = !canFits;
-  $('fitshint').hidden = !canFits;
+  // A preview render carries no log and no diagnostics, because it measured a
+  // smaller frame than the one they would claim to describe. It repaints the
+  // canvas and leaves the text alone.
+  if (m.log !== null){
+    state.log = m.log;
+    state.diag = m.diag;
+  }
 
   elView.width = state.view.w;
   elView.height = state.view.h;
@@ -434,7 +474,7 @@ function handleFile(file){
   var name = file.name || 'image.fit';
   state.name = name;
   file.arrayBuffer().then(function(buf){
-    process(buf, name, file.size);
+    open(buf, name, file.size);
   }).catch(function(e){
     showError('memory', String(e && e.message || e));
   });
@@ -533,12 +573,37 @@ $('dlpng').addEventListener('click', function(){
   }, 30);
 });
 
+// The linear frame no longer rides along with the render — it is asked for.
+// The answer is cached, because the worker sends a copy of a frame that can be
+// a hundred megabytes and a second click should not pay for it again.
 $('dlfits').addEventListener('click', function(){
-  if (!state.fitsMeta || !state.fitsData) return;
+  if (!state.canExportFits) return;
   var btn = this;
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Writing FITS…';
 
+  if (state.fitsMeta && state.fitsData){ writeFits(btn); return; }
+
+  pendingExport = btn;
+  try {
+    runner.postMessage({ cmd: 'export', kind: 'fits' });
+  } catch (e){
+    pendingExport = null;
+    btn.disabled = false; btn.textContent = 'Download uncompressed FITS';
+    toast('Could not ask for the FITS — ' + String(e && e.message || e));
+  }
+});
+
+function exported(m){
+  state.fitsMeta = m.fitsMeta;
+  state.fitsData = new Float32Array(m.fitsData);
+  var btn = pendingExport;
+  pendingExport = null;
+  if (btn) writeFits(btn);
+}
+
+function writeFits(btn){
   setTimeout(function(){
     var blob;
     try {
@@ -561,7 +626,7 @@ $('dlfits').addEventListener('click', function(){
     btn.textContent = 'Download uncompressed FITS';
     toast('Wrote ' + name + ' — ' + (blob.size / 1048576).toFixed(0) + ' MB');
   }, 30);
-});
+}
 
 /* ------------------------------------------------------------------ *
  * Writing an uncompressed FITS back out
@@ -765,7 +830,7 @@ window.__loadFromURL = function(url, opts){
     return r.arrayBuffer();
   }).then(function(buf){
     state.name = decodeURIComponent(url.split('/').pop() || '') || 'remote.fit';
-    process(buf, state.name, buf.byteLength, opts);
+    open(buf, state.name, buf.byteLength, opts);
     return new Promise(function(resolve){
       var iv = setInterval(function(){
         if (elOut.classList.contains('on') || elErr.classList.contains('on')){
