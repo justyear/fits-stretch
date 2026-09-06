@@ -424,19 +424,71 @@ Abrir `http://127.0.0.1:8791/`, colar `test/capture-golden.js` no console,
 Depois:
 
 ```
-powershell -File test\compare-golden.ps1          # estrito; sai 1 na divergência
+powershell -File test\compare-golden.ps1          # nao-regressao; sai 1 na divergência
+powershell -File test\compare-reference.ps1       # correção; sai 1 na divergência
 ```
 
-`compare-golden.ps1` compara PNG e log byte a byte e o diagnóstico byte a byte
-menos o bloco `timingsMs`. Tem controle negativo verificado: bit virado no log,
-no PNG e valor trocado no diag reprovam os três.
+São **quatro** artefatos por fixture: `log.txt`, `diag.json`, `records.json` e
+`png`. O `records.json` é o `record.before` / `record.after` da §4 — a tabela por
+etapa e por canal, com `median / mad / madn / q1 / q3 / p001 / p999 / span`,
+`shadows / midtones / target / scale`, e `clipLow / clipHigh / clipPct`.
 
-**O que falta trazer para cá quando os módulos 1 a 3 chegarem:** a tabela por
-etapa e por canal (`median / madn / q1 / q3 / p001 / p999 / clipPct`, antes e
-depois) e a comparação com tolerância relativa contra as medidas do pipeline
-Python. Isso é `record.before` / `record.after` da §4 — existe assim que o
-contrato de step existir, e o lugar dele é uma extensão de `capture-golden.js`
-que salva `records` como quarto artefato.
+Os dois comparadores respondem a perguntas diferentes e nenhum substitui o
+outro:
+
+- **`compare-golden.ps1`** — a saída de hoje é a de ontem? PNG, log e
+  `records.json` byte a byte; diagnóstico byte a byte menos `timingsMs`.
+  Controle negativo verificado: bit virado no log, no PNG e valor trocado no
+  diag reprovam os três.
+- **`compare-reference.ps1`** — os números concordam com algo que não é este
+  código? Compara `records.json` e o bloco `decoded` do diagnóstico contra
+  `justyear-referencia.json`, com a tolerância acima. Controle negativo
+  verificado: uma mediana deslocada de 1e-4 absoluto reprova.
+
+Estado atual: **116 linhas, 115 PASS, 0 KNOWN, 1 N/A, 0 FAIL.** O N/A é o
+`fixture-seestar`, que a referência mede como mosaico CFA antes do debayer — o
+bloco `decoded` ainda é comparável e é comparado; os canais não são, porque são
+medições de imagens diferentes.
+
+### Verificação de hash antes de comparar
+
+As três primeiras linhas conferem o sha256 e o tamanho de cada fixture contra o
+que a referência registra. Fixture divergente é pulado inteiro, com FAIL e
+mensagem dizendo o que fazer. Sem isso, regerar um fixture sem regerar a
+referência deixaria dois conjuntos de números descrevendo imagens diferentes,
+concordando ou discordando por motivo nenhum que se pudesse ler na saída.
+Controle negativo verificado.
+
+### `KNOWN` não é uma saída de emergência
+
+O comparador aceita uma lista de divergências conhecidas, e cada entrada exige
+motivo escrito e o módulo que resolve. Qualquer coisa fora dela é FAIL. A lista
+é dívida, não exceção — se crescer, o harness parou de significar alguma coisa.
+
+**Está vazia, e deve continuar.** A única entrada que ela já teve foi o
+sentinela de zero exato do `SUBTRACTIVE_DITHER_2`, fechada — e fechada a favor
+desta implementação.
+
+### O sentinela do `SUBTRACTIVE_DITHER_2` — fechado
+
+As duas implementações discordavam sobre 576 pixels por canal do `fixture-rice`,
+o patch 24×24 de zeros exatos: `rawMin` 0 aqui, `-0.5066145062446594` na
+referência.
+
+O inteiro reservado `-2147483647` está fisicamente no `.fz`, no padrão de bits
+exato. Com o `ZSCALE = 6,2e-06` e o `ZZERO = 13313,892` lidos da tabela binária,
+dequantizá-lo sem tratá-lo como sentinela varre de `-0,5066083` a `-0,5066145`
+em exatamente 576 pixels por canal — que é exatamente a faixa que a referência
+reportava. O astropy 8.0.1 documenta que restaura o sentinela; na prática não
+restaurou. Corrigido no `reference.py`: 1728 pixels, `rawMin` volta a 0,0,
+medianas e `clipLow` inalterados.
+
+**Consequência que vale mais que o próprio conserto:** isto descarta a hipótese
+de erro simétrico levantada quando o codificador Rice foi escrito. O sentinela
+foi lido como inteiro cru por ferramenta terceira, direto do arquivo. Um
+codificador e um decodificador que errassem juntos não colocariam o padrão de
+bits certo no lugar certo do heap. A conformidade do `RICE_1` daqui não depende
+mais de concordância entre duas metades escritas pela mesma pessoa.
 
 ~~`test/run.mjs`, roda em Node, importa os módulos de `src/pipeline/`
 diretamente (aí sim como módulos ES — é só o artefato publicado que precisa ser
@@ -468,10 +520,12 @@ fixa, e reprodutíveis byte a byte.
 **FECHADO — o codificador Rice tem verificação independente.** O
 `fixture-rice.fit.fz` foi lido por dois softwares que não são este: astropy
 mediu R/G = 1,0998 e B/G = 0,9201 contra os 1,099 / 0,920 daqui, e o Siril abriu
-o arquivo como `3 layer(s), 2600x1000, 32 bits`. O par
-codificador/decodificador era auto-consistente e um erro simétrico teria
-passado nos nove checks; não passou por fora. `RICE_1` com `BYTEPIX 4`,
-`SUBTRACTIVE_DITHER_2` e o sentinela de zero exato estão conformes.
+o arquivo como `3 layer(s), 2600x1000, 32 bits`. E o inteiro reservado do
+`SUBTRACTIVE_DITHER_2` foi lido como inteiro cru, direto do heap, por ferramenta
+terceira — ver §7. A hipótese de erro simétrico está descartada: duas metades
+escritas pela mesma pessoa podem concordar sobre uma convenção errada, mas não
+colocam o padrão de bits certo no lugar certo do arquivo. `RICE_1` com
+`BYTEPIX 4`, `SUBTRACTIVE_DITHER_2` e o sentinela de zero exato estão conformes.
 
 **FECHADO — as medidas de referência do Python existem.** Geradas sobre os três
 fixtures sintéticos, em `REFERENCIA-PYTHON.md` e `justyear-referencia.json`.

@@ -52,6 +52,11 @@ function analysePlane(data, off, n, stride){
 
   return {
     median: median, madn: 1.4826 * mad, mad: mad,
+    // `span` is the width of the second histogram, and therefore the resolution
+    // of mad and madn: their bin is span/(BINS-1), not 1/(BINS-1). Reported so
+    // a comparison against another implementation can size its tolerance to the
+    // instrument instead of to the [0,1] axis, where it would be 500x too loose.
+    span: span,
     q1: q1, q3: q3, sampled: count, stride: stride, nan: nan,
     percentile: function(frac){ return cumulativeAt(hist, count, frac) / (BINS - 1); }
   };

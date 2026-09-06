@@ -1,0 +1,360 @@
+{
+  "geradoPor": "reference.py — segunda implementacao em Python/numpy/astropy",
+  "ambiente": {
+    "astropy": "8.0.1",
+    "numpy": "2.4.4",
+    "python": "3.12.3"
+  },
+  "proposito": "numeros de referencia para a metade CORRECAO do harness",
+  "avisoDeIndependencia": "a formula do autostretch foi lida do index.html de proposito. Isto valida aritmetica, leitura, normalizacao, row order e quantizacao — nao valida a escolha do algoritmo.",
+  "correcaoAplicada": {
+    "sentinelaDither2": "astropy 8.0.1 documenta que restaura a sentinela -2147483647 do SUBTRACTIVE_DITHER_2 para 0.0 e nao restaura. reference.py detecta a faixa dequantizada e restaura. 1728 pixels no fixture-rice (576 por canal)."
+  },
+  "tolerancia": {
+    "valorEm01": "|a-b| <= max(1e-4*|ref|, 4/65535)  — mediana, q1, q3, percentis, shadows, midtones",
+    "madEMadn": "|a-b| <= max(1e-4*|ref|, 8*span/65535)  — span = 3*(q3-q1) do canal, ou 1/65535 se IQR = 0",
+    "saidaOitoBits": "ate 1 nivel de 255",
+    "contagemDeClip": "0,05% do total"
+  },
+  "fixtures": {
+    "seestar": {
+      "sha256": "6d0acf7bbd4ce595d926ccc9bbf8e239447cda8ed7207c682fe598f5534cb28b",
+      "bytes": 4150080,
+      "decode": {
+        "width": 1920,
+        "height": 1080,
+        "planes": 1,
+        "bitpix": 16,
+        "scaleMode": "int",
+        "scaleLo": 0.0,
+        "scaleDiv": 65535.0,
+        "rowOrder": "BOTTOM-UP",
+        "flipApplied": true,
+        "rawMin": 511.0,
+        "rawMax": 20650.0,
+        "normMin": 0.007797360189211872,
+        "normMax": 0.3150988021667811,
+        "bayerpat": "GRBG",
+        "dither2": null
+      },
+      "globalMedian": 0.010940718699931334,
+      "nonLinear": false,
+      "historyHits": [],
+      "canais": {
+        "MONO": {
+          "estatisticaExata": {
+            "median": 0.010940718699931334,
+            "madn": 0.001221643396658275,
+            "mad": 0.0008239871824216073,
+            "q1": 0.01014724956130312,
+            "q3": 0.011795223926146334,
+            "p001": 0.008163576714732586,
+            "p999": 0.060798062104223755,
+            "pBlack": 0.008072022583352408,
+            "min": 0.007797360189211872,
+            "max": 0.3150988021667811,
+            "n": 2073600
+          },
+          "spanDoHistograma": 0.004943923094529639,
+          "parametros": {
+            "shadows": 0.007520117189288165,
+            "midtones": 0.010268776149545472,
+            "target": 0.25,
+            "scale": 1.0075770978530982,
+            "x": 0.0034465197430057675
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 63.86421875,
+            "clipLow": 0,
+            "clipHigh": 0,
+            "clipLowPct": 0.0,
+            "clipHighPct": 0.0
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 44301,
+            "pctDiffer": 2.1364293981481484,
+            "maxDiff": 1
+          }
+        }
+      }
+    },
+    "rice": {
+      "sha256": "6d120445184897033a88fe5cdbcce333588179888b2480b725cfc8f3ef0c83f3",
+      "bytes": 8671680,
+      "decode": {
+        "width": 2600,
+        "height": 1000,
+        "planes": 3,
+        "bitpix": -32,
+        "scaleMode": "unit",
+        "scaleLo": 0.0,
+        "scaleDiv": 1.0,
+        "rowOrder": null,
+        "flipApplied": true,
+        "rawMin": 0.0,
+        "rawMax": 1.0000029802322388,
+        "normMin": 0.0,
+        "normMax": 1.0000029802322388,
+        "bayerpat": null,
+        "dither2": {
+          "sentinelRange": [
+            -0.5066145000000688,
+            -0.5066083000001527
+          ],
+          "pixelsRestored": 1728
+        }
+      },
+      "globalMedian": 0.01562624905879299,
+      "nonLinear": false,
+      "historyHits": [],
+      "canais": {
+        "R": {
+          "estatisticaExata": {
+            "median": 0.017072570510208607,
+            "madn": 0.0018688386065885423,
+            "mad": 0.0012605143710970879,
+            "q1": 0.015821367502212524,
+            "q3": 0.018343010917305946,
+            "p001": 0.01313778103236109,
+            "p999": 0.5018070224523623,
+            "pBlack": 0.013023773201275617,
+            "min": 0.0,
+            "max": 1.0000029802322388,
+            "n": 2600000
+          },
+          "spanDoHistograma": 0.007598992904554822,
+          "parametros": {
+            "shadows": 0.011839822411760688,
+            "midtones": 0.015719848495224446,
+            "target": 0.25,
+            "scale": 1.0119816834155952,
+            "x": 0.00529544522955708
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 66.86519653846153,
+            "clipLow": 576,
+            "clipHigh": 10,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.0003846153846153846
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 12116,
+            "pctDiffer": 0.466,
+            "maxDiff": 1
+          }
+        },
+        "G": {
+          "estatisticaExata": {
+            "median": 0.015522887464612722,
+            "madn": 0.0017044617173261939,
+            "mad": 0.0011496436782181263,
+            "q1": 0.014382894150912762,
+            "q3": 0.016683039721101522,
+            "p001": 0.011912397102452815,
+            "p999": 0.49229219633341825,
+            "pBlack": 0.011805682397447526,
+            "min": 0.0,
+            "max": 0.9156085848808289,
+            "n": 2600000
+          },
+          "spanDoHistograma": 0.0069123369192034805,
+          "parametros": {
+            "shadows": 0.01075039465609938,
+            "midtones": 0.014334757672010787,
+            "target": 0.25,
+            "scale": 1.010867221576866,
+            "x": 0.004824356545337457
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 67.03168576923076,
+            "clipLow": 576,
+            "clipHigh": 0,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.0
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 12716,
+            "pctDiffer": 0.4890769230769231,
+            "maxDiff": 1
+          }
+        },
+        "B": {
+          "estatisticaExata": {
+            "median": 0.014283289201557636,
+            "madn": 0.0015729963823221623,
+            "mad": 0.001060971524566412,
+            "q1": 0.013233035802841187,
+            "q3": 0.015355515293776989,
+            "p001": 0.010929718555882572,
+            "p999": 0.5003186206817682,
+            "pBlack": 0.010826917365193367,
+            "min": 0.0,
+            "max": 1.0000029802322388,
+            "n": 2600000
+          },
+          "spanDoHistograma": 0.006363012130922406,
+          "parametros": {
+            "shadows": 0.009878899331055582,
+            "midtones": 0.013227324430503212,
+            "target": 0.25,
+            "scale": 1.0099774657103875,
+            "x": 0.004448334519410167
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 67.18221307692308,
+            "clipLow": 576,
+            "clipHigh": 9,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.00034615384615384613
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 13249,
+            "pctDiffer": 0.509576923076923,
+            "maxDiff": 1
+          }
+        }
+      }
+    },
+    "nonlinear": {
+      "sha256": "f11ae11071b83e482bc1935d2fcb72c30898cebc9ce2964f5c4ecbe0c07c6adc",
+      "bytes": 6482880,
+      "decode": {
+        "width": 900,
+        "height": 600,
+        "planes": 3,
+        "bitpix": -32,
+        "scaleMode": "unit",
+        "scaleLo": 0.0,
+        "scaleDiv": 1.0,
+        "rowOrder": "TOP-DOWN",
+        "flipApplied": false,
+        "rawMin": 0.1841290444135666,
+        "rawMax": 1.0,
+        "normMin": 0.1841290444135666,
+        "normMax": 1.0,
+        "bayerpat": null,
+        "dither2": null
+      },
+      "globalMedian": 0.24672226111094156,
+      "nonLinear": true,
+      "historyHits": [
+        "Autostretch (midtones transfer function) applied",
+        "Histogram transformation, unlinked channels"
+      ],
+      "canais": {
+        "R": {
+          "estatisticaExata": {
+            "median": 0.2640603929758072,
+            "madn": 0.01994522896707058,
+            "mad": 0.013452872633934021,
+            "q1": 0.2505054473876953,
+            "q3": 0.27740272134542465,
+            "p001": 0.21930117803812027,
+            "p999": 0.959325695335869,
+            "pBlack": 0.21815675311535596,
+            "min": 0.21456417441368103,
+            "max": 1.0,
+            "n": 540000
+          },
+          "spanDoHistograma": 0.08070496681162742,
+          "parametros": {
+            "shadows": 0.21815675311535596,
+            "midtones": 0.14809343987565257,
+            "target": 0.2640603929758072,
+            "scale": 1.279028761819751,
+            "x": 0.0587120756537327
+          },
+          "saida": {
+            "median": 67.0,
+            "mean": 70.38724074074074,
+            "clipLow": 270,
+            "clipHigh": 1,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.00018518518518518518
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 242,
+            "pctDiffer": 0.044814814814814814,
+            "maxDiff": 1
+          }
+        },
+        "G": {
+          "estatisticaExata": {
+            "median": 0.2456946298480034,
+            "madn": 0.01913435830324888,
+            "mad": 0.012905947864055634,
+            "q1": 0.23275002092123032,
+            "q3": 0.25855468958616257,
+            "p001": 0.20265150703489782,
+            "p999": 0.9565518586039575,
+            "pBlack": 0.20154673702269793,
+            "min": 0.1976662129163742,
+            "max": 0.9949255585670471,
+            "n": 540000
+          },
+          "spanDoHistograma": 0.077409018081941,
+          "parametros": {
+            "shadows": 0.20154673702269793,
+            "midtones": 0.1523168250749253,
+            "target": 0.2456946298480034,
+            "scale": 1.2524214582969617,
+            "x": 0.05529176831300703
+          },
+          "saida": {
+            "median": 63.0,
+            "mean": 66.27957407407408,
+            "clipLow": 270,
+            "clipHigh": 0,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.0
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 227,
+            "pctDiffer": 0.04203703703703704,
+            "maxDiff": 1
+          }
+        },
+        "B": {
+          "estatisticaExata": {
+            "median": 0.23041176050901413,
+            "madn": 0.018398624101281166,
+            "mad": 0.012409701943397522,
+            "q1": 0.21798362210392952,
+            "q3": 0.24280185997486115,
+            "p001": 0.18880900065600872,
+            "p999": 0.9585579331517233,
+            "pBlack": 0.18779158560186623,
+            "min": 0.1841290444135666,
+            "max": 0.9994812607765198,
+            "n": 540000
+          },
+          "spanDoHistograma": 0.07447928587777522,
+          "parametros": {
+            "shadows": 0.18779158560186623,
+            "midtones": 0.1560995963427691,
+            "target": 0.23041176050901413,
+            "scale": 1.2312110811373758,
+            "x": 0.05247443162569362
+          },
+          "saida": {
+            "median": 59.0,
+            "mean": 62.81758148148148,
+            "clipLow": 270,
+            "clipHigh": 0,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.0
+          },
+          "lutVsExato": {
+            "pixelsDiffer": 234,
+            "pctDiffer": 0.043333333333333335,
+            "maxDiff": 1
+          }
+        }
+      }
+    }
+  }
+}
