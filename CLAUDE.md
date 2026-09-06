@@ -87,6 +87,36 @@ um único inventário que imprimiu esses campos de cada arquivo. Apagar a
 transcrição depois é conserto; esta regra é a prevenção, e é a única que impede
 a repetição.
 
+## Regra operacional: como um relatório de auditoria reporta
+
+**Contagem, arquivo e linha. Nunca o valor procurado.**
+
+Certo:
+
+```
+3 ocorrencias de um nome de cliente     em REFERENCIA-PYTHON.md:101
+86 ocorrencias de um serial de scope    na transcricao da sessao
+1 ocorrencia de um e-mail pessoal       em metadado de autor de commit
+```
+
+Errado, e é o mesmo relatório com o nome escrito por extenso no lugar de "um
+nome de cliente".
+
+Vale para saída de comando **e para texto escrito por quem conduz a sessão** —
+prosa, resumo, tabela, mensagem de commit. Um relatório sobre uma exposição é
+escrito dentro da sessão, e a sessão é gravada. **Auditar cita, citar grava:** um
+relatório que nomeia o que encontrou reintroduz exatamente aquilo que estava
+sendo removido, no mesmo arquivo que se acabou de limpar.
+
+Medido, e é por isso que esta regra existe: um relatório sobre uma exposição de
+centenas de ocorrências produziu onze novas na mesma sessão, sem tocar em
+nenhum arquivo — só por dizer o que procurava.
+
+**Os padrões de busca** ficam num arquivo fora do repositório, ou são descritos
+por classe — "nome do cliente", "serial do scope", "nome do arquivo original" —
+em vez de literal. Uma lista de literais é, ela própria, o dado que se quer
+manter fora.
+
 ## Retenção da transcrição: 1 dia
 
 `"cleanupPeriodDays": 1` em `~/.claude/settings.json`. É o mínimo aceito — `0` é
