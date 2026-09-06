@@ -17,6 +17,45 @@ Vale para o dado e para tudo que deriva dele:
 Se um arquivo desses aparecer na árvore, ele sai. Não move para outra pasta do
 projeto, não renomeia: sai.
 
+## Regra permanente: nenhum identificador de cliente entra em texto
+
+A regra acima cobre pixel. Esta cobre texto, e vale para **todo arquivo do
+projeto** — código, comentário, documentação, nome de arquivo, e **mensagem de
+commit**, que é a mais fácil de esquecer porque não aparece em nenhuma varredura
+da árvore de trabalho.
+
+Não entram:
+
+- **nome de pessoa ou de empresa** — cliente, parceiro, quem mandou o arquivo
+- **serial ou identificador de equipamento** — `TELESCOP` com número de série,
+  id de sensor, id de montagem
+- **alvo observado** quando ele identifica de quem é o dado — o objeto, a data
+  de observação, o nome do arquivo original
+
+**Medição fica.** Mediana, MADN, contraste de treliça, tempo de pipeline,
+contagem de tiles: tudo isso é registro de engenharia e é o que faz a próxima
+sessão não repetir trabalho. Vai atribuído a **"um parceiro de teste"**, sem
+mais.
+
+Certo:
+
+> Um stack S30 Pro de um parceiro de teste tem MADN de 0,00007 no verde contra
+> mediana 0,02025, então o autostretch sai com midtones 0,00059.
+
+Errado, e é o mesmo parágrafo — com os identificadores aqui substituídos por
+marcadores, porque escrever os verdadeiros num exemplo de "não faça isto" seria
+fazer exatamente isto:
+
+> O stack do &lt;NOME&gt; (&lt;OBJETO&gt;, `TELESCOP = S30 Pro_<serial>`,
+> `r_<alvo>_All_<n>_E_stacked.fit`) tem MADN de 0,00007 no verde.
+
+O modelo do equipamento pode ficar — "Seestar S30 Pro" descreve uma classe de
+arquivo e é o que torna a medição reutilizável. O **serial** não: ele aponta
+para um aparelho, e um aparelho aponta para uma pessoa.
+
+Isto não se desfaz depois. Texto commitado fica no histórico do git mesmo depois
+de editado, e mensagem de commit não se edita sem reescrever histórico.
+
 ## O que os testes usam no lugar
 
 Fixtures sintéticos, gerados por `.claude/make-fixture.ps1` a partir de semente
