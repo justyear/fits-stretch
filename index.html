@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stretch — FITS autostretch in your browser</title>
+<style>
+  :root{
+    --bg:#07090d;
+    --panel:#0c1016;
+    --panel-2:#10151d;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.16);
+    --text:#e7e3da;
+    --muted:#8b929c;
+    --dim:#5f666f;
+    --accent:#9fb8d4;
+    --warn:#d9b382;
+    --bad:#d98a80;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 700px at 78% -10%, rgba(96,132,175,.10), transparent 60%),
+      radial-gradient(900px 600px at 8% 108%, rgba(72,96,130,.08), transparent 60%);
+    background-attachment:fixed;
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    font-weight:500;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  /* ---------------- drop state ---------------- */
+  #drop{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:32px;text-align:center;transition:background .18s ease;
+  }
+  #drop.hide{display:none}
+  #drop .inner{max-width:560px}
+  #drop h1{
+    font-size:clamp(30px,6vw,46px);font-weight:300;letter-spacing:-.02em;margin:22px 0 0;
+  }
+  #drop h1 em{font-style:normal;color:var(--accent)}
+  #drop .sub{color:var(--muted);margin:14px 0 0;font-size:16px}
+  #drop .zone{
+    margin-top:34px;border:1px dashed var(--line-strong);border-radius:3px;
+    padding:38px 28px;transition:border-color .18s ease,background .18s ease;
+    cursor:pointer;
+  }
+  #drop .zone:hover,body.dragging #drop .zone{
+    border-color:var(--accent);background:rgba(159,184,212,.05);
+  }
+  #drop .zone strong{font-weight:500;display:block;font-size:17px}
+  #drop .zone span{color:var(--dim);font-size:13px;display:block;margin-top:8px}
+  #drop .foot{margin-top:26px;color:var(--dim);font-size:12.5px;line-height:1.7}
+
+  /* ---------------- progress ---------------- */
+  #busy{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:32px}
+  #busy.on{display:flex}
+  #busy .box{width:min(420px,100%);text-align:center}
+  #busy .stage{font-size:15px;color:var(--text);margin-bottom:16px;min-height:1.6em}
+  #busy .bar{height:1px;background:var(--line);position:relative;overflow:hidden}
+  #busy .bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent);transition:width .25s ease}
+  #busy .note{margin-top:14px;color:var(--dim);font-size:12.5px}
+
+  /* ---------------- result ---------------- */
+  #out{display:none;min-height:100%;padding:28px}
+  #out.on{display:block}
+  .topbar{
+    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+    padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px;
+  }
+  .topbar .name{font-size:14px;letter-spacing:.01em}
+  .topbar .dims{color:var(--dim);font-size:12.5px;font-family:var(--mono)}
+  .topbar .spacer{flex:1}
+  .topbar .reset{color:var(--muted);font-size:13px;border-bottom:1px solid transparent}
+  .topbar .reset:hover{color:var(--text);border-bottom-color:var(--line-strong)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.85fr);gap:28px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+  .imgwrap{background:#000;border:1px solid var(--line);border-radius:2px;overflow:hidden;line-height:0}
+  .imgwrap canvas{display:block;width:100%;height:auto}
+
+  .side h2{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    font-weight:500;margin:0 0 12px;
+  }
+  .logbox{
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;
+    padding:18px 18px 20px;max-height:min(62vh,720px);overflow:auto;
+  }
+  .logbox pre{
+    margin:0;font-family:var(--mono);font-size:12px;line-height:1.72;
+    white-space:pre-wrap;word-break:break-word;color:#cfd4da;
+  }
+  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line-strong);border-radius:2px;padding:10px 18px;font-size:13.5px;
+    transition:background .16s ease,border-color .16s ease,color .16s ease;
+  }
+  .btn:hover{border-color:var(--accent);color:#fff;background:rgba(159,184,212,.07)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.primary{border-color:rgba(159,184,212,.55)}
+  .hint{margin-top:14px;color:var(--dim);font-size:12px;line-height:1.65}
+
+  /* ---------------- error ---------------- */
+  #err{display:none;position:fixed;inset:0;align-items:center;justify-content:center;padding:32px;text-align:center}
+  #err.on{display:flex}
+  #err .box{max-width:520px}
+  #err .mark{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--bad)}
+  #err h2{font-weight:400;font-size:22px;margin:16px 0 0;letter-spacing:-.01em}
+  #err p{color:var(--muted);margin:12px 0 0}
+  #err .again{margin-top:26px}
+
+  /* ---------------- diagnostics ---------------- */
+  #diag{
+    display:none;position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);
+    background:var(--panel-2);border-left:1px solid var(--line-strong);
+    padding:22px;overflow:auto;z-index:50;box-shadow:-30px 0 60px rgba(0,0,0,.5);
+  }
+  #diag.on{display:block}
+  #diag h2{margin:0 0 4px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  #diag .close{position:absolute;top:16px;right:18px;color:var(--muted);font-size:20px;line-height:1}
+  #diag pre{
+    font-family:var(--mono);font-size:11px;line-height:1.62;white-space:pre-wrap;
+    word-break:break-word;color:#c3c9d1;margin:14px 0 0;
+  }
+  #diag .sect{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+  #diag .sect:first-of-type{border-top:0;padding-top:0}
+  #diag .sect h3{margin:0;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .diagtip{position:fixed;left:14px;bottom:12px;color:#333940;font-size:11px;font-family:var(--mono);z-index:5;user-select:none}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:2px;
+    padding:10px 18px;font-size:13px;opacity:0;pointer-events:none;transition:all .22s ease;z-index:60;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ============================== drop ============================== -->
+<section id="drop">
+  <div class="inner">
+    <p class="eyebrow">Deep-sky stacks &middot; processed in your browser</p>
+    <h1>Stretch a <em>FITS</em> file.</h1>
+    <p class="sub">Drop a stacked <code>.fit</code> and get the image, plus a log of every step that was applied to it.</p>
+
+    <div class="zone" id="zone">
+      <strong>Drop your file here</strong>
+      <span>or click to choose &middot; .fit / .fits &middot; 16-bit, 32-bit, mono or colour</span>
+    </div>
+
+    <p class="foot">
+      Nothing is uploaded. The file is read, stretched and rendered entirely on this machine.<br>
+      No settings, no sliders &mdash; the numbers come from your data.
+    </p>
+  </div>
+  <input type="file" id="picker" accept=".fit,.fits,.fts,image/fits" hidden>
+</section>
+
+<!-- ============================== busy ============================== -->
+<section id="busy">
+  <div class="box">
+    <div class="stage" id="stage">Reading file</div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="note" id="busynote"></div>
+  </div>
+</section>
+
+<!-- ============================== error ============================== -->
+<section id="err">
+  <div class="box">
+    <p class="mark">Could not open this file</p>
+    <h2 id="errtitle">Something went wrong</h2>
+    <p id="errbody"></p>
+    <div class="again"><button class="btn" id="errback">Try another file</button></div>
+  </div>
+</section>
+
+<!-- ============================== result ============================== -->
+<main id="out">
+  <div class="topbar">
+    <span class="name" id="outname"></span>
+    <span class="dims" id="outdims"></span>
+    <span class="spacer"></span>
+    <button class="reset" id="reset">Open another file</button>
+  </div>
+
+  <div class="grid">
+    <div class="imgwrap"><canvas id="view"></canvas></div>
+    <div class="side">
+      <h2>Processing log</h2>
+      <div class="logbox"><pre id="logtext"></pre></div>
+      <div class="actions">
+        <button class="btn primary" id="dlpng">Download PNG</button>
+        <button class="btn" id="copylog">Copy processing log</button>
+        <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
+      </div>
+      <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
+        unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
+      <p class="hint">Paste the log alongside your image. Every value in it was measured from the file you dropped.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ============================== diagnostics ============================== -->
+<aside id="diag">
+  <button class="close" id="diagclose" title="Close">&times;</button>
+  <h2>Diagnostics</h2>
+  <div id="diagbody"></div>
+</aside>
+<div class="diagtip">press D for diagnostics</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ==================================================================
+     Pipeline source. Runs inside a Web Worker when the browser allows
+     one (blob workers are blocked on file:// in Chrome), otherwise the
+     identical source is evaluated on the main thread through the same
+     message protocol.
+     ================================================================== -->
+<script id="pipeline-src" type="text/worker">
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ * Small helpers
+ * ------------------------------------------------------------------ */
+
+function yieldNow(){ return new Promise(function(r){ setTimeout(r, 0); }); }
+
+function FitsError(kind, message){
+  var e = new Error(message);
+  e.kind = kind;
+  return e;
+}
+
+/* ------------------------------------------------------------------ *
+ * FITS header parsing
+ * ------------------------------------------------------------------ */
+
+var BLOCK = 2880;
+var CARD  = 80;
+
+function decodeAscii(bytes, from, to){
+  var s = '';
+  for (var i = from; i < to; i += 4096){
+    var end = Math.min(i + 4096, to);
+    s += String.fromCharCode.apply(null, bytes.subarray(i, end));
+  }
+  return s;
+}
+
+// Splits one 80-char card into {key, value, comment}. Returns null for blanks.
+function parseCard(card){
+  var key = card.slice(0, 8).trim();
+  if (key === '') return null;
+  if (key === 'END') return { key: 'END' };
+  if (key === 'COMMENT' || key === 'HISTORY') return { key: key, value: card.slice(8).trim() };
+
+  var rest, name = key;
+  if (key === 'HIERARCH'){
+    // HIERARCH SOME LONG NAME = value
+    var eq = card.indexOf('=');
+    if (eq < 0) return null;
+    name = card.slice(9, eq).trim();
+    rest = card.slice(eq + 1);
+  } else if (card.charAt(8) === '='){
+    rest = card.slice(9);
+  } else {
+    return { key: name, value: card.slice(8).trim(), raw: true };
+  }
+
+  rest = rest.replace(/^\s+/, '');
+  var value, comment = '';
+
+  if (rest.charAt(0) === "'"){
+    // Quoted string; '' is an escaped quote.
+    var i = 1, buf = '';
+    while (i < rest.length){
+      if (rest.charAt(i) === "'"){
+        if (rest.charAt(i + 1) === "'"){ buf += "'"; i += 2; continue; }
+        i++; break;
+      }
+      buf += rest.charAt(i); i++;
+    }
+    value = buf.trim();
+    var slash = rest.indexOf('/', i);
+    if (slash >= 0) comment = rest.slice(slash + 1).trim();
+  } else {
+    var cut = rest.indexOf('/');
+    var v = (cut >= 0 ? rest.slice(0, cut) : rest).trim();
+    if (cut >= 0) comment = rest.slice(cut + 1).trim();
+    if (v === 'T') value = true;
+    else if (v === 'F') value = false;
+    else {
+      var n = Number(v.replace(/[dD]/, 'e'));
+      value = (v !== '' && isFinite(n)) ? n : v;
+    }
+  }
+  return { key: name, value: value, comment: comment };
+}
+
+// Reads one header starting at byte `start`. Returns {map, cards, history, end}.
+function readHeader(bytes, start){
+  var map = {}, cards = [], history = [], off = start, done = false;
+
+  while (!done){
+    if (off + BLOCK > bytes.length) throw FitsError('truncated', 'header runs past end of file');
+    var text = decodeAscii(bytes, off, off + BLOCK);
+    for (var c = 0; c < BLOCK; c += CARD){
+      var raw = text.substr(c, CARD);
+      var parsed = parseCard(raw);
+      if (!parsed) continue;
+      cards.push(raw.replace(/\s+$/, ''));
+      if (parsed.key === 'END'){ done = true; break; }
+      if (parsed.key === 'HISTORY' || parsed.key === 'COMMENT'){
+        if (parsed.key === 'HISTORY') history.push(parsed.value);
+        continue;
+      }
+      if (!(parsed.key in map)) map[parsed.key] = parsed.value;
+    }
+    off += BLOCK;
+  }
+  return { map: map, cards: cards, history: history, end: off };
+}
+
+function hduDataBytes(map){
+  var naxis = map.NAXIS | 0;
+  if (!naxis) return 0;
+  var n = 1;
+  for (var i = 1; i <= naxis; i++) n *= (map['NAXIS' + i] | 0);
+  var width = Math.abs(map.BITPIX | 0) / 8;
+  var extra = 0;
+  if (map.PCOUNT) extra = map.PCOUNT | 0;
+  return n * width + extra;
+}
+
+// Walks HDUs until the first one holding a plain image.
+function findImageHDU(buffer){
+  var bytes = new Uint8Array(buffer);
+  if (bytes.length < BLOCK) throw FitsError('notfits', 'file is smaller than a single FITS block');
+
+  var magic = decodeAscii(bytes, 0, 6);
+  if (magic !== 'SIMPLE') throw FitsError('notfits', 'missing SIMPLE keyword');
+
+  var off = 0, index = 0, first = null;
+  while (off + BLOCK <= bytes.length){
+    var h = readHeader(bytes, off);
+    var m = h.map;
+
+    if (index === 0) first = h;
+
+    var compressed = (m.ZIMAGE === true) || (typeof m.ZCMPTYPE === 'string');
+    var naxis = m.NAXIS | 0;
+
+    if (compressed){
+      // The image lives in this table. Present it to the rest of the pipeline
+      // as the image HDU it describes, so nothing downstream has to care: the
+      // Z* geometry takes over BITPIX/NAXIS, and the ordinary keywords
+      // (BAYERPAT, ROWORDER, HISTORY) are already sitting in this same header.
+      var zm = {};
+      for (var key in m) zm[key] = m[key];
+      zm.BITPIX = m.ZBITPIX;
+      zm.NAXIS  = m.ZNAXIS;
+      zm.NAXIS1 = m.ZNAXIS1;
+      zm.NAXIS2 = m.ZNAXIS2;
+      zm.NAXIS3 = m.ZNAXIS3;
+      return {
+        map: zm, table: m, cards: h.cards, history: h.history,
+        dataStart: h.end, index: index, compressed: true
+      };
+    }
+
+    if (naxis >= 2 && (m.XTENSION === undefined || m.XTENSION === 'IMAGE')){
+      var need = hduDataBytes(m);
+      if (h.end + need > bytes.length){
+        throw FitsError('truncated', 'declared image data (' + need + ' bytes) exceeds the file');
+      }
+      return { map: m, cards: h.cards, history: h.history, dataStart: h.end, index: index };
+    }
+
+    var pad = Math.ceil(hduDataBytes(m) / BLOCK) * BLOCK;
+    off = h.end + pad;
+    index++;
+    if (index > 64) break;
+  }
+  throw FitsError('noimage', 'no image HDU found in this file');
+}
+
+/* ------------------------------------------------------------------ *
+ * Byte order + scaling to normalised float
+ * ------------------------------------------------------------------ */
+
+function swap16(buffer, start, n){
+  var u = new Uint16Array(buffer, start, n);
+  for (var i = 0; i < n; i++){ var v = u[i]; u[i] = ((v >>> 8) | (v << 8)) & 0xFFFF; }
+}
+function swap32(buffer, start, n){
+  var u = new Uint32Array(buffer, start, n);
+  for (var i = 0; i < n; i++){
+    var v = u[i];
+    u[i] = ((v >>> 24) | ((v >>> 8) & 0xFF00) | ((v & 0xFF00) << 8) | (v << 24)) >>> 0;
+  }
+}
+function swap64(buffer, start, n){
+  var u = new Uint32Array(buffer, start, n * 2);
+  for (var i = 0; i < n * 2; i += 2){
+    var a = u[i], b = u[i + 1];
+    var ra = ((b >>> 24) | ((b >>> 8) & 0xFF00) | ((b & 0xFF00) << 8) | (b << 24)) >>> 0;
+    var rb = ((a >>> 24) | ((a >>> 8) & 0xFF00) | ((a & 0xFF00) << 8) | (a << 24)) >>> 0;
+    u[i] = ra; u[i + 1] = rb;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rice tile decompression (.fz)
+ *
+ * A tile-compressed FITS keeps its image in a BINTABLE: one row per tile,
+ * holding a descriptor into the heap plus, for quantised float data, the
+ * ZSCALE / ZZERO that turn the stored integers back into floating point.
+ * This is a direct port of cfitsio's fits_rdecomp and unquantize_i4r4.
+ * ------------------------------------------------------------------ */
+
+// Bytes one table row spends on a column. Variable-length array columns
+// ('P' / 'Q') store only a descriptor, whatever the array length.
+function tformBytes(form){
+  var mm = /^\s*(\d*)\s*([A-Z])/.exec(form);
+  if (!mm) return 0;
+  var rep = mm[1] === '' ? 1 : parseInt(mm[1], 10);
+  var t = mm[2];
+  if (t === 'P') return 8;
+  if (t === 'Q') return 16;
+  var size = { L: 1, X: 1, B: 1, I: 2, J: 4, K: 8, A: 1, E: 4, D: 8, C: 8, M: 16 }[t];
+  return rep * (size || 1);
+}
+
+// Position of the most significant set bit, 1-based; 0 for 0.
+var NONZERO_COUNT = (function(){
+  var t = new Uint8Array(256);
+  for (var i = 1; i < 256; i++){ var k = 0, v = i; while (v){ k++; v >>= 1; } t[i] = k; }
+  return t;
+})();
+
+// cfitsio's fixed table of 10000 pseudo-random values, from a Park-Miller
+// generator seeded at 1. Generated rather than embedded.
+var N_RANDOM = 10000, randomValues = null;
+function initRandoms(){
+  if (randomValues) return randomValues;
+  var a = 16807.0, m = 2147483647.0, seed = 1.0;
+  var r = new Float64Array(N_RANDOM);
+  for (var i = 0; i < N_RANDOM; i++){
+    var temp = a * seed;
+    seed = temp - m * Math.floor(temp / m);
+    r[i] = seed / m;
+  }
+  randomValues = r;
+  return r;
+}
+
+// Port of cfitsio fits_rdecomp / _short / _byte. Values come back in `out` as
+// signed 32-bit; for bytepix 1 and 2 they are masked to the stored width.
+function riceDecompress(src, cstart, clen, out, nx, nblock, bytepix){
+  var fsbits, fsmax, bbits, mask;
+  if (bytepix === 1){ fsbits = 3; fsmax = 6;  bbits = 8;  mask = 0xFF; }
+  else if (bytepix === 2){ fsbits = 4; fsmax = 14; bbits = 16; mask = 0xFFFF; }
+  else { fsbits = 5; fsmax = 25; bbits = 32; mask = 0; }   // 0 = full 32-bit
+
+  var cend = cstart + clen;
+  var c = cstart, i = 0, imax, fs, nzero, diff, k, b, nbits, q;
+
+  var lastpix = 0;
+  for (q = 0; q < bytepix; q++) lastpix = (lastpix << 8) | src[c++];
+  if (bytepix === 4) lastpix = lastpix | 0;                // reinterpret as signed
+
+  b = src[c++];
+  nbits = 8;
+
+  while (i < nx){
+    nbits -= fsbits;
+    while (nbits < 0){ b = ((b << 8) | src[c++]) >>> 0; nbits += 8; }
+    fs = (b >>> nbits) - 1;
+    b &= (1 << nbits) - 1;
+
+    imax = i + nblock;
+    if (imax > nx) imax = nx;
+
+    if (fs < 0){
+      // Whole block identical to the previous pixel.
+      for (; i < imax; i++) out[i] = lastpix;
+    } else if (fs === fsmax){
+      // High entropy: differences written out in full.
+      for (; i < imax; i++){
+        k = bbits - nbits;
+        diff = (b << k) >>> 0;
+        for (k -= 8; k >= 0; k -= 8){
+          b = src[c++];
+          diff = (diff | (b << k)) >>> 0;
+        }
+        if (nbits > 0){
+          b = src[c++];
+          diff = (diff | (b >>> (-k))) >>> 0;
+          b &= (1 << nbits) - 1;
+        } else b = 0;
+
+        if ((diff & 1) === 0) diff = diff >>> 1; else diff = ~(diff >>> 1);
+        lastpix = mask ? ((diff + lastpix) & mask) : ((diff + lastpix) | 0);
+        out[i] = lastpix;
+      }
+    } else {
+      // Normal case: unary high part, then fs low bits.
+      for (; i < imax; i++){
+        while (b === 0){ nbits += 8; b = src[c++]; }
+        nzero = nbits - NONZERO_COUNT[b];
+        nbits -= nzero + 1;
+        b ^= 1 << nbits;                                   // clear the leading one
+        nbits -= fs;
+        while (nbits < 0){ b = ((b << 8) | src[c++]) >>> 0; nbits += 8; }
+        diff = (((nzero << fs) >>> 0) | (b >>> nbits)) >>> 0;
+        b &= (1 << nbits) - 1;
+
+        if ((diff & 1) === 0) diff = diff >>> 1; else diff = ~(diff >>> 1);
+        lastpix = mask ? ((diff + lastpix) & mask) : ((diff + lastpix) | 0);
+        out[i] = lastpix;
+      }
+    }
+    if (c > cend + 4) throw FitsError('cmptype', 'Rice stream ran past the end of its tile');
+  }
+}
+
+var DITHER_ZERO = -2147483647;   // cfitsio sentinel: the pixel was exactly 0.0
+
+function decodeTileCompressed(buffer, hdu, report, stage){
+  var m = hdu.map, tbl = hdu.table;
+  var bytes = new Uint8Array(buffer);
+  var dv = new DataView(buffer);
+
+  var cmp = String(m.ZCMPTYPE || '').trim().toUpperCase();
+  if (cmp !== 'RICE_1') throw FitsError('cmptype', cmp || '(no ZCMPTYPE)');
+
+  var w = m.NAXIS1 | 0, h = m.NAXIS2 | 0;
+  var planes = (m.NAXIS | 0) >= 3 ? (m.NAXIS3 | 0) : 1;
+  if (planes < 1) planes = 1;
+  if (!(w > 0 && h > 0)) throw FitsError('baddims', 'compressed image is ' + w + ' x ' + h);
+
+  var zbitpix = m.BITPIX | 0;
+  var bzero  = (typeof m.BZERO  === 'number') ? m.BZERO  : 0;
+  var bscale = (typeof m.BSCALE === 'number') ? m.BSCALE : 1;
+  if (bscale === 0) bscale = 1;
+
+  var t1 = (m.ZTILE1 | 0) || w, t2 = (m.ZTILE2 | 0) || 1, t3 = (m.ZTILE3 | 0) || 1;
+
+  var blocksize = 32, bytepix = Math.abs(zbitpix) / 8;
+  for (var zi = 1; zi <= 16; zi++){
+    var nm = m['ZNAME' + zi];
+    if (typeof nm !== 'string') continue;
+    nm = nm.trim().toUpperCase();
+    if (nm === 'BLOCKSIZE') blocksize = m['ZVAL' + zi] | 0;
+    else if (nm === 'BYTEPIX') bytepix = m['ZVAL' + zi] | 0;
+  }
+  if (blocksize < 1) blocksize = 32;
+  if (bytepix !== 1 && bytepix !== 2 && bytepix !== 4){
+    throw FitsError('cmptype', 'RICE_1 with BYTEPIX ' + bytepix);
+  }
+
+  // --- binary table layout -----------------------------------------
+  var rowBytes = tbl.NAXIS1 | 0, rows = tbl.NAXIS2 | 0, tfields = tbl.TFIELDS | 0;
+  var col = {}, coff = 0;
+  for (var ci = 1; ci <= tfields; ci++){
+    var cname = String(tbl['TTYPE' + ci] || '').trim().toUpperCase();
+    var cform = String(tbl['TFORM' + ci] || '').trim().toUpperCase();
+    col[cname] = { offset: coff, form: cform, wide: /^\s*\d*\s*Q/.test(cform) };
+    coff += tformBytes(cform);
+  }
+  var cData = col['COMPRESSED_DATA'];
+  var cScale = col['ZSCALE'], cZero = col['ZZERO'];
+  if (!cData) throw FitsError('cmptype', 'the table has no COMPRESSED_DATA column');
+
+  var heap = hdu.dataStart + ((typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows);
+
+  // --- quantisation -------------------------------------------------
+  var quant = String(m.ZQUANTIZ || '').trim().toUpperCase();
+  var ditherMethod = (quant === 'SUBTRACTIVE_DITHER_2') ? 2
+                   : (quant === 'SUBTRACTIVE_DITHER_1') ? 1 : 0;
+  var dither0 = (typeof m.ZDITHER0 === 'number') ? (m.ZDITHER0 | 0) : 0;
+  var quantised = !!(cScale && cZero);
+  var rnd = (quantised && ditherMethod) ? initRandoms() : null;
+
+  // --- tile geometry ------------------------------------------------
+  var tilesX = Math.ceil(w / t1), tilesY = Math.ceil(h / t2), tilesZ = Math.ceil(planes / t3);
+  var expected = tilesX * tilesY * tilesZ;
+  if (rows !== expected){
+    throw FitsError('cmptype', 'table holds ' + rows + ' tiles but the geometry needs ' + expected);
+  }
+
+  var out = new Float32Array(w * h * planes);
+  var idata = new Int32Array(t1 * t2 * t3);
+  var plane = w * h;
+  var scaleIdentity = (bzero === 0 && bscale === 1);
+  var everyN = Math.max(1, Math.floor(rows / 20));
+
+  for (var t = 0; t < rows; t++){
+    if (stage && (t % everyN) === 0) stage('Unpacking Rice tiles', 12 + Math.round(10 * t / rows));
+
+    var rowBase = hdu.dataStart + t * rowBytes;
+    var dp = rowBase + cData.offset;
+    var nelem, hoff;
+    if (cData.wide){
+      nelem = Number(dv.getBigInt64(dp, false));
+      hoff  = Number(dv.getBigInt64(dp + 8, false));
+    } else {
+      nelem = dv.getInt32(dp, false);
+      hoff  = dv.getInt32(dp + 4, false);
+    }
+    if (nelem <= 0){
+      throw FitsError('cmptype', 'tile ' + (t + 1) + ' is not Rice-coded (this .fz mixes in gzip or raw tiles)');
+    }
+
+    var tx = t % tilesX, ty = Math.floor(t / tilesX) % tilesY, tz = Math.floor(t / (tilesX * tilesY));
+    var x0 = tx * t1, y0 = ty * t2, z0 = tz * t3;
+    var nx = Math.min(t1, w - x0), ny = Math.min(t2, h - y0), nz = Math.min(t3, planes - z0);
+    var tileLen = nx * ny * nz;
+
+    riceDecompress(bytes, heap + hoff, nelem, idata, tileLen, blocksize, bytepix);
+
+    var zs = 1, zz = 0, iseed = 0, nextrand = 0;
+    if (quantised){
+      zs = dv.getFloat64(rowBase + cScale.offset, false);
+      zz = dv.getFloat64(rowBase + cZero.offset, false);
+      if (ditherMethod){
+        iseed = (t + dither0 - 1) % N_RANDOM;
+        if (iseed < 0) iseed += N_RANDOM;
+        nextrand = (rnd[iseed] * 500) | 0;
+      }
+    }
+
+    var k = 0;
+    for (var pz = 0; pz < nz; pz++){
+      for (var py = 0; py < ny; py++){
+        var dst = (z0 + pz) * plane + (y0 + py) * w + x0;
+        for (var px = 0; px < nx; px++, k++, dst++){
+          var iv = idata[k], val;
+          if (!quantised){
+            val = iv;
+          } else if (ditherMethod){
+            // Kept in double: ZZERO can be many orders of magnitude larger
+            // than the value it reconstructs, so this subtraction is where
+            // the precision would be lost.
+            val = (ditherMethod === 2 && iv === DITHER_ZERO)
+                ? 0.0
+                : (iv - rnd[nextrand] + 0.5) * zs + zz;
+            nextrand++;
+            if (nextrand === N_RANDOM){
+              iseed++;
+              if (iseed === N_RANDOM) iseed = 0;
+              nextrand = (rnd[iseed] * 500) | 0;
+            }
+          } else {
+            val = iv * zs + zz;
+          }
+          out[dst] = scaleIdentity ? val : (bzero + bscale * val);
+        }
+      }
+    }
+  }
+
+  var kind = (zbitpix > 0 ? zbitpix + '-bit integer' : Math.abs(zbitpix) + '-bit IEEE float') +
+             ', Rice-compressed';
+  var meta = {
+    w: w, h: h, planes: planes, bitpix: zbitpix, bzero: bzero, bscale: bscale, kind: kind,
+    compression: {
+      type: 'RICE_1', tiles: rows, tileDims: [t1, t2, t3], blocksize: blocksize, bytepix: bytepix,
+      quantise: quant || 'none', ditherSeed: dither0, heapStart: heap, tableRowBytes: rowBytes
+    }
+  };
+  normalisePhysical(out, w * h * planes, meta, report);
+  return { data: out, w: w, h: h, planes: planes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Shared tail: measure the physical values, decide the [0,1] mapping,
+ * apply it in place. Both the plain and the compressed reader end here so
+ * that they can never disagree about what the numbers mean.
+ * ------------------------------------------------------------------ */
+function normalisePhysical(phys, n, meta, report){
+  var bitpix = meta.bitpix, bzero = meta.bzero, bscale = meta.bscale;
+  var mn = Infinity, mx = -Infinity, bad = 0, i, v;
+
+  for (i = 0; i < n; i++){
+    v = phys[i];
+    if (!isFinite(v)){ bad++; continue; }
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  if (!isFinite(mn)) throw FitsError('empty', 'the image contains no usable pixel values');
+
+  var lo = 0, hi = 0, div, basis, mode;
+  if (bitpix > 0){
+    // Integers keep their container scale: rescaling by the observed maximum
+    // would be an undeclared stretch.
+    var bot = (bitpix === 8) ? 0 : -Math.pow(2, bitpix - 1);
+    var top = (bitpix === 8) ? 255 : (Math.pow(2, bitpix - 1) - 1);
+    lo = bzero + bscale * bot; hi = bzero + bscale * top;
+    div = (hi - lo) || 1;
+    mode = 'int';
+    basis = 'container range [' + lo + ', ' + hi + ']';
+  } else if (mx <= 1.5){
+    div = 1; lo = 0; mode = 'unit';
+    basis = 'float already normalised to [0,1]';
+  } else if (mx <= 70000){
+    div = 65535; lo = 0; mode = 'float16';
+    basis = 'float on a 16-bit scale (max ' + mx.toFixed(1) + ')';
+  } else {
+    div = mx; lo = 0; mode = 'floatmax';
+    basis = 'float divided by observed maximum ' + mx.toExponential(3);
+  }
+
+  if (!(lo === 0 && div === 1 && bad === 0)){
+    for (i = 0; i < n; i++){
+      v = phys[i];
+      phys[i] = isFinite(v) ? (v - lo) / div : NaN;
+    }
+  }
+
+  var summary = {
+    bitpix: bitpix, kind: meta.kind, bzero: bzero, bscale: bscale,
+    width: meta.w, height: meta.h, planes: meta.planes,
+    rawMin: mn, rawMax: mx, nonFinite: bad,
+    normMin: (mn - lo) / div, normMax: (mx - lo) / div,
+    scaleBasis: basis, scaleMode: mode, scaleLo: lo, scaleHi: hi, scaleDiv: div
+  };
+  if (meta.compression) summary.compression = meta.compression;
+  report(summary);
+  return summary;
+}
+
+// Produces a Float32Array of physical values normalised to roughly [0,1].
+// Reuses the source buffer in place when the data is already 32-bit float.
+function toNormalisedFloat(buffer, hdu, report){
+  var m = hdu.map;
+  var bitpix = m.BITPIX | 0;
+  var bzero  = (typeof m.BZERO  === 'number') ? m.BZERO  : 0;
+  var bscale = (typeof m.BSCALE === 'number') ? m.BSCALE : 1;
+  if (bscale === 0) bscale = 1;
+
+  var w = m.NAXIS1 | 0, h = m.NAXIS2 | 0;
+  var planes = (m.NAXIS | 0) >= 3 ? (m.NAXIS3 | 0) : 1;
+  if (planes < 1) planes = 1;
+  var n = w * h * planes;
+  var start = hdu.dataStart;
+
+  if (!(w > 0 && h > 0)) throw FitsError('baddims', 'image dimensions are not usable (' + w + ' x ' + h + ')');
+
+  var src, kind;
+  if (bitpix === 8){
+    src = new Uint8Array(buffer, start, n);
+    kind = '8-bit unsigned integer';
+  } else if (bitpix === 16){
+    swap16(buffer, start, n);
+    src = new Int16Array(buffer, start, n);
+    kind = (bzero === 32768)
+      ? '16-bit unsigned integer (BZERO 32768)'
+      : (bzero === 0 ? '16-bit signed integer' : '16-bit integer (BZERO ' + bzero + ')');
+  } else if (bitpix === 32){
+    swap32(buffer, start, n);
+    src = new Int32Array(buffer, start, n);
+    kind = '32-bit integer';
+  } else if (bitpix === -32){
+    swap32(buffer, start, n);
+    src = new Float32Array(buffer, start, n);
+    kind = '32-bit IEEE float';
+  } else if (bitpix === -64){
+    swap64(buffer, start, n);
+    src = new Float64Array(buffer, start, n);
+    kind = '64-bit IEEE float';
+  } else {
+    throw FitsError('bitpix', 'unsupported BITPIX value ' + bitpix);
+  }
+
+  // Bring everything onto one physical-value array, then hand it to the same
+  // tail the compressed reader uses. 32-bit float with an identity BZERO/BSCALE
+  // is already that array, so it stays in place — that matters when the file is
+  // hundreds of megabytes.
+  var out;
+  if (bitpix === -32){
+    out = src;
+    if (bzero !== 0 || bscale !== 1){
+      for (var j = 0; j < n; j++) out[j] = bzero + bscale * src[j];
+    }
+  } else {
+    // 64-bit source keeps 64-bit intermediates: physical values can be far
+    // outside [0,1], and rounding them to float32 before normalising would
+    // throw away precision the file actually carries.
+    out = (bitpix === -64) ? new Float64Array(n) : new Float32Array(n);
+    for (var j2 = 0; j2 < n; j2++) out[j2] = bzero + bscale * src[j2];
+  }
+
+  normalisePhysical(out, n, {
+    w: w, h: h, planes: planes, bitpix: bitpix, bzero: bzero, bscale: bscale, kind: kind
+  }, report);
+
+  // Kept separate: the summary is structure-cloned into the diagnostics, and
+  // the pixel array must never ride along with it.
+  return { data: out, w: w, h: h, planes: planes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Row order
+ * ------------------------------------------------------------------ */
+
+function flipRows(data, w, h, planes){
+  var row = new data.constructor(w);
+  for (var p = 0; p < planes; p++){
+    var base = p * w * h;
+    for (var y = 0; y < (h >> 1); y++){
+      var a = base + y * w, b = base + (h - 1 - y) * w;
+      row.set(data.subarray(a, a + w));
+      data.copyWithin(a, b, b + w);
+      data.set(row, b);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Statistics: median and normalised MAD, from histograms
+ * ------------------------------------------------------------------ */
+
+var BINS = 65536;
+
+function cumulativeAt(hist, total, frac){
+  var target = frac * total, acc = 0;
+  for (var i = 0; i < BINS; i++){
+    acc += hist[i];
+    if (acc >= target) return i;
+  }
+  return BINS - 1;
+}
+
+// `stride` subsamples very large planes; median and MAD from several million
+// samples are indistinguishable from the full-frame values, and the sample size
+// is recorded in the diagnostics.
+function analysePlane(data, off, n, stride){
+  stride = stride || 1;
+  var hist = new Uint32Array(BINS), count = 0, nan = 0;
+  var i, v, b;
+
+  for (i = 0; i < n; i += stride){
+    v = data[off + i];
+    if (v !== v){ nan++; continue; }
+    if (v <= 0) b = 0;
+    else if (v >= 1) b = BINS - 1;
+    else b = (v * (BINS - 1)) | 0;
+    hist[b]++; count++;
+  }
+  if (!count) return null;
+
+  var median = cumulativeAt(hist, count, 0.5) / (BINS - 1);
+  var q1 = cumulativeAt(hist, count, 0.25) / (BINS - 1);
+  var q3 = cumulativeAt(hist, count, 0.75) / (BINS - 1);
+
+  // Second pass over deviations, on a range derived from the IQR so the
+  // resolution stays useful even when the MAD is tiny.
+  var span = 3 * (q3 - q1);
+  if (!(span > 0)) span = 1 / (BINS - 1);
+  var dev = new Uint32Array(BINS), dcount = 0;
+  for (i = 0; i < n; i += stride){
+    v = data[off + i];
+    if (v !== v) continue;
+    if (v < 0) v = 0; else if (v > 1) v = 1;
+    var d = Math.abs(v - median);
+    b = d >= span ? BINS - 1 : ((d / span) * (BINS - 1)) | 0;
+    dev[b]++; dcount++;
+  }
+  var mad = cumulativeAt(dev, dcount, 0.5) / (BINS - 1) * span;
+
+  return {
+    median: median, madn: 1.4826 * mad, mad: mad,
+    q1: q1, q3: q3, sampled: count, stride: stride, nan: nan,
+    percentile: function(frac){ return cumulativeAt(hist, count, frac) / (BINS - 1); }
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Colour filter array detection
+ * ------------------------------------------------------------------ */
+
+var PATTERNS = ['RGGB', 'BGGR', 'GRBG', 'GBRG'];
+
+function vflipPattern(p){ return p[2] + p[3] + p[0] + p[1]; }
+function hflipPattern(p){ return p[1] + p[0] + p[3] + p[2]; }
+
+// Median of one 2x2 sub-lattice, via a coarse histogram.
+function latticeMedian(data, w, h, py, px, stride){
+  var hist = new Uint32Array(4096), count = 0;
+  for (var y = py; y < h; y += stride){
+    var row = y * w;
+    for (var x = px; x < w; x += stride){
+      var v = data[row + x];
+      if (v !== v) continue;
+      var b = v <= 0 ? 0 : (v >= 1 ? 4095 : (v * 4095) | 0);
+      hist[b]++; count++;
+    }
+  }
+  if (!count) return 0;
+  var target = count / 2, acc = 0;
+  for (var i = 0; i < 4096; i++){ acc += hist[i]; if (acc >= target) return i / 4095; }
+  return 1;
+}
+
+function detectCFA(data, w, h){
+  var out = {
+    isMosaic: false, evenDims: (w % 2 === 0 && h % 2 === 0),
+    ratioH: 0, ratioV: 0, lattice: [0, 0, 0, 0], greenAxis: null, contrast: 0
+  };
+  if (!out.evenDims) return out;
+
+  // Neighbour-1 vs neighbour-2 absolute differences. On a continuous image the
+  // 2px difference is the larger of the two; on a mosaic it is the smaller.
+  var step = Math.max(2, 2 * Math.floor(Math.sqrt((w * h) / 400000) / 2 + 0.5) || 2);
+  var d1h = 0, d2h = 0, d1v = 0, d2v = 0, nh = 0, nv = 0;
+  var x, y, i, a, b, c;
+
+  for (y = 2; y < h - 2; y += step){
+    for (x = 2; x < w - 4; x += step){
+      i = y * w + x;
+      a = data[i]; b = data[i + 1]; c = data[i + 2];
+      if (a !== a || b !== b || c !== c) continue;
+      d1h += Math.abs(b - a); d2h += Math.abs(c - a); nh++;
+    }
+  }
+  for (y = 2; y < h - 4; y += step){
+    for (x = 2; x < w - 2; x += step){
+      i = y * w + x;
+      a = data[i]; b = data[i + w]; c = data[i + 2 * w];
+      if (a !== a || b !== b || c !== c) continue;
+      d1v += Math.abs(b - a); d2v += Math.abs(c - a); nv++;
+    }
+  }
+  if (!nh || !nv) return out;
+
+  out.ratioH = (d2h > 0) ? (d1h / d2h) : 0;
+  out.ratioV = (d2v > 0) ? (d1v / d2v) : 0;
+
+  var lstride = Math.max(2, 2 * Math.round(Math.sqrt((w * h) / 1000000) / 2) || 2);
+  var m00 = latticeMedian(data, w, h, 0, 0, lstride);
+  var m01 = latticeMedian(data, w, h, 0, 1, lstride);
+  var m10 = latticeMedian(data, w, h, 1, 0, lstride);
+  var m11 = latticeMedian(data, w, h, 1, 1, lstride);
+  out.lattice = [m00, m01, m10, m11];
+
+  var mx = Math.max(m00, m01, m10, m11), mn = Math.min(m00, m01, m10, m11);
+  out.contrast = (mx + mn > 0) ? (mx - mn) / (mx + mn) : 0;
+
+  // The two greens always sit on one of the diagonals; it is the pair whose
+  // medians agree most closely.
+  out.greenAxis = Math.abs(m00 - m11) <= Math.abs(m01 - m10) ? 'main' : 'anti';
+
+  out.isMosaic = (out.ratioH > 1.15 && out.ratioV > 1.15);
+  return out;
+}
+
+function greenAxisOf(pat){
+  return (pat[0] === 'G' && pat[3] === 'G') ? 'main' : 'anti';
+}
+
+// Reconciles the header pattern with what the pixels actually show.
+//
+// Producers disagree about whether BAYERPAT describes the array as stored or
+// the image as displayed, so a row-order flip is deliberately NOT applied to
+// the pattern here. Instead the measured green positions settle it: a vertical
+// mirror is the only transform that moves the greens between the two
+// diagonals, so one comparison absorbs the whole ambiguity. What measurement
+// cannot settle is which of the two non-green sites is red — that distinction
+// only ever comes from the header.
+function resolvePattern(headerPattern, cfa, xoff, yoff){
+  var notes = [];
+  var p = headerPattern;
+
+  if (p){
+    if (xoff % 2){ p = hflipPattern(p); notes.push('XBAYROFF ' + xoff + ' is odd: pattern shifted one column to ' + p); }
+    if (yoff % 2){ p = vflipPattern(p); notes.push('YBAYROFF ' + yoff + ' is odd: pattern shifted one row to ' + p); }
+  }
+
+  var source, corrected = false;
+  if (p && PATTERNS.indexOf(p) >= 0){
+    source = 'header';
+    if (greenAxisOf(p) !== cfa.greenAxis){
+      p = vflipPattern(p);
+      corrected = true;
+      notes.push('green sites measured on the ' + cfa.greenAxis +
+                 ' diagonal; pattern mirrored to ' + p + ' to match');
+    }
+  } else {
+    // No usable BAYERPAT: keep the green positions the pixels actually show
+    // and take the red/blue assignment from the Seestar layout.
+    source = 'inferred';
+    p = (cfa.greenAxis === 'main') ? 'GRBG' : 'RGGB';
+    notes.push('no BAYERPAT keyword; Seestar layout assumed on the measured green axis');
+  }
+  return { pattern: p, source: source, corrected: corrected, notes: notes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Bilinear demosaic
+ * ------------------------------------------------------------------ */
+
+function debayer(src, w, h, pattern){
+  var code = new Int8Array(4);                       // 0 = R, 1 = G, 2 = B
+  for (var k = 0; k < 4; k++) code[k] = pattern[k] === 'R' ? 0 : (pattern[k] === 'B' ? 2 : 1);
+
+  var out = new Float32Array(w * h * 3);
+  var N = w * h;
+
+  function at(x, y){
+    if (x < 0) x = -x; else if (x >= w) x = 2 * w - 2 - x;
+    if (y < 0) y = -y; else if (y >= h) y = 2 * h - 2 - y;
+    var v = src[y * w + x];
+    return v === v ? v : 0;
+  }
+
+  for (var y2 = 0; y2 < h; y2++){
+    var yp = y2 & 1;
+    for (var x2 = 0; x2 < w; x2++){
+      var xp = x2 & 1;
+      var i = y2 * w + x2;
+      var v = src[i]; if (v !== v) v = 0;
+      var c = code[yp * 2 + xp];
+      var r, g, b;
+
+      if (c === 1){
+        g = v;
+        var hAvg = (at(x2 - 1, y2) + at(x2 + 1, y2)) * 0.5;
+        var vAvg = (at(x2, y2 - 1) + at(x2, y2 + 1)) * 0.5;
+        var hColour = code[yp * 2 + (xp ^ 1)];
+        if (hColour === 0){ r = hAvg; b = vAvg; } else { r = vAvg; b = hAvg; }
+      } else {
+        var cross = (at(x2 - 1, y2) + at(x2 + 1, y2) + at(x2, y2 - 1) + at(x2, y2 + 1)) * 0.25;
+        var diag  = (at(x2 - 1, y2 - 1) + at(x2 + 1, y2 - 1) + at(x2 - 1, y2 + 1) + at(x2 + 1, y2 + 1)) * 0.25;
+        g = cross;
+        if (c === 0){ r = v; b = diag; } else { b = v; r = diag; }
+      }
+      out[i] = r; out[N + i] = g; out[2 * N + i] = b;
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Midtones transfer function (PixInsight STF / Siril autostretch)
+ * ------------------------------------------------------------------ */
+
+function MTF(x, m){
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  if (m === 0.5) return x;
+  return ((m - 1) * x) / (((2 * m - 1) * x) - m);
+}
+
+var LUT_BITS = 20, LUT_N = 1 << LUT_BITS;
+
+function buildLUT(midtones){
+  var lut = new Uint8Array(LUT_N), inv = 1 / (LUT_N - 1);
+  for (var i = 0; i < LUT_N; i++){
+    lut[i] = (MTF(i * inv, midtones) * 255 + 0.5) | 0;
+  }
+  return lut;
+}
+
+/* ------------------------------------------------------------------ *
+ * Display downscale (box average)
+ * ------------------------------------------------------------------ */
+
+var MAX_VIEW = 2560;
+
+function downscale(rgba, w, h){
+  var f = Math.ceil(Math.max(w, h) / MAX_VIEW);
+  if (f <= 1) return { data: rgba, w: w, h: h, factor: 1 };
+
+  var dw = Math.max(1, Math.floor(w / f)), dh = Math.max(1, Math.floor(h / f));
+  var out = new Uint8ClampedArray(dw * dh * 4);
+  var area = f * f;
+
+  for (var y = 0; y < dh; y++){
+    for (var x = 0; x < dw; x++){
+      var r = 0, g = 0, b = 0;
+      for (var yy = 0; yy < f; yy++){
+        var row = ((y * f + yy) * w + x * f) * 4;
+        for (var xx = 0; xx < f; xx++){
+          r += rgba[row]; g += rgba[row + 1]; b += rgba[row + 2];
+          row += 4;
+        }
+      }
+      var o = (y * dw + x) * 4;
+      out[o] = r / area; out[o + 1] = g / area; out[o + 2] = b / area; out[o + 3] = 255;
+    }
+  }
+  return { data: out, w: dw, h: dh, factor: f };
+}
+
+/* ------------------------------------------------------------------ *
+ * Log text — the deliverable
+ * ------------------------------------------------------------------ */
+
+// Shown on the first line of every log people paste in public. Set TOOL_URL
+// once the page has a home; while it is empty the line simply names the tool,
+// because a dead link in someone's post is worse than no link at all.
+var TOOL_NAME = 'Stretch';
+var TOOL_URL  = '';
+
+function fx(v, n){
+  if (!isFinite(v)) return 'n/a';
+  return v.toFixed(n === undefined ? 4 : n);
+}
+function pad(s, n){ s = String(s); while (s.length < n) s += ' '; return s; }
+
+function buildLog(ctx){
+  var L = [];
+  var d = ctx.decoded, cfa = ctx.cfa, st = ctx.stretch, ch = ctx.channels;
+
+  L.push('Processed with ' + TOOL_NAME + ', a one-page FITS autostretch that runs in the browser' +
+         (TOOL_URL ? ': ' + TOOL_URL : '.'));
+  L.push('Nothing was uploaded. The file never left this machine.');
+  L.push('');
+  L.push('Processing log — ' + ctx.fileName);
+  L.push(d.width + ' × ' + d.height + ' · ' +
+         (d.bitpix > 0 ? d.bitpix + '-bit integer' : Math.abs(d.bitpix) + '-bit float') + ' · ' +
+         (ctx.outChannels === 3 ? '3 channels' : 'monochrome') + ' · ' + ctx.date);
+  L.push('');
+
+  // --- read -------------------------------------------------------
+  var rowNote;
+  if (ctx.rowOrder === 'TOP-DOWN') rowNote = 'rows stored top-down';
+  else if (ctx.rowOrder === 'BOTTOM-UP') rowNote = 'rows stored bottom-up and flipped back the right way up';
+  else rowNote = 'no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up';
+
+  var span = fx(d.normMin, 5) + ' to ' + fx(d.normMax, 5);
+  var valueNote;
+  if (d.scaleMode === 'unit'){
+    valueNote = 'Pixel values were already on a 0–1 scale, and the data spans ' + span + '.';
+  } else if (d.scaleMode === 'int'){
+    valueNote = 'Pixel values rescaled onto 0–1 from the ' + d.scaleLo + ' to ' + d.scaleHi +
+                ' range they were stored in, where the data spans ' + span + '.';
+  } else if (d.scaleMode === 'float16'){
+    valueNote = 'Pixel values divided down onto 0–1 from the 16-bit scale they were written on, ' +
+                'where the data spans ' + span + '.';
+  } else {
+    valueNote = 'Pixel values divided onto 0–1 by the largest value in the frame, ' +
+                d.scaleDiv.toExponential(3) + ', where the data spans ' + span + '.';
+  }
+
+  L.push('• Read the FITS: ' + d.kind + ', ' +
+         (d.planes === 1 ? 'one image plane' : d.planes + ' image planes') + ', ' + rowNote + '. ' + valueNote +
+         (d.nonFinite ? ' ' + d.nonFinite.toLocaleString('en-US') +
+            ' non-finite pixels were left out of every measurement.' : ''));
+
+  if (d.compression){
+    var cz = d.compression;
+    L.push('• The file arrived Rice-compressed (.fz): unpacked ' + cz.tiles.toLocaleString('en-US') +
+           ' tiles of ' + cz.tileDims.join(' × ') + ', block size ' + cz.blocksize + ', ' +
+           cz.bytepix + ' bytes per stored value' +
+           (cz.quantise && cz.quantise !== 'none'
+              ? ', then reversed the ' + cz.quantise + ' quantisation (dither seed ' + cz.ditherSeed +
+                ') back to floating point. That quantisation was applied when the .fz was packed, not here.'
+              : '.'));
+  }
+
+  // --- CFA --------------------------------------------------------
+  if (d.planes >= 3){
+    L.push('• No colour filter array: the file carries ' + d.planes +
+           ' separate colour planes (NAXIS3 = ' + d.planes + ') and is already demosaiced. No debayer applied.');
+  } else if (!cfa || !cfa.isMosaic){
+    var why;
+    if (cfa && !cfa.evenDims) why = 'odd frame dimensions rule out a 2×2 mosaic';
+    else if (cfa && cfa.stackedHistory) why = 'the header records stacking or registration, which leaves no mosaic to recover, and no BAYERPAT is present';
+    else why = 'the 2×2 lattice test found no mosaic (neighbour ratio ' +
+               fx(cfa ? cfa.ratioH : 0, 2) + ' H / ' + fx(cfa ? cfa.ratioV : 0, 2) +
+               ' V, where a mosaic reads above 1.15)';
+    L.push('• No colour filter array detected: ' + why + '. Treated as monochrome, no debayer applied.');
+  } else {
+    var head;
+    if (ctx.pattern.source === 'header'){
+      head = 'Colour filter array: BAYERPAT = ' + ctx.headerPattern + ' read from the header';
+      head += ctx.pattern.corrected
+        ? ', mirrored to ' + ctx.pattern.pattern + ' so the green sites line up with the ' +
+          cfa.greenAxis + ' diagonal the pixels actually show'
+        : ', and its green sites already match the ' + cfa.greenAxis +
+          ' diagonal the pixels show';
+    } else {
+      head = 'Colour filter array found by the 2×2 lattice test, but the file carries no BAYERPAT keyword. Pattern inferred as ' +
+             ctx.pattern.pattern + ' (Seestar S30/S50 layout) from the measured green positions — inferred, not read from the header';
+    }
+    L.push('• ' + head + '. Measured lattice contrast ' + fx(cfa.contrast * 100, 1) +
+           '%, neighbour ratio ' + fx(cfa.ratioH, 2) + ' H / ' + fx(cfa.ratioV, 2) + ' V.');
+    L.push('• Debayered with bilinear interpolation to full-resolution RGB.');
+  }
+
+  // --- linearity --------------------------------------------------
+  if (st.nonLinear){
+    var reasons = [];
+    if (st.historyHits.length) reasons.push('the header records ' + st.historyHits.join(' and '));
+    reasons.push('the measured median sits at ' + fx(st.globalMedian, 4));
+    L.push('• Data is already non-linear: ' + reasons.join(', ') +
+           '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
+           '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.');
+  } else {
+    L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
+           ', no stretch recorded in the header. Full autostretch applied.');
+  }
+
+  // --- stretch ----------------------------------------------------
+  L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
+         (st.nonLinear
+            ? 'target background held at each channel’s own median'
+            : 'shadow clip ' + fx(st.shadowSigma, 2) + 'σ, target background ' + fx(st.target, 2)) +
+         ', applied per channel (unlinked). Highlights untouched at 1.000.');
+
+  var names = ctx.outChannels === 3 ? ['R', 'G', 'B'] : ['L'];
+  for (var i = 0; i < ch.length; i++){
+    var c = ch[i];
+    L.push('    ' + names[i] +
+           '  median ' + pad(fx(c.median, 5), 9) +
+           'MADN ' + pad(fx(c.madn, 5), 9) +
+           '→  shadows ' + pad(fx(c.shadows, 5), 9) +
+           'midtones ' + fx(c.midtones, 5));
+  }
+
+  var clipped = 0, total = 0;
+  for (i = 0; i < ch.length; i++){
+    clipped += ch[i].outLow + ch[i].outHigh;
+    total += ch[i].totalPixels;
+  }
+  if (total > 0){
+    L.push('    ' + fx(100 * clipped / total, 3) + '% of pixels land on pure black or pure white after the transfer.');
+  }
+
+  // --- output -----------------------------------------------------
+  L.push('• Output: 8-bit sRGB' + (ctx.exportScaled
+      ? ', downscaled to ' + ctx.exportW + ' × ' + ctx.exportH + ' (this browser cannot allocate a canvas at full size)'
+      : ', full resolution, no resampling') + '.');
+  L.push('• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.');
+  L.push('');
+  L.push('Every number above was measured from the file itself.');
+
+  return L.join('\n');
+}
+
+/* ------------------------------------------------------------------ *
+ * Pipeline
+ * ------------------------------------------------------------------ */
+
+var STRETCH_HISTORY = [
+  [/autostretch/i,            'Autostretch'],
+  [/histogram\s*transf/i,     'Histogram Transf.'],
+  [/asinh/i,                  'Asinh stretch'],
+  [/generalised hyperbolic|generalized hyperbolic|\bGHS\b/i, 'GHS'],
+  [/midtone/i,                'Midtones transfer'],
+  [/\bcurves?\b/i,            'Curves'],
+  [/modasinh|autostretch/i,   'Autostretch']
+];
+
+// `opts.now` is the only reading of the wall clock the log depends on. It is a
+// parameter so that a reference capture can pin it: with the clock read inline,
+// the log carried the day it was produced and no golden could stay byte-exact
+// past midnight. Nothing else changes — an ordinary run passes no opts and gets
+// the clock.
+async function runPipeline(buffer, fileName, post, opts){
+  opts = opts || {};
+  var now = opts.now ? new Date(opts.now) : new Date();
+
+  var t0 = Date.now(), timings = {};
+  function mark(name, from){ timings[name] = Date.now() - from; }
+  function stage(label, pct){ post({ type: 'progress', stage: label, pct: pct }); }
+
+  var step = Date.now();
+  stage('Reading FITS header', 4);
+  var hdu = findImageHDU(buffer);
+  mark('header', step);
+
+  await yieldNow();
+  step = Date.now();
+  var decodedInfo = null;
+  var keep = function(info){ decodedInfo = info; };
+  var dec;
+  if (hdu.compressed){
+    stage('Unpacking Rice tiles', 12);
+    dec = decodeTileCompressed(buffer, hdu, keep, stage);
+  } else {
+    stage('Decoding pixel data', 12);
+    dec = toNormalisedFloat(buffer, hdu, keep);
+  }
+  mark('decode', step);
+
+  var w = dec.w, h = dec.h, planes = dec.planes;
+  var m = hdu.map;
+
+  // Row order --------------------------------------------------------
+  var rowOrder = (typeof m.ROWORDER === 'string') ? m.ROWORDER.trim().toUpperCase() : null;
+  var flipped = (rowOrder !== 'TOP-DOWN');   // absent means the FITS default, BOTTOM-UP
+  if (flipped){
+    await yieldNow();
+    step = Date.now();
+    stage('Correcting row order', 22);
+    flipRows(dec.data, w, h, planes);
+    mark('roworder', step);
+  }
+
+  // Colour filter array ----------------------------------------------
+  var data = dec.data;
+  var outChannels = 1, cfa = null, patternInfo = null, headerPattern = null;
+
+  if (planes >= 3){
+    outChannels = 3;
+  } else {
+    await yieldNow();
+    step = Date.now();
+    stage('Testing for a Bayer mosaic', 32);
+
+    var stackedBefore = hdu.history.some(function(l){
+      return /debayer|demosaic|stack|drizzle|registration|register/i.test(l);
+    });
+
+    var bp = (typeof m.BAYERPAT === 'string') ? m.BAYERPAT.trim().toUpperCase() : null;
+    headerPattern = (bp && PATTERNS.indexOf(bp) >= 0) ? bp : null;
+
+    cfa = detectCFA(data, w, h);
+    cfa.stackedHistory = stackedBefore;
+    cfa.headerDeclared = !!headerPattern;
+    cfa.trustedHeader = false;
+
+    // BAYERPAT is the strong evidence and is not overruled by statistics. The
+    // lattice tests exist to catch a mosaic whose keyword was stripped, and to
+    // settle which diagonal the greens sit on once row order has been applied.
+    // A real 10-second sub-frame carries only a couple of percent of lattice
+    // contrast beneath a per-pixel noise floor several times larger, so the
+    // neighbour-ratio test cannot see it — vetoing the header on that basis
+    // renders colour frames as grey mosaics.
+    if (headerPattern && cfa.evenDims && !stackedBefore){
+      cfa.isMosaic = true;
+      cfa.trustedHeader = true;
+    }
+    mark('cfa', step);
+
+    if (cfa.isMosaic){
+      patternInfo = resolvePattern(headerPattern, cfa, (m.XBAYROFF | 0), (m.YBAYROFF | 0));
+
+      await yieldNow();
+      step = Date.now();
+      stage('Debayering', 42);
+      data = debayer(data, w, h, patternInfo.pattern);
+      outChannels = 3;
+      mark('debayer', step);
+    }
+  }
+
+  var N = w * h;
+
+  // Statistics --------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  stage('Measuring median and MAD', 56);
+  var statStride = Math.max(1, Math.ceil(N / 8000000));
+  var channels = [];
+  for (var c = 0; c < outChannels; c++){
+    var s = analysePlane(data, c * N, N, statStride);
+    if (!s) throw FitsError('empty', 'channel ' + c + ' has no usable pixels');
+    s.totalPixels = N;
+    channels.push(s);
+  }
+  mark('stats', step);
+
+  // Linearity ---------------------------------------------------------
+  var globalMedian = 0;
+  for (c = 0; c < channels.length; c++) globalMedian += channels[c].median;
+  globalMedian /= channels.length;
+
+  var historyHits = [];
+  for (var hi = 0; hi < STRETCH_HISTORY.length; hi++){
+    var rule = STRETCH_HISTORY[hi];
+    if (historyHits.indexOf(rule[1]) >= 0) continue;
+    for (var li = 0; li < hdu.history.length; li++){
+      if (rule[0].test(hdu.history[li])){ historyHits.push(rule[1]); break; }
+    }
+  }
+  var nonLinear = (globalMedian >= 0.05) || (historyHits.length > 0 && globalMedian >= 0.02);
+
+  var SHADOW_SIGMA = -2.80, TARGET = 0.25, BLACK_PCT = 0.0005;
+
+  // Transfer ----------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  stage('Applying autostretch', 68);
+
+  var luts = [];
+  for (c = 0; c < channels.length; c++){
+    var st = channels[c];
+    var shadows, target;
+
+    if (nonLinear){
+      shadows = st.percentile(BLACK_PCT);
+      target = Math.min(0.6, Math.max(0.02, st.median));
+    } else {
+      shadows = st.median + SHADOW_SIGMA * st.madn;
+      target = TARGET;
+    }
+    if (!(shadows >= 0)) shadows = 0;
+    if (shadows >= st.median) shadows = Math.max(0, st.median * 0.5);
+    if (shadows >= 1) shadows = 0;
+
+    var x = (st.median - shadows) / (1 - shadows);
+    var midtones = (st.madn > 0 && x > 0 && x < 1) ? MTF(x, target) : 0.5;
+    if (!(midtones > 0 && midtones < 1)) midtones = 0.5;
+
+    st.shadows = shadows;
+    st.midtones = midtones;
+    st.target = target;
+    st.scale = 1 / (1 - shadows);
+    st.outLow = 0; st.outHigh = 0;
+    luts.push(buildLUT(midtones));
+  }
+
+  var rgba = new Uint8ClampedArray(N * 4);
+  var LMAX = LUT_N - 1;
+
+  for (c = 0; c < channels.length; c++){
+    var stc = channels[c];
+    var lut = luts[c], sh = stc.shadows, sc = stc.scale, base = c * N;
+    var low = 0, high = 0;
+    for (var i = 0; i < N; i++){
+      var v = data[base + i];
+      if (v !== v) v = 0;
+      var u = (v - sh) * sc;
+      var out;
+      if (u <= 0){ out = 0; low++; }
+      else if (u >= 1){ out = 255; high++; }
+      else out = lut[(u * LMAX) | 0];
+      var o = i * 4 + c;
+      rgba[o] = out;
+      if (channels.length === 1){ rgba[o + 1] = out; rgba[o + 2] = out; }
+    }
+    stc.outLow = low; stc.outHigh = high;
+  }
+  for (i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+  mark('transfer', step);
+
+  // Display copy ------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  stage('Rendering', 88);
+  var view = downscale(rgba, w, h);
+  mark('downscale', step);
+
+  // Log ---------------------------------------------------------------
+  var ctx = {
+    fileName: fileName,
+    date: now.toISOString().slice(0, 10),
+    decoded: decodedInfo,
+    rowOrder: rowOrder,
+    cfa: cfa,
+    headerPattern: headerPattern,
+    pattern: patternInfo || { pattern: null, source: null, corrected: false, notes: [] },
+    outChannels: outChannels,
+    channels: channels,
+    exportScaled: false, exportW: w, exportH: h,
+    stretch: {
+      nonLinear: nonLinear, globalMedian: globalMedian, historyHits: historyHits,
+      shadowSigma: SHADOW_SIGMA, target: TARGET, blackPercentile: BLACK_PCT
+    }
+  };
+  var log = buildLog(ctx);
+
+  timings.total = Date.now() - t0;
+
+  var diag = {
+    file: fileName,
+    hduIndex: hdu.index,
+    dataStart: hdu.dataStart,
+    header: {
+      BITPIX: m.BITPIX, NAXIS: m.NAXIS, NAXIS1: m.NAXIS1, NAXIS2: m.NAXIS2, NAXIS3: m.NAXIS3,
+      BZERO: m.BZERO, BSCALE: m.BSCALE, ROWORDER: m.ROWORDER, BAYERPAT: m.BAYERPAT,
+      XBAYROFF: m.XBAYROFF, YBAYROFF: m.YBAYROFF, PROGRAM: m.PROGRAM, INSTRUME: m.INSTRUME,
+      CREATOR: m.CREATOR, TELESCOP: m.TELESCOP,
+      OBJECT: m.OBJECT, STACKCNT: m.STACKCNT, EXPTIME: m.EXPTIME,
+      compressedHDU: !!hdu.compressed,
+      ZCMPTYPE: m.ZCMPTYPE, ZQUANTIZ: m.ZQUANTIZ, ZDITHER0: m.ZDITHER0,
+      ZBITPIX: m.ZBITPIX, ZTILE: hdu.compressed ? [m.ZTILE1, m.ZTILE2, m.ZTILE3] : undefined,
+      tableNAXIS1: hdu.table ? hdu.table.NAXIS1 : undefined,
+      tableNAXIS2: hdu.table ? hdu.table.NAXIS2 : undefined,
+      tablePCOUNT: hdu.table ? hdu.table.PCOUNT : undefined
+    },
+    decoded: decodedInfo,
+    rowOrder: { keyword: rowOrder, flipApplied: flipped },
+    cfa: cfa ? {
+      evenDims: cfa.evenDims, isMosaic: cfa.isMosaic,
+      headerDeclared: cfa.headerDeclared, trustedHeader: cfa.trustedHeader,
+      decidedBy: cfa.trustedHeader ? 'BAYERPAT keyword (statistics used only for the green axis)'
+                                   : 'lattice statistics (no usable BAYERPAT)',
+      ratioH: cfa.ratioH, ratioV: cfa.ratioV, threshold: 1.15,
+      latticeMedians: { r0c0: cfa.lattice[0], r0c1: cfa.lattice[1], r1c0: cfa.lattice[2], r1c1: cfa.lattice[3] },
+      latticeContrast: cfa.contrast, greenAxis: cfa.greenAxis,
+      stackedHistory: cfa.stackedHistory
+    } : 'skipped — file already has ' + planes + ' planes',
+    pattern: patternInfo || 'no debayer',
+    linearity: {
+      globalMedian: globalMedian, historyHits: historyHits,
+      rule: 'nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)',
+      verdict: nonLinear ? 'NON-LINEAR — reduced stretch' : 'LINEAR — full autostretch'
+    },
+    channels: channels.map(function(s, idx){
+      return {
+        channel: outChannels === 1 ? 'L' : ['R', 'G', 'B'][idx],
+        median: s.median, madn: s.madn, q1: s.q1, q3: s.q3,
+        shadows: s.shadows, midtones: s.midtones, target: s.target,
+        pixelsBlack: s.outLow, pixelsWhite: s.outHigh,
+        totalPixels: s.totalPixels, statSamples: s.sampled, statStride: s.stride, nonFinite: s.nan
+      };
+    }),
+    view: { width: view.w, height: view.h, downscaleFactor: view.factor },
+    timingsMs: timings,
+    historyCards: hdu.history,
+    allCards: hdu.cards
+  };
+
+  // A tile-compressed file can be handed back as a plain FITS. What goes out is
+  // the linear, pre-stretch, pre-debayer data — the thing the .fz actually
+  // holds — so Siril receives the file it would have had if the frame had never
+  // been packed. `dec.data` survives the debayer (which allocates its own
+  // output) and any row flip is undone at write time.
+  var fitsMeta = null, fitsBuffer = null;
+  if (hdu.compressed){
+    fitsMeta = {
+      cards: hdu.cards,
+      bitpix: decodedInfo.bitpix, bzero: decodedInfo.bzero, bscale: decodedInfo.bscale,
+      width: w, height: h, planes: planes,
+      flipApplied: flipped,
+      scaleLo: decodedInfo.scaleLo, scaleDiv: decodedInfo.scaleDiv,
+      cmptype: (decodedInfo.compression && decodedInfo.compression.type) || 'tile'
+    };
+    fitsBuffer = dec.data.buffer;
+  }
+
+  var transfer = (view.factor === 1) ? [view.data.buffer] : [view.data.buffer, rgba.buffer];
+  if (fitsBuffer) transfer.push(fitsBuffer);
+
+  post({
+    type: 'done',
+    log: log,
+    width: w, height: h,
+    view: { w: view.w, h: view.h, factor: view.factor },
+    viewData: view.data.buffer,
+    fullData: (view.factor === 1) ? null : rgba.buffer,
+    fitsMeta: fitsMeta,
+    fitsData: fitsBuffer,
+    diag: diag
+  }, transfer);
+}
+
+/* ------------------------------------------------------------------ *
+ * Message protocol — identical in worker and main-thread fallback
+ * ------------------------------------------------------------------ */
+
+self.onmessage = function(ev){
+  var msg = ev.data;
+  runPipeline(msg.buffer, msg.fileName, function(payload, transfer){
+    self.postMessage(payload, transfer || []);
+  }, msg.opts).catch(function(e){
+    self.postMessage({ type: 'error', kind: e.kind || 'unknown', message: String(e && e.message || e) });
+  });
+};
+
+// Handshake: the host waits for this before handing over the file buffer, so a
+// worker that cannot start never costs us the (already transferred) data.
+self.postMessage({ type: 'ready' });
+</script>
+
+<script>
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ * Elements
+ * ------------------------------------------------------------------ */
+var $ = function(id){ return document.getElementById(id); };
+var elDrop = $('drop'), elZone = $('zone'), elPicker = $('picker');
+var elBusy = $('busy'), elStage = $('stage'), elBar = $('barfill'), elNote = $('busynote');
+var elOut = $('out'), elView = $('view'), elLog = $('logtext');
+var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
+var elDiag = $('diag'), elDiagBody = $('diagbody');
+var elToast = $('toast');
+
+var state = { log: '', diag: null, full: null, view: null, w: 0, h: 0, name: '' };
+
+/* ------------------------------------------------------------------ *
+ * Friendly errors
+ * ------------------------------------------------------------------ */
+var ERRORS = {
+  notfits:    ['This is not a FITS file',
+               'The file does not begin with a FITS header. If it came out of a camera or a stacker, make sure you picked the .fit or .fits file and not a preview JPEG.'],
+  compressed: ['This FITS file is compressed',
+               'It uses tile compression (the ZIMAGE convention, usually a .fz file). Unpack it first — funpack, or "Save as" an uncompressed FITS from Siril — and drop it again.'],
+  cmptype:    ['This .fz uses a compression this page cannot unpack',
+               'Rice compression (RICE_1), which is what Siril and fpack write by default, is supported. This file uses something else. Running funpack on it, or re-saving it uncompressed from Siril, will produce a file that works.'],
+  noimage:    ['No image inside this file',
+               'The FITS is valid but every part of it is a table or an empty placeholder. There is no picture to stretch.'],
+  truncated:  ['This file looks incomplete',
+               'The header promises more pixel data than the file actually contains. It was probably cut short while being copied or downloaded.'],
+  bitpix:     ['Unusual pixel format',
+               'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
+  baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
+  empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
+  memory:     ['Not enough memory for this image',
+               'The file is larger than this browser can hold. A desktop browser with more memory will usually manage it.'],
+  unknown:    ['Something went wrong reading this file',
+               'The file could not be processed. If it opens correctly in Siril, it is worth reporting.']
+};
+
+function showError(kind, detail){
+  var e = ERRORS[kind] || ERRORS.unknown;
+  elErrTitle.textContent = e[0];
+  elErrBody.textContent = e[1] + (detail ? '  (' + detail + ')' : '');
+  elBusy.classList.remove('on');
+  elDrop.classList.add('hide');
+  elOut.classList.remove('on');
+  elErr.classList.add('on');
+}
+
+function toast(text){
+  elToast.textContent = text;
+  elToast.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ elToast.classList.remove('on'); }, 1900);
+}
+
+/* ------------------------------------------------------------------ *
+ * Runner — worker when possible, same source inline when not
+ * ------------------------------------------------------------------ */
+var pipelineSrc = $('pipeline-src').textContent;
+
+function startWorker(){
+  try {
+    var url = URL.createObjectURL(new Blob([pipelineSrc], { type: 'text/javascript' }));
+    var w = new Worker(url);
+    URL.revokeObjectURL(url);
+    return w;
+  } catch (e){
+    return null;
+  }
+}
+
+// Main-thread stand-in exposing the same surface the pipeline expects.
+function startInline(onMessage){
+  var shim = { onmessage: null, postMessage: function(p){ onMessage({ data: p }); } };
+  try {
+    new Function('self', pipelineSrc)(shim);
+  } catch (e){
+    return null;
+  }
+  return {
+    postMessage: function(msg){
+      setTimeout(function(){ shim.onmessage({ data: msg }); }, 0);
+    },
+    terminate: function(){}
+  };
+}
+
+var runner = null, runnerIsWorker = false;
+
+function process(buffer, fileName, byteSize, opts){
+  elErr.classList.remove('on');
+  elOut.classList.remove('on');
+  elDrop.classList.add('hide');
+  elBusy.classList.add('on');
+  elStage.textContent = 'Reading file';
+  elBar.style.width = '2%';
+  elNote.textContent = byteSize > 60 * 1024 * 1024
+    ? (byteSize / 1048576).toFixed(0) + ' MB — large frames take a few seconds'
+    : '';
+
+  if (runner) { try { runner.terminate(); } catch (e){} runner = null; }
+
+  function onMessage(ev){
+    var m = ev.data;
+    if (!m || m.type === 'ready') return;
+    if (m.type === 'progress'){
+      elStage.textContent = m.stage;
+      elBar.style.width = m.pct + '%';
+    } else if (m.type === 'error'){
+      showError(m.kind, runnerIsWorker ? '' : m.message);
+    } else if (m.type === 'done'){
+      elBar.style.width = '100%';
+      finish(m);
+    }
+  }
+
+  var settled = false;
+
+  function send(){
+    try {
+      // The buffer is handed over only once the executor has proved it is
+      // alive; transferring it earlier would leave nothing to retry with.
+      runner.postMessage({ buffer: buffer, fileName: fileName, opts: opts || null },
+                         runnerIsWorker ? [buffer] : undefined);
+    } catch (e){
+      showError('memory', String(e && e.message || e));
+    }
+  }
+
+  function goInline(){
+    runnerIsWorker = false;
+    runner = startInline(onMessage);
+    if (!runner) { showError('unknown', 'no execution context available'); return; }
+    send();
+  }
+
+  var w = startWorker();
+  if (!w){ goInline(); return; }
+
+  runner = w;
+  runnerIsWorker = true;
+
+  w.onmessage = function(ev){
+    if (ev.data && ev.data.type === 'ready'){
+      if (settled) return;
+      settled = true;
+      send();
+      return;
+    }
+    onMessage(ev);
+  };
+  w.onerror = function(){
+    if (settled){ showError('unknown', 'the worker stopped unexpectedly'); return; }
+    settled = true;
+    try { w.terminate(); } catch (e){}
+    goInline();                       // blob workers are blocked on file://
+  };
+  setTimeout(function(){
+    if (settled) return;
+    settled = true;
+    try { w.terminate(); } catch (e){}
+    goInline();
+  }, 2000);
+}
+
+function finish(m){
+  state.log = m.log;
+  state.diag = m.diag;
+  state.w = m.width;
+  state.h = m.height;
+  state.view = { data: new Uint8ClampedArray(m.viewData), w: m.view.w, h: m.view.h };
+  state.full = m.fullData ? new Uint8ClampedArray(m.fullData) : null;
+  state.fitsMeta = m.fitsMeta || null;
+  state.fitsData = m.fitsData ? new Float32Array(m.fitsData) : null;
+
+  var canFits = !!(state.fitsMeta && state.fitsData);
+  $('dlfits').hidden = !canFits;
+  $('fitshint').hidden = !canFits;
+
+  elView.width = state.view.w;
+  elView.height = state.view.h;
+  elView.getContext('2d').putImageData(new ImageData(state.view.data, state.view.w, state.view.h), 0, 0);
+
+  $('outname').textContent = state.name;
+  $('outdims').textContent = m.width + ' × ' + m.height +
+    (m.view.factor > 1 ? '  (shown at 1/' + m.view.factor + ')' : '');
+  elLog.textContent = state.log;
+
+  elBusy.classList.remove('on');
+  elOut.classList.add('on');
+  renderDiag();
+}
+
+/* ------------------------------------------------------------------ *
+ * Input
+ * ------------------------------------------------------------------ */
+function handleFile(file){
+  var name = file.name || 'image.fit';
+  state.name = name;
+  file.arrayBuffer().then(function(buf){
+    process(buf, name, file.size);
+  }).catch(function(e){
+    showError('memory', String(e && e.message || e));
+  });
+}
+
+elZone.addEventListener('click', function(){ elPicker.click(); });
+elPicker.addEventListener('change', function(){
+  if (elPicker.files && elPicker.files[0]) handleFile(elPicker.files[0]);
+});
+
+['dragenter', 'dragover'].forEach(function(t){
+  window.addEventListener(t, function(e){ e.preventDefault(); document.body.classList.add('dragging'); });
+});
+['dragleave', 'drop'].forEach(function(t){
+  window.addEventListener(t, function(e){
+    e.preventDefault();
+    if (t === 'dragleave' && e.relatedTarget) return;
+    document.body.classList.remove('dragging');
+  });
+});
+window.addEventListener('drop', function(e){
+  e.preventDefault();
+  var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+function reset(){
+  elOut.classList.remove('on');
+  elErr.classList.remove('on');
+  elBusy.classList.remove('on');
+  elDrop.classList.remove('hide');
+  elPicker.value = '';
+}
+$('reset').addEventListener('click', reset);
+$('errback').addEventListener('click', reset);
+
+/* ------------------------------------------------------------------ *
+ * Outputs
+ * ------------------------------------------------------------------ */
+$('copylog').addEventListener('click', function(){
+  var text = state.log;
+  if (!text) return;
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Processing log copied'); }
+    catch (e){ toast('Could not copy — select the text instead'); }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast('Processing log copied'); }, fallback);
+  } else fallback();
+});
+
+$('dlpng').addEventListener('click', function(){
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Preparing PNG…';
+
+  setTimeout(function(){
+    var data, w, h, scaled = false;
+    if (state.full){ data = state.full; w = state.w; h = state.h; }
+    else { data = state.view.data; w = state.view.w; h = state.view.h; scaled = (w !== state.w); }
+
+    var canvas, ctx;
+    try {
+      canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      ctx = canvas.getContext('2d');
+      ctx.putImageData(new ImageData(data, w, h), 0, 0);
+    } catch (e){
+      // Canvas too large for this browser — fall back to the display copy.
+      data = state.view.data; w = state.view.w; h = state.view.h; scaled = true;
+      canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      ctx = canvas.getContext('2d');
+      ctx.putImageData(new ImageData(data, w, h), 0, 0);
+    }
+
+    canvas.toBlob(function(blob){
+      if (!blob){
+        toast('This browser could not encode a PNG that large');
+        btn.disabled = false; btn.textContent = 'Download PNG';
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = state.name.replace(/\.(fits?|fts)$/i, '') + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      btn.disabled = false;
+      btn.textContent = 'Download PNG';
+      if (scaled) toast('Exported at ' + w + ' × ' + h + ' — full size exceeded this browser');
+    }, 'image/png');
+  }, 30);
+});
+
+$('dlfits').addEventListener('click', function(){
+  if (!state.fitsMeta || !state.fitsData) return;
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Writing FITS…';
+
+  setTimeout(function(){
+    var blob;
+    try {
+      blob = buildFitsBlob(state.fitsMeta, state.fitsData);
+    } catch (e){
+      toast('Could not write the FITS — the image is too large for this browser');
+      btn.disabled = false; btn.textContent = 'Download uncompressed FITS';
+      return;
+    }
+    // r_stack.fit.fz -> r_stack.fit ; anything else gains a .fit
+    var name = state.name.replace(/\.(fz|gz)$/i, '');
+    if (!/\.(fits?|fts)$/i.test(name)) name += '.fit';
+
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 8000);
+    btn.disabled = false;
+    btn.textContent = 'Download uncompressed FITS';
+    toast('Wrote ' + name + ' — ' + (blob.size / 1048576).toFixed(0) + ' MB');
+  }, 30);
+});
+
+/* ------------------------------------------------------------------ *
+ * Writing an uncompressed FITS back out
+ *
+ * Everything describing the container or the compression is rebuilt; every
+ * keyword describing the observation is carried across untouched, because
+ * that is what Siril reads to know the scope, the sensor and the CFA.
+ * ------------------------------------------------------------------ */
+
+function isStructuralKey(key){
+  if (/^(SIMPLE|XTENSION|BITPIX|EXTEND|PCOUNT|GCOUNT|TFIELDS|THEAP|BZERO|BSCALE|END|CHECKSUM|DATASUM)$/.test(key)) return true;
+  if (/^NAXIS\d*$/.test(key)) return true;
+  if (/^(TTYPE|TFORM|TDIM|TUNIT|TSCAL|TZERO|TNULL|TDISP)\d+$/.test(key)) return true;
+  if (/^(ZIMAGE|ZSIMPLE|ZBITPIX|ZEXTEND|ZPCOUNT|ZGCOUNT|ZTENSION|ZCMPTYPE|ZQUANTIZ|ZDITHER0|ZMASKCMP|ZBLANK|ZHECKSUM|ZDATASUM|ZTHEAP)$/.test(key)) return true;
+  if (/^(ZNAXIS|ZTILE|ZNAME|ZVAL)\d*$/.test(key)) return true;
+  return false;
+}
+
+function fitsCard(key, value, comment){
+  var body;
+  if (typeof value === 'string'){
+    var s = value.length < 8 ? (value + '        ').slice(0, 8) : value;
+    body = "'" + s + "'";
+    while (body.length < 20) body += ' ';
+  } else {
+    body = (value === true) ? 'T' : (value === false) ? 'F' : String(value);
+    while (body.length < 20) body = ' ' + body;
+  }
+  var card = (key + '        ').slice(0, 8) + '= ' + body;
+  if (comment) card += ' / ' + comment;
+  return (card + '                                                                                ').slice(0, 80);
+}
+
+function padCard(text){
+  return (text + '                                                                                ').slice(0, 80);
+}
+
+// A card is 80 bytes and "HISTORY " eats 8 of them, so long text is wrapped on
+// word boundaries rather than silently cut mid-word.
+function historyCards(text){
+  var out = [], words = text.split(' '), line = '';
+  for (var i = 0; i < words.length; i++){
+    var next = line ? line + ' ' + words[i] : words[i];
+    if (next.length > 72){ out.push(padCard('HISTORY ' + line)); line = words[i]; }
+    else line = next;
+  }
+  if (line) out.push(padCard('HISTORY ' + line));
+  return out;
+}
+
+function buildFitsBlob(meta, values){
+  var w = meta.width, h = meta.height, planes = meta.planes;
+  var n = w * h * planes;
+  var bitpix = meta.bitpix;
+  var bytesPer = Math.abs(bitpix) / 8;
+
+  var cards = [];
+  cards.push(fitsCard('SIMPLE', true, 'conforms to FITS standard'));
+  cards.push(fitsCard('BITPIX', bitpix));
+  cards.push(fitsCard('NAXIS', planes > 1 ? 3 : 2));
+  cards.push(fitsCard('NAXIS1', w));
+  cards.push(fitsCard('NAXIS2', h));
+  if (planes > 1) cards.push(fitsCard('NAXIS3', planes));
+  cards.push(fitsCard('EXTEND', true));
+  cards.push(fitsCard('BZERO', meta.bzero));
+  cards.push(fitsCard('BSCALE', meta.bscale));
+
+  for (var i = 0; i < meta.cards.length; i++){
+    var raw = meta.cards[i];
+    var key = raw.slice(0, 8).trim();
+    if (key === 'END') continue;
+    if (key !== 'COMMENT' && key !== 'HISTORY' && isStructuralKey(key)) continue;
+    cards.push(padCard(raw));
+  }
+
+  historyCards('Unpacked from ' + meta.cmptype + ' tile compression by Stretch. ' +
+               'Pixel values, row order and observation keywords are unchanged.')
+    .forEach(function(c){ cards.push(c); });
+  cards.push(padCard('END'));
+
+  var headerText = cards.join('');
+  var headerPad = (2880 - (headerText.length % 2880)) % 2880;
+  while (headerPad-- > 0) headerText += ' ';
+  var headerBytes = headerText.length;
+
+  var dataBytes = n * bytesPer;
+  var totalPad = (2880 - (dataBytes % 2880)) % 2880;
+  var buf = new ArrayBuffer(headerBytes + dataBytes + totalPad);
+  var u8 = new Uint8Array(buf);
+  for (i = 0; i < headerBytes; i++) u8[i] = headerText.charCodeAt(i) & 0xFF;
+
+  // Undo the [0,1] normalisation, and undo the row flip so the file comes out
+  // in the same row order it arrived in.
+  var lo = meta.scaleLo, div = meta.scaleDiv, bz = meta.bzero, bs = meta.bscale || 1;
+  var plane = w * h, flip = meta.flipApplied;
+
+  function readSource(p, y, x){
+    var sy = flip ? (h - 1 - y) : y;
+    return values[p * plane + sy * w + x];
+  }
+
+  var out, k = 0, p, y, x, phys;
+  if (bitpix === -32 || bitpix === -64){
+    out = (bitpix === -32) ? new Float32Array(buf, headerBytes, n) : new Float64Array(buf, headerBytes, n);
+    for (p = 0; p < planes; p++) for (y = 0; y < h; y++) for (x = 0; x < w; x++){
+      phys = readSource(p, y, x) * div + lo;
+      out[k++] = (phys - bz) / bs;
+    }
+  } else {
+    out = (bitpix === 8) ? new Uint8Array(buf, headerBytes, n)
+        : (bitpix === 16) ? new Int16Array(buf, headerBytes, n)
+        : new Int32Array(buf, headerBytes, n);
+    for (p = 0; p < planes; p++) for (y = 0; y < h; y++) for (x = 0; x < w; x++){
+      phys = readSource(p, y, x) * div + lo;
+      out[k++] = Math.round((phys - bz) / bs);
+    }
+  }
+
+  // FITS is big-endian.
+  if (bytesPer === 2){
+    var u16 = new Uint16Array(buf, headerBytes, n);
+    for (i = 0; i < n; i++){ var v16 = u16[i]; u16[i] = ((v16 >>> 8) | (v16 << 8)) & 0xFFFF; }
+  } else if (bytesPer === 4){
+    var u32 = new Uint32Array(buf, headerBytes, n);
+    for (i = 0; i < n; i++){
+      var v = u32[i];
+      u32[i] = ((v >>> 24) | ((v >>> 8) & 0xFF00) | ((v & 0xFF00) << 8) | (v << 24)) >>> 0;
+    }
+  } else if (bytesPer === 8){
+    var w32 = new Uint32Array(buf, headerBytes, n * 2);
+    for (i = 0; i < n * 2; i += 2){
+      var a = w32[i], b = w32[i + 1];
+      w32[i]     = ((b >>> 24) | ((b >>> 8) & 0xFF00) | ((b & 0xFF00) << 8) | (b << 24)) >>> 0;
+      w32[i + 1] = ((a >>> 24) | ((a >>> 8) & 0xFF00) | ((a & 0xFF00) << 8) | (a << 24)) >>> 0;
+    }
+  }
+
+  return new Blob([buf], { type: 'application/fits' });
+}
+
+/* ------------------------------------------------------------------ *
+ * Diagnostics — press D, or add #debug
+ * ------------------------------------------------------------------ */
+function section(title, body){
+  var d = document.createElement('div');
+  d.className = 'sect';
+  var h = document.createElement('h3'); h.textContent = title;
+  var p = document.createElement('pre'); p.textContent = body;
+  d.appendChild(h); d.appendChild(p);
+  return d;
+}
+function dump(o){
+  return JSON.stringify(o, function(k, v){
+    return (typeof v === 'number' && !Number.isInteger(v)) ? Number(v.toPrecision(8)) : v;
+  }, 2);
+}
+
+function renderDiag(){
+  var d = state.diag;
+  elDiagBody.innerHTML = '';
+  if (!d){
+    elDiagBody.appendChild(section('Nothing loaded', 'Drop a FITS file to populate this panel.'));
+    return;
+  }
+  elDiagBody.appendChild(section('Decisions', dump({
+    rowOrder: d.rowOrder,
+    cfa: d.cfa,
+    pattern: d.pattern,
+    linearity: d.linearity
+  })));
+  elDiagBody.appendChild(section('Per channel', dump(d.channels)));
+  elDiagBody.appendChild(section('Decoding', dump({ hduIndex: d.hduIndex, dataStart: d.dataStart, decoded: d.decoded, view: d.view })));
+  elDiagBody.appendChild(section('Timings (ms)', dump(d.timingsMs)));
+  elDiagBody.appendChild(section('Key header values', dump(d.header)));
+  elDiagBody.appendChild(section('HISTORY cards (' + d.historyCards.length + ')', d.historyCards.join('\n') || '(none)'));
+  elDiagBody.appendChild(section('Full header (' + d.allCards.length + ' cards)', d.allCards.join('\n')));
+}
+
+function toggleDiag(force){
+  var on = (force === undefined) ? !elDiag.classList.contains('on') : force;
+  elDiag.classList.toggle('on', on);
+  if (on) renderDiag();
+}
+$('diagclose').addEventListener('click', function(){ toggleDiag(false); });
+window.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { toggleDiag(false); return; }
+  if ((e.key === 'd' || e.key === 'D') && !e.metaKey && !e.ctrlKey && !e.altKey){
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    toggleDiag();
+  }
+});
+if (location.hash === '#debug') toggleDiag(true);
+
+/* Used by automated checks: window.__loadFromURL('/path/to.fit')
+   The second argument goes straight through to runPipeline's opts, which is how
+   a reference capture pins the date: __loadFromURL(url, { now: '2026-09-05' }) */
+window.__loadFromURL = function(url, opts){
+  return fetch(url).then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.arrayBuffer();
+  }).then(function(buf){
+    state.name = decodeURIComponent(url.split('/').pop() || '') || 'remote.fit';
+    process(buf, state.name, buf.byteLength, opts);
+    return new Promise(function(resolve){
+      var iv = setInterval(function(){
+        if (elOut.classList.contains('on') || elErr.classList.contains('on')){
+          clearInterval(iv);
+          resolve(state.diag ? 'ok' : 'error');
+        }
+      }, 250);
+    });
+  });
+};
+window.__state = state;
+</script>
+</body>
+</html>

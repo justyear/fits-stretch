@@ -1,0 +1,161 @@
+{
+  "file": "fixture-seestar.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": 16,
+    "NAXIS": 2,
+    "NAXIS1": 1920,
+    "NAXIS2": 1080,
+    "BZERO": 32768,
+    "BSCALE": 1,
+    "ROWORDER": "BOTTOM-UP",
+    "BAYERPAT": "GRBG",
+    "XBAYROFF": 0,
+    "YBAYROFF": 0,
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "CFA probe",
+    "EXPTIME": 10,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": 16,
+    "kind": "16-bit unsigned integer (BZERO 32768)",
+    "bzero": 32768,
+    "bscale": 1,
+    "width": 1920,
+    "height": 1080,
+    "planes": 1,
+    "rawMin": 511,
+    "rawMax": 20650,
+    "nonFinite": 0,
+    "normMin": 0.007797360189211872,
+    "normMax": 0.3150988021667811,
+    "scaleBasis": "container range [0, 65535]",
+    "scaleMode": "int",
+    "scaleLo": 0,
+    "scaleHi": 65535,
+    "scaleDiv": 65535
+  },
+  "rowOrder": {
+    "keyword": "BOTTOM-UP",
+    "flipApplied": true
+  },
+  "cfa": {
+    "evenDims": true,
+    "isMosaic": true,
+    "headerDeclared": true,
+    "trustedHeader": true,
+    "decidedBy": "BAYERPAT keyword (statistics used only for the green axis)",
+    "ratioH": 3.231042731569182,
+    "ratioV": 2.7281793299438326,
+    "threshold": 1.15,
+    "latticeMedians": {
+      "r0c0": 0.010744810744810745,
+      "r0c1": 0.01221001221001221,
+      "r1c0": 0.009768009768009768,
+      "r1c1": 0.010744810744810745
+    },
+    "latticeContrast": 0.11111111111111112,
+    "greenAxis": "main",
+    "stackedHistory": false
+  },
+  "pattern": {
+    "pattern": "GRBG",
+    "source": "header",
+    "corrected": false,
+    "notes": []
+  },
+  "linearity": {
+    "globalMedian": 0.010996668446885889,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.01223773556115053,
+      "madn": 0.0009388146665359739,
+      "q1": 0.011596856641489281,
+      "q3": 0.01287861448081178,
+      "shadows": 0.009609054494849802,
+      "midtones": 0.007920510825366035,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.010925459678034637,
+      "madn": 0.0008426546381288388,
+      "q1": 0.01036087586785687,
+      "q3": 0.011505302510109103,
+      "shadows": 0.00856602669127389,
+      "midtones": 0.007105635481983196,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.009826810101472495,
+      "madn": 0.0007691476684422348,
+      "q1": 0.009323262378881514,
+      "q3": 0.01036087586785687,
+      "shadows": 0.007673196629834238,
+      "midtones": 0.006482660854840399,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "view": {
+    "width": 1920,
+    "height": 1080,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 57,
+    "roworder": 1,
+    "cfa": 42,
+    "debayer": 162,
+    "stats": 159,
+    "transfer": 244,
+    "downscale": 0,
+    "total": 683
+  },
+  "historyCards": [],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                   16 / unsigned 16-bit via BZERO",
+    "NAXIS   =                    2",
+    "NAXIS1  =                 1920",
+    "NAXIS2  =                 1080",
+    "BZERO   =                32768 / offset for unsigned data",
+    "BSCALE  =                    1",
+    "BAYERPAT= 'GRBG    '           / CFA at image top-left",
+    "ROWORDER= 'BOTTOM-UP'          / first row is image bottom",
+    "XBAYROFF=                    0",
+    "YBAYROFF=                    0",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'CFA probe'          / known-colour stars",
+    "EXPTIME =                  10. / seconds",
+    "END"
+  ]
+}

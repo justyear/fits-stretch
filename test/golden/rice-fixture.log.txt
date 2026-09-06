@@ -1,0 +1,19 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-rice.fit.fz
+2600 × 1000 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, Rice-compressed, 3 image planes, no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up. Pixel values were already on a 0–1 scale, and the data spans 0.00000 to 1.00000.
+• The file arrived Rice-compressed (.fz): unpacked 3,000 tiles of 2600 × 1 × 1, block size 32, 4 bytes per stored value, then reversed the SUBTRACTIVE_DITHER_2 quantisation (dither seed 2625) back to floating point. That quantisation was applied when the .fz was packed, not here.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is linear: median 0.01562, no stretch recorded in the header. Full autostretch applied.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
+    R  median 0.01706  MADN 0.00187  →  shadows 0.01183  midtones 0.01571
+    G  median 0.01552  MADN 0.00170  →  shadows 0.01075  midtones 0.01433
+    B  median 0.01428  MADN 0.00157  →  shadows 0.00988  midtones 0.01323
+    0.022% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

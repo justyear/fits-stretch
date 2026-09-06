@@ -1,0 +1,136 @@
+{
+  "file": "fixture-nonlinear.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Nonlinear probe",
+    "EXPTIME": 900,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 0.1841290444135666,
+    "rawMax": 1,
+    "nonFinite": 0,
+    "normMin": 0.1841290444135666,
+    "normMax": 1,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.2467180387070522,
+    "historyHits": [
+      "Autostretch",
+      "Histogram Transf.",
+      "Midtones transfer"
+    ],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "NON-LINEAR — reduced stretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.2640573739223316,
+      "madn": 0.0199431101944289,
+      "q1": 0.25049210345616846,
+      "q3": 0.27739375906004426,
+      "shadows": 0.21814297703517205,
+      "midtones": 0.14812444619474258,
+      "target": 0.2640573739223316,
+      "pixelsBlack": 266,
+      "pixelsWhite": 1,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.24568551155870907,
+      "madn": 0.019130395207374886,
+      "q1": 0.23274586099031053,
+      "q3": 0.2585488670176242,
+      "shadows": 0.20152590218966965,
+      "midtones": 0.15235588312713866,
+      "target": 0.24568551155870907,
+      "pixelsBlack": 269,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.23041123064011595,
+      "madn": 0.018397934226560636,
+      "q1": 0.2179751277943084,
+      "q3": 0.24280155642023346,
+      "shadows": 0.18777752346074617,
+      "midtones": 0.15614172348273161,
+      "target": 0.23041123064011595,
+      "pixelsBlack": 268,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 25,
+    "stats": 46,
+    "transfer": 134,
+    "downscale": 0,
+    "total": 208
+  },
+  "historyCards": [
+    "Autostretch (midtones transfer function) applied",
+    "Histogram transformation, unlinked channels"
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Nonlinear probe'",
+    "EXPTIME =                 900. / seconds",
+    "HISTORY Autostretch (midtones transfer function) applied",
+    "HISTORY Histogram transformation, unlinked channels",
+    "END"
+  ]
+}

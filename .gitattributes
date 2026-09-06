@@ -1,0 +1,15 @@
+# Identidade byte a byte é o critério de aceitação deste projeto: o index.html
+# gerado é comparado por sha256 contra o que build.ps1 produz, e os goldens de
+# log são comparados byte a byte. Um checkout que reescrevesse fim de linha
+# quebraria as duas coisas em silêncio.
+#
+# Este arquivo existe porque o git desta máquina está com autocrlf ligado.
+# Tudo fica LF, em qualquer plataforma.
+* text=auto eol=lf
+
+# Sem tentativa de normalizar binário.
+*.fit  binary
+*.fits binary
+*.fz   binary
+*.fts  binary
+*.png  binary
