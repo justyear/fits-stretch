@@ -249,6 +249,37 @@ divide:    out = in / model * pedestalMultiplicativo
 para perto de zero, e a métrica alvo é fundo entre 13 e 25 de 255. Zero é
 sombra cortada.
 
+> **A FAIXA 13–25 NÃO É A MÉTRICA DA SAÍDA, e medir mostrou por quê.**
+>
+> Esta ferramenta entrega fundo em **~64 de 255**, e isso não é defeito do
+> pedestal: é `target: 0.25`, o padrão do Módulo 0, que é a convenção do
+> PixInsight STF / Siril autostretch e está conferido contra a segunda
+> implementação. `0,25 × 255 = 63,75`. Medido nos quatro fixtures depois da
+> correção: 63,8 / 63,9 / 64,2 / 67,2.
+>
+> **O pedestal não decide esse número.** Ele preserva o nível *antes* do
+> esticamento; o autostretch depois mapeia a mediana para o alvo dele, qualquer
+> que fosse ela. Um pedestal errado não muda o 64 — ele degenera o esticamento
+> por outro caminho (com fundo em zero, `midtones` cai fora de `(0,1)`, vira
+> 0,5, e a transformação vira identidade: imagem preta).
+>
+> **A verificação certa do pedestal**, e é a que passou: a mediana de fundo
+> *sobrevive à correção*. Antes e depois, em níveis de 255:
+>
+> | fixture | antes | depois |
+> |---|---|---|
+> | `seestar` | 3,12 2,79 2,51 | 3,12 2,78 2,50 |
+> | `rice` | 4,35 3,96 3,64 | 4,32 3,93 3,61 |
+> | `nonlinear` | 67,33 62,65 58,75 | 67,19 62,47 58,62 |
+> | `gradient` | 4,70 4,26 3,86 | 4,71 4,27 3,89 |
+>
+> Deriva máxima 0,14 nível. O gradiente inteiro saiu e o nível ficou.
+>
+> **Decidir depois, e não aqui:** se 64 é o alvo certo é questão do autostretch,
+> não da extração de fundo. Mudar `target` muda a saída de todo mundo e reprova
+> a referência do Python; é decisão do Módulo 0, com dado real, e não efeito
+> colateral desta etapa.
+
 `pedestal: 'model-median'` devolve a mediana do próprio modelo, por canal. Isso
 preserva o nível de fundo e remove só a **variação** — que é o que gradiente
 significa.

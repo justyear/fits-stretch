@@ -174,6 +174,44 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### Regra de escala que assume propriedade não verificada do kernel
+
+**Classe de erro.** Uma constante de regularização "escalada por uma propriedade
+do operador" está certa só enquanto aquela propriedade for o que se supôs. Se a
+suposição for falsa, **não há erro, não há aviso, e o resultado é pior para
+sempre.**
+
+O caso: a §2.3 do Módulo 1 mandava escalar `lambda` pela **média da diagonal de
+`A`**. Para thin-plate spline a diagonal de `A` é `phi(0) = r² ln r` em `r = 0`,
+que é `0`, em toda entrada, por definição do kernel. A regra ao pé da letra dá
+`lambda = 0` sempre, e o `smoothing` vira um knob que não faz nada.
+
+O que torna a classe perigosa:
+
+- **Não falha.** `lambda = 0` é um sistema perfeitamente resolvível — é a spline
+  interpoladora pura. Sai superfície, sai imagem, sai log.
+- **Não é visivelmente errado.** É o pior ajuste da varredura, não um absurdo:
+  resíduo máximo 0,245 nível contra 0,168, e absorve 8,49% do objeto contra
+  6,27%. Ninguém olhando a imagem desconfia.
+- **O knob parece funcionar.** O `smoothing` aparece no record, na UI e no log.
+  Um usuário mexeria nele e veria zero diferença, e concluiria que suavização
+  não importa nesta ferramenta.
+
+**A regra que teria pego:** antes de escalar por uma propriedade de um operador,
+**calcule a propriedade e imprima**. `mean(diag(A))` impresso uma vez teria dado
+`0` e a conversa acabaria ali. O custo é uma linha; o custo de não fazer é uma
+degradação permanente que nenhum teste desta suíte detecta, porque todos os
+testes comparam contra a saída deste mesmo código.
+
+Vale para qualquer normalização por estatística do próprio operador: traço,
+diagonal, norma, autovalor dominante, média de linha. **Confira que o número não
+é zero, não é infinito, e tem a ordem de grandeza que você imagina** — as três,
+e não só a primeira.
+
+O substituto aqui é a média de `|A[i][j]|` fora da diagonal, que é a magnitude
+que o kernel de fato tem. Registrado na §2.3 da spec com o número que mostra a
+diferença.
+
 ### Acoplamento posicional a `records[]` falha em silêncio, e o sintoma aponta para o lugar errado
 
 **Classe de erro, não incidente.** Aconteceu duas vezes no mesmo dia, em dois

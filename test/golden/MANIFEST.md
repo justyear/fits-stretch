@@ -11,9 +11,9 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`4f753942345449d39f861e531db7e083364d82b24146d481e645e8f06208cd09`
-(134.974 bytes — pipeline em 13 arquivos, cadeia em float pleno, amostragem,
-rejeição e superfície de fundo na cadeia).
+`54c003607bbc29f91686630597cdd91c9e3b8dd7e4a26904da7d0548dc80ad5a`
+(147.173 bytes — pipeline em 13 arquivos, cadeia em float pleno, extração de
+fundo aplicada, dither no quantise).
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
@@ -34,7 +34,7 @@ Abrir `http://127.0.0.1:8791/`, colar `test/capture-golden.js` no console,
 
 ```
 powershell -File test\compare-golden.ps1      # nao-regressao, com tolerancia
-powershell -File test\compare-reference.ps1   # correção, contra o Python
+powershell -File test\compare-reference.ps1   # correção, contra o Python (ver nota)
 powershell -File test\negative-controls.ps1   # a tolerância ainda reprova?
 ```
 
@@ -49,12 +49,35 @@ descartáveis dos próprios goldens e confere que o comparador chega ao veredito
 certo em cada caso. Existe porque "controle negativo verificado" escrito numa
 spec é uma afirmação que deixa de ser verdadeira no instante em que ninguém
 consegue rodá-la de novo. São 23 casos, e dois importam mais que os outros. O
-`madn +2e-5` reprova pela regra de `span` e passaria pela regra de [0,1], que
-nessa magnitude é seis vezes mais frouxa — é o único caso capaz de distinguir as
-duas.
-E o par `png every sample +1` contra `png one sample +1`: mesmo veredito, mesma
-magnitude, mesmo limite, achados opostos. É o que prova que o detector de
-deslocamento sistemático não dispara em arredondamento comum.
+`madn +8e-6` reprova pela regra de `span` e passaria pela regra de [0,1], que
+nessa magnitude é **21 vezes** mais frouxa — é o único caso capaz de distinguir
+as duas. E o par `png every sample +1` contra `png one sample +1`: mesmo
+veredito, mesma magnitude, mesmo limite, achados opostos. É o que prova que o
+detector de deslocamento sistemático não dispara em arredondamento comum.
+
+Os casos ancoram em valores concretos dos goldens e **têm que ser reancorados
+quando os goldens mudam** — no passo 6 o `"clipLow": 266` deixou de existir
+porque a correção eliminou o corte de sombra, e o script parou com a mensagem
+dizendo qual padrão não achou. Falhar alto é o comportamento certo: um controle
+negativo que se auto-desativasse em silêncio seria pior que não existir.
+
+> **NOTA SOBRE `compare-reference.ps1`, a partir do passo 6.** O `reference.py`
+> modela o decode e o autostretch, e **não** conhece a extração de fundo. Desde
+> que a etapa passou a mexer em pixel, o bloco por canal compara dois quadros
+> diferentes, e o comparador diz isso **uma vez** em vez de reprovar 63 números:
+> `N/A — pipeline roda background e reference.py nao modela — passo 8 da §6`.
+>
+> O que sobra e continua valendo: **36 comparações, 33 PASS, todo o bloco de
+> decode**, nos quatro fixtures. O que se perdeu: a verificação por segunda
+> implementação de mediana, MAD, quartis, percentis, `shadows`, `midtones`,
+> `scale` e contagens de clip. **Está fora do ar até o passo 8**, e isso é a
+> dívida mais cara em aberto no projeto agora.
+>
+> É `N/A` e não `KNOWN` de propósito. A lista `KNOWN` é para divergências entre
+> duas implementações que descrevem a mesma coisa; esta é as duas deixando de
+> descrever a mesma coisa. Encher `KNOWN` com sessenta entradas transformaria um
+> registro de dívida em papel de parede — §7 do Módulo 0, "KNOWN não é uma saída
+> de emergência".
 
 ## O que o float pleno mudou, medido
 
@@ -230,23 +253,26 @@ exercitar o gradiente. Um fixture, uma pergunta.
 
 | arquivo | bytes | sha256 |
 |---|---|---|
-| `seestar-fixture.log.txt` | 1.609 | `9e8c6311cf06c888e8c2357cccf780060bc6765d5043757f8a893f68c3175869` |
-| `seestar-fixture.diag.json` | 4.275 | `fcc20b8ab21fe64b2712187705b003319badd362a01af689f6727f1525aa6d54` |
-| `seestar-fixture.records.json` | 29.986 | `d3aeb976efb32f18b110bd652a3144965a07a52a98854e20a6d808ef7f7056f1` |
-| `seestar-fixture.png` | 4.546.701 | `6287a0b25b937c3b5cb309cc9a9df130136e3e6dbda7fb0e987f54a6c28162a5` |
-| `rice-fixture.log.txt` | 1.765 | `6337bfc4a2f5b73645798896ae5668e7c1e8e94c03908dd2734e9490efd7fc4f` |
-| `rice-fixture.diag.json` | 4.709 | `64ed091af725331e0204d19b19cb6309118c095e515bd7094289d00bf283ef81` |
-| `rice-fixture.records.json` | 23.479 | `0e044b351c602d4f86d7e97bdda7d5231ef77de79571e22e01c35312c2a72564` |
-| `rice-fixture.png` | 5.862.158 | `2af37579df49ff18becf49a0f2b5917230fe3298310321f943800e28a19be65d` |
-| `nonlinear-fixture.log.txt` | 1.634 | `f4b8c6e22a629ba8ddb825da0f6fe557908f11242261d7cfe3bb38c29c61847e` |
-| `nonlinear-fixture.diag.json` | 3.627 | `f408a2b20253fe5cf80ceb92577cf865d0043979d971c76de5a826aa138036f0` |
-| `nonlinear-fixture.records.json` | 32.498 | `710b1ef2eecb2e2d2c4130f84448831003d8977e8e36e815c2c9901e7906f7dd` |
-| `nonlinear-fixture.png` | 1.340.894 | `3003c8f9ccb75042fb430b9772825ae5fbb2d0aafefc17761cdd71cc37de04ec` |
-| `gradient-fixture.log.txt` | 1.380 | `3a3c952b8ff1e2b3f2a090964316a3c846987c538beef96fe0bb3c63303aad78` |
-| `gradient-fixture.diag.json` | 6.211 | `26c1d56193136cdbf48d6e9d0cdba0b5647e946a448f7578fcbc12d4f073beb1` |
-| `gradient-fixture.records.json` | 36.315 | `89dbd98f711cbe75a4181181e56730c799fff1bc7fcb1c99cbb43d8818db268a` |
-| `gradient-fixture.png` | 4.814.737 | `45f6a1a2e0b32dcd78d906c728e379d1933f954d9fe09347cf72a68e120579a9` |
+| `seestar-fixture.log.txt` | 2.332 | `5f40ca462cca18bca67cb58a530e9f742b9e48b687c92c6604ffb348bb4a9862` |
+| `seestar-fixture.diag.json` | 4.283 | `4cf141ca6af4ce0478a430702219b93e4bd2639aa282ada6a6ff4f791d3d1152` |
+| `seestar-fixture.records.json` | 32.882 | `4a181beb31401881f356c1b56ca6eae45d08057b0b0f60324b77d07445e8d65d` |
+| `seestar-fixture.png` | 5.679.044 | `dd7331c3745881609eed53c33a5a3a42340bfda686f9cd8e3b737245e3400996` |
+| `rice-fixture.log.txt` | 2.487 | `8f22891637361c099ced36902bbfec58f010df84d2cac901284362d6f87e4e16` |
+| `rice-fixture.diag.json` | 4.722 | `ad87d86525ae64e4ad454490410bb0ba57ed70227bad4ed81fd45583e8f596c8` |
+| `rice-fixture.records.json` | 26.399 | `d751ad14f2c969e1303fc05d09ad3a6ebc2d601e16efd817e4b455252fba1265` |
+| `rice-fixture.png` | 7.277.474 | `91f8fe3da9f6a55726716381e4d67c0babfc67937974be4d9f95f2349d4ca2ea` |
+| `nonlinear-fixture.log.txt` | 2.357 | `df7fdedb9c5a56c6e1200405a2db8e735f9013c4362761403acb24eb3dcfb9be` |
+| `nonlinear-fixture.diag.json` | 3.631 | `4dac24395b085242893ef026171679aecf05b7409db3e89a6d30d9d214f3ada9` |
+| `nonlinear-fixture.records.json` | 35.345 | `2e3eea800822f960ace9c2bde248fe0f77b4d35619a29a01a86a63f7644bb3bd` |
+| `nonlinear-fixture.png` | 1.638.531 | `827020c9d40136612d5db1c2bbb391df553b2083fafb027928dac240c9d01adb` |
+| `gradient-fixture.log.txt` | 2.104 | `e1fb7808ff0f17d48995b8a494a83cf9bb833988528c79499b2f1da1f3175f00` |
+| `gradient-fixture.diag.json` | 6.219 | `1860973f33824d621b3ce797ca3cd3f0e9b1c1b5a32fb0b583abf644004a625f` |
+| `gradient-fixture.records.json` | 39.151 | `45c30ab8548b0235b50b3981407b062246897df3a9a3aa6553b867958bc3a972` |
+| `gradient-fixture.png` | 5.530.241 | `9815296a1f323521887423d8bbb744a39920e9caabc6bce37f3ffc9e4eb3afe0` |
 | `gradient-truth.json` | 4.144 | `dd5d2351e46eec9e80ccecf4afe6e47fd577ae7326ad83e034f21db57b99fe93` |
+
+Os PNG cresceram entre 15% e 24%: o dither substitui bandas lisas por ruído, e
+ruído não comprime. É o custo direto de não ter bandas.
 
 `gradient-truth.json` é o único destes que `compare-golden.ps1` **não** compara:
 ele vem de `compare-truth.js`, não da captura, e é medida de referência e não
@@ -347,6 +373,87 @@ Os 1000 pixels são varridos por passo primo (104729) sobre o índice, que é
 caem em fases diferentes dentro da célula da grade, que é onde o erro vive. Um
 passo que compartilhasse fator com o divisor amostraria os cantos das células e
 reportaria zero.
+
+## Passo 6 — a correção, e o que medi-la encontrou
+
+A correção é `out = in − model + pedestal`, com o pedestal sendo a mediana do
+próprio modelo, **por canal**. A partir daqui a etapa reporta `applied: true`.
+
+### A razão entre canais sobrevive — e o número que sustenta a frase de log
+
+Medido no `fixture-rice`, mediana de fundo antes e depois da correção:
+
+| | antes | depois | deriva |
+|---|---|---|---|
+| R/G | 1,099312 | 1,099010 | **−0,028%** |
+| B/G | 0,920354 | 0,919802 | **−0,060%** |
+
+E o contrafactual, aritmeticamente, se o pedestal fosse **único** (a média dos
+três) em vez de por canal:
+
+| | resultado | deriva |
+|---|---|---|
+| R/G | 0,999904 | **−9,04%** |
+| B/G | 0,999918 | **+8,64%** |
+
+O pedestal único colapsa as duas razões para 1,0: ele **lava a cor do fundo**.
+Por canal preserva ~150× melhor. Nos quatro fixtures a deriva por canal fica
+entre 0,016% e 0,44%; a de pedestal único, entre 6,6% e 11,2%.
+
+É este o número por trás da frase *"the ratio between channels is therefore
+unchanged: no colour grading"*, que agora está no log.
+
+### Negativos, e por que a contagem zero aqui não é clamp
+
+A regra é não clampear, e o teste natural — "se não sobrou negativo, algo
+clampeou" — dá **falso alarme nestes fixtures**. Medido no `fixture-gradient`,
+canal R:
+
+| | mínimo | negativos |
+|---|---|---|
+| entrada | 0,007542 | 0 |
+| corrigido, pedestal real | **0,012405** | 0 |
+| corrigido, pedestal forçado a 0 | **−0,005950** | 882.624 (46%) |
+
+O sinal de clamp não é a contagem, é **o mínimo pousar exatamente em zero**. Ele
+pousa em 0,0124, longe de zero, e com o pedestal zerado os 882 mil negativos
+atravessam intactos. Nada clampeia.
+
+A contagem zero é aritmética: o pedestal (0,0184) é maior que a excursão do
+modelo acima da própria mediana (~0,0064), então `in − model + pedestal` não
+alcança zero. **Lacuna de cobertura:** nenhum fixture tem gradiente forte o
+bastante em relação ao nível de fundo para produzir negativos no caminho normal.
+Dado real com poluição luminosa forte produz.
+
+### O dither é determinístico
+
+Duas capturas independentes, cada uma depois de recarregar a página: os quatro
+PNG **byte a byte idênticos**. Semente 20260906, amplitude ±0,5 nível, ambas no
+record do `quantise` e no log.
+
+### O bug que a correção expôs: o stretch media o quadro errado
+
+`stepStretchMTF` recebia a medição tirada **antes** da etapa de fundo. Enquanto
+a etapa só amostrava isso era inofensivo — as duas mediam os mesmos pixels — e
+virou errado no instante em que um pixel se moveu.
+
+O MADN é a parte que importa, porque o ponto preto é `mediana − 2,8 × MADN`, e o
+gradiente removido fazia parte da dispersão que o MADN media:
+
+| fixture | MADN antes | MADN depois | fator |
+|---|---|---|---|
+| `seestar` | 0,000939 | 0,000211 | **4,5×** |
+| `rice` | 0,001868 | 0,000364 | **5,1×** |
+| `nonlinear` | 0,019943 | 0,005833 | **3,4×** |
+| `gradient` | 0,003549 | 0,001395 | **2,5×** |
+
+O ponto preto estava de 2,5 a 5 vezes fundo demais, em todo quadro.
+
+**E era invisível na métrica de saída:** a mediana pós-esticamento fica em ~64
+de qualquer jeito, porque o MTF mapeia mediana no alvo seja qual for o MADN. É a
+mesma classe do erro do λ — não falha, não avisa, e fica pior para sempre. O
+`before` do stretch passa a vir do `after` da etapa de fundo, que já estava
+medido e custava zero.
 
 ### Amostragem, por fixture
 

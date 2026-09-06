@@ -60,6 +60,8 @@ function plainRecords(records){
       // step is not doing something silently.
       samples: r.samples || null,
       surface: r.surface || null,
+      correction: r.correction || null,
+      clamped: r.clamped || null,
       before: plainMeasurement(r.before),
       after: plainMeasurement(r.after)
     });
@@ -246,7 +248,10 @@ async function openFile(buffer, fileName, opts, post){
     bgBoxSize: 25,
     bgTolerance: 1.0,
     bgEdgeMargin: 0.02,
-    bgSmoothing: 0.10
+    bgSmoothing: 0.10,
+    bgCorrection: 'subtract',
+    bgPedestal: 'model-median',
+    dither: true
   };
 
   SESSION = {
@@ -317,12 +322,10 @@ async function runChain(params, mode, post){
   var records = [];
   function report(record){ records.push(record); }
 
-  // One histogram pass, two copies of the result. Both steps measure the same
-  // pixels, so measuring twice would burn a pass for identical numbers — but
-  // they must not share the object: stepStretchMTF writes shadows, midtones,
-  // target and scale onto the channels of its own `before`, and the background
-  // record would then carry stretch parameters inside a measurement it took
-  // before the stretch existed.
+  // The measurement is copied rather than shared: stepStretchMTF writes
+  // shadows, midtones, target and scale onto the channels of its own `before`,
+  // and the background record would otherwise carry stretch parameters inside a
+  // measurement taken before the stretch existed.
   stage('Sampling the background', 60);
   work = stepBackground(work, {
     samplesPerRow: params.bgSamplesPerRow,
@@ -330,6 +333,8 @@ async function runChain(params, mode, post){
     tolerance: params.bgTolerance,
     edgeMargin: params.bgEdgeMargin,
     smoothing: params.bgSmoothing,
+    correction: params.bgCorrection,
+    pedestal: params.bgPedestal,
     // Which buffer this is, expressed as a fraction of the frame the user is
     // working on. The step scales its sample box by it. Full runs are 1 by
     // definition; the preview is whatever downscaleFloat produced.
@@ -343,20 +348,36 @@ async function runChain(params, mode, post){
   step = Date.now();
   stage('Applying autostretch', 68);
 
+  // THE STRETCH MUST MEASURE THE FRAME IT IS ABOUT TO TRANSFORM, not the frame
+  // that arrived. Background extraction removes the gradient, and the gradient
+  // was part of the spread the MADN measured: reusing the earlier measurement
+  // sets the black point at `median - 2.8 x MADN` on a MADN inflated by
+  // variation that is no longer there, and the stretch comes out weaker than it
+  // should be, everywhere, quietly.
+  //
+  // This was harmless while the background step only sampled — the two
+  // measurements described the same pixels — and became wrong the moment a
+  // pixel moved. The background step already measured the corrected frame as
+  // its own `after`, so the right number is free; what is not free is
+  // remembering to use it.
+  var bgRecord = records[records.length - 1];
+  var stretchBefore = bgRecord.after ? copyMeasurement(bgRecord.after)
+                                     : copyMeasurement(measured);
+
   work = stepStretchMTF(work, {
     shadowSigma: params.shadowSigma,
     target: params.target,
     blackPct: params.blackPct,
     nonLinear: params.nonLinear,
     stride: full ? SESSION.statStride : 1,
-    before: copyMeasurement(measured)
+    before: stretchBefore
   }, report);
   mark('transfer', step);
 
   // Quantise ----------------------------------------------------------
   await yieldNow();
   step = Date.now();
-  var rgba = quantise(work);
+  var rgba = quantise(work, { dither: params.dither }, report);
   mark('quantise', step);
 
   // Display copy ------------------------------------------------------

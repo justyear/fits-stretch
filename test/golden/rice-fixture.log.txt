@@ -8,12 +8,15 @@ Processing log — fixture-rice.fit.fz
 • The file arrived Rice-compressed (.fz): unpacked 3,000 tiles of 2600 × 1 × 1, block size 32, 4 bytes per stored value, then reversed the SUBTRACTIVE_DITHER_2 quantisation (dither seed 2625) back to floating point. That quantisation was applied when the .fz was packed, not here.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
 • Data is linear: median 0.01562, no stretch recorded in the header. Full autostretch applied.
+• Background extraction: measured the sky in 60 boxes of 25 pixels on a 12 × 5 grid and used 53 of them (7 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01693, G 0.01540, B 0.01417), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
 • Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.01706  MADN 0.00187  →  shadows 0.01183  midtones 0.01571
-    G  median 0.01552  MADN 0.00170  →  shadows 0.01075  midtones 0.01433
-    B  median 0.01428  MADN 0.00157  →  shadows 0.00988  midtones 0.01323
-    0.022% of pixels land on pure black or pure white after the transfer.
-• Output: 8-bit sRGB, full resolution, no resampling.
-• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.
+    R  median 0.01694  MADN 0.00036  →  shadows 0.01592  midtones 0.00310
+    G  median 0.01541  MADN 0.00036  →  shadows 0.01439  midtones 0.00309
+    B  median 0.01418  MADN 0.00036  →  shadows 0.01316  midtones 0.00309
+    0.023% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.

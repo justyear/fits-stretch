@@ -305,6 +305,83 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
   };
 }
 
+/**
+ * Applies the correction, in place. Returns the per-channel counts of what it
+ * produced, which the record reports.
+ *
+ *   subtract:  out = in - model + pedestal
+ *   divide:    out = in / model * pedestal
+ *
+ * THE PEDESTAL IS NOT OPTIONAL, and it is per channel. Subtracting the model
+ * and giving nothing back drops the background to around zero, which is not a
+ * dark sky, it is a clipped shadow — the faint end of the nebula goes with it.
+ * Giving back the model's own median per channel preserves the level and
+ * removes only the VARIATION, which is what the word gradient means.
+ *
+ * PER CHANNEL is the part that matters for colour. Returning the same pedestal
+ * to all three channels would move R, G and B by different relative amounts and
+ * change the ratio between them — the tool would have colour-graded the frame
+ * without saying so. Per channel, the ratio survives, and the log gets to say
+ * the colour balance was not touched. That claim is measured, not asserted:
+ * see the R/G and B/G figures in test/golden/MANIFEST.md.
+ *
+ * NOTHING IS CLAMPED. Pixels of noise that sat below the model come out
+ * negative and they are supposed to. Clamping here would fold the bottom half
+ * of the noise distribution onto zero, which biases the median upward — the
+ * measurement would then report a background that the file does not contain.
+ * The Image contract says not clamped, and quantise is where the range is
+ * finally decided.
+ */
+function bgApplyCorrection(data, surface, w, h, N, nch, mode){
+  var divisor = surface.divisor, gw = surface.gw;
+  var rowbuf = new Float64Array(gw);
+
+  // gx and tx depend only on x, so they are computed once for the whole frame
+  // instead of once per pixel per channel.
+  var gxA = new Int32Array(w), txA = new Float64Array(w);
+  for (var x = 0; x < w; x++){
+    var fx = x / divisor, gx = fx | 0;
+    gxA[x] = gx; txA[x] = fx - gx;
+  }
+
+  var stats = [];
+  var divide = (mode === 'divide');
+  // A divisor that reaches zero would send a pixel to infinity. The spline can
+  // undershoot below the data, so this is reachable, and a guard that silently
+  // did nothing would be an operation with no record. Counted and reported.
+  var GUARD = 1e-6;
+
+  for (var c = 0; c < nch; c++){
+    var g = surface.grid[c], base = c * N;
+    var ped = surface.perChannel[c].pedestal;
+    var negatives = 0, guarded = 0;
+
+    for (var y = 0; y < h; y++){
+      var fy = y / divisor, gy = fy | 0, ty = fy - gy;
+      var r0 = gy * gw, r1 = r0 + gw;
+      for (var k = 0; k < gw; k++) rowbuf[k] = g[r0 + k] + (g[r1 + k] - g[r0 + k]) * ty;
+
+      var o = base + y * w;
+      for (x = 0; x < w; x++){
+        var gx2 = gxA[x], tx = txA[x];
+        var model = rowbuf[gx2] + (rowbuf[gx2 + 1] - rowbuf[gx2]) * tx;
+        var vin = data[o + x], vout;
+        if (divide){
+          if (model > GUARD || model < -GUARD) vout = vin / model * ped;
+          else { vout = vin; guarded++; }
+        } else {
+          vout = vin - model + ped;
+        }
+        if (vout < 0) negatives++;
+        data[o + x] = vout;
+      }
+    }
+    stats.push({ pedestal: ped, negatives: negatives, guarded: guarded,
+                 negativePct: 100 * negatives / N });
+  }
+  return stats;
+}
+
 // Five decimals for a value on the [0,1] axis, one for a percentage. These end
 // up in a tooltip a person reads while deciding whether the tool was right to
 // throw a point away, so the precision is the precision that helps them.
@@ -473,7 +550,17 @@ function stepBackground(img, params, report){
   // yesterday, before anything depends on it being right.
   var surface = bgFitSurface(points, w, h, nch, params.smoothing, BG_GRID_DIVISOR);
   var surfaceRecord = null;
+  var correction = null;
+  var after = null;
+
   if (surface){
+    // The pixels move here, and from this line on the step is applied. That is
+    // why `applied` is computed from whether this ran rather than set by hand:
+    // the log's "Not applied" sentence is generated from it, and a sentence
+    // that has to be maintained by hand is a sentence that eventually lies.
+    correction = bgApplyCorrection(data, surface, w, h, N, nch, params.correction);
+    after = measure(img, params.stride);
+
     surfaceRecord = {
       method: 'thin-plate-spline',
       // One lambda, not three: A is built from the sample POSITIONS, which the
@@ -485,6 +572,7 @@ function stepBackground(img, params, report){
       maxInterpErrorLevels: surface.maxInterpErrorLevels,
       interpProbes: BG_INTERP_PROBES,
       interpLimitLevels: BG_INTERP_LIMIT_LEVELS,
+      correction: params.correction,
       perChannel: surface.perChannel
     };
   }
@@ -494,16 +582,14 @@ function stepBackground(img, params, report){
   // Two different falsehoods would be available here and neither is taken. The
   // step does not claim to have run, because no pixel moved. And it does not
   // stay silent, because it did do something and the points are the something.
-  var skipReason;
+  var applied = !!surfaceRecord;
+  var skipReason = null;
   if (accepted < BG_MIN_SAMPLES){
     skipReason = 'only ' + accepted + ' of ' + generated + ' samples survived rejection, ' +
                  'and a surface is never fitted to fewer than ' + BG_MIN_SAMPLES + ' points';
   } else if (!surfaceRecord){
     skipReason = 'the ' + accepted + ' accepted samples do not define a surface: the linear ' +
                  'system is singular, which means two samples share a position';
-  } else {
-    skipReason = 'the surface is fitted and reported but not applied: this build models the ' +
-                 'background and changes no pixel';
   }
 
   var notes = [
@@ -530,14 +616,23 @@ function stepBackground(img, params, report){
                'between; measured against direct evaluation at ' + BG_INTERP_PROBES +
                ' pixels, worst case ' + bgFixed(surfaceRecord.maxInterpErrorLevels) +
                ' of one 8-bit level.');
-    notes.push('Background level preserved per channel; the colour balance between channels ' +
-               'is not touched.');
+    var peds = [];
+    for (c = 0; c < nch; c++) peds.push(chNames[c] + ' ' + bgFixed(surface.perChannel[c].pedestal));
+    notes.push('Corrected by ' + (params.correction === 'divide' ? 'division' : 'subtraction') +
+               ', returning each channel its own model median as the pedestal (' +
+               peds.join(', ') + '). The background LEVEL is preserved and only the ' +
+               'variation is removed, so the ratio between channels is unchanged and no ' +
+               'colour grading happened.');
+    var negTotal = 0;
+    for (c = 0; c < nch; c++) negTotal += correction[c].negatives;
+    notes.push(negTotal + ' pixels came out below zero, which is expected: noise that sat ' +
+               'under the model stays under it, and nothing is clamped until the 8-bit step.');
   }
 
   report({
     id: 'background',
     name: 'Background extraction',
-    applied: false,
+    applied: applied,
     skipReason: skipReason,
     // Only the knobs this build actually reads. `smoothing`, `correction` and
     // `pedestal` belong to the surface and the correction; listing them now
@@ -547,7 +642,9 @@ function stepBackground(img, params, report){
       boxSize: params.boxSize,
       tolerance: params.tolerance,
       edgeMargin: params.edgeMargin,
-      smoothing: params.smoothing
+      smoothing: params.smoothing,
+      correction: params.correction,
+      pedestal: params.pedestal
     },
     samples: {
       generated: generated,
@@ -564,11 +661,16 @@ function stepBackground(img, params, report){
       points: points
     },
     surface: surfaceRecord,
+    // What the correction produced, per channel. `negatives` is the count that
+    // has to be non-zero on real data: a background subtraction that produces
+    // no negative pixel has clamped somewhere it should not have, and the
+    // symmetry of the noise is gone.
+    correction: correction,
     before: before,
-    // Nothing was measured after, because nothing happened after. A copy of
+    // Measured when the pixels moved, null when they did not. A copy of
     // `before` under a name that says "after" would be a measurement that was
     // never taken.
-    after: null,
+    after: after,
     notes: notes
   });
 

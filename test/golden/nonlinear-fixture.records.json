@@ -2,14 +2,16 @@
   {
     "id": "background",
     "name": "Background extraction",
-    "applied": false,
-    "skipReason": "the surface is fitted and reported but not applied: this build models the background and changes no pixel",
+    "applied": true,
+    "skipReason": null,
     "params": {
       "samplesPerRow": 12,
       "boxSize": 25,
       "tolerance": 1,
       "edgeMargin": 0.02,
-      "smoothing": 0.1
+      "smoothing": 0.1,
+      "correction": "subtract",
+      "pedestal": "model-median"
     },
     "notes": [
       "Placed 96 samples on a 12 x 8 grid, 25 px boxes, 85 accepted and 11 rejected.",
@@ -17,7 +19,8 @@
       "Every rejected sample is still in the record, with the reason it was rejected.",
       "Thin-plate spline through the 85 accepted samples, smoothing 0.1, per channel and unlinked.",
       "Evaluated on every 8th pixel and interpolated between; measured against direct evaluation at 1000 pixels, worst case 0.00390 of one 8-bit level.",
-      "Background level preserved per channel; the colour balance between channels is not touched."
+      "Corrected by subtraction, returning each channel its own model median as the pedestal (R 0.26344, G 0.24496, B 0.22980). The background LEVEL is preserved and only the variation is removed, so the ratio between channels is unchanged and no colour grading happened.",
+      "0 pixels came out below zero, which is expected: noise that sat under the model stays under it, and nothing is clamped until the 8-bit step."
     ],
     "samples": {
       "generated": 96,
@@ -1110,6 +1113,7 @@
       "maxInterpErrorLevels": 0.0039014162212229475,
       "interpProbes": 1000,
       "interpLimitLevels": 0.5,
+      "correction": "subtract",
       "perChannel": [
         {
           "modelMin": 0.22353019418580977,
@@ -1131,6 +1135,27 @@
         }
       ]
     },
+    "correction": [
+      {
+        "pedestal": 0.26343836137842613,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.24495962381231481,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.2297985383069661,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      }
+    ],
+    "clamped": null,
     "before": {
       "perChannel": [
         {
@@ -1177,7 +1202,52 @@
         }
       ]
     },
-    "after": null
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.2634927901121538,
+          "madn": 0.005833267217727239,
+          "mad": 0.003934484835914771,
+          "span": 0.023620965896085977,
+          "q1": 0.25951018539711607,
+          "q3": 0.2673838406958114,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.2537422751201648,
+          "p999": 0.966979476615549,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.24499885557335774,
+          "madn": 0.006104022739539968,
+          "mad": 0.00411710693345472,
+          "span": 0.0247196154726482,
+          "q1": 0.24084840161745633,
+          "q3": 0.2490882734416724,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.2349126420996414,
+          "p999": 0.9626916914625773,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.22989242389562828,
+          "madn": 0.006328056457193542,
+          "mad": 0.0042682156058232446,
+          "span": 0.02558937972075989,
+          "q1": 0.2255893797207599,
+          "q3": 0.2341191729610132,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.2192263675898375,
+          "p999": 0.9645380331120775,
+          "totalPixels": 540000
+        }
+      ]
+    }
   },
   {
     "id": "stretch-mtf",
@@ -1193,124 +1263,154 @@
     "notes": [],
     "samples": null,
     "surface": null,
+    "correction": null,
+    "clamped": null,
     "before": {
       "perChannel": [
         {
-          "median": 0.2640573739223316,
-          "madn": 0.0199431101944289,
-          "mad": 0.013451443541365777,
-          "span": 0.08070496681162742,
-          "q1": 0.25049210345616846,
-          "q3": 0.27739375906004426,
+          "median": 0.2634927901121538,
+          "madn": 0.005833267217727239,
+          "mad": 0.003934484835914771,
+          "span": 0.023620965896085977,
+          "q1": 0.25951018539711607,
+          "q3": 0.2673838406958114,
           "sampled": 540000,
           "stride": 1,
           "nan": 0,
-          "p001": 0.21928740367742428,
-          "p999": 0.9593194476234074,
+          "p001": 0.2537422751201648,
+          "p999": 0.966979476615549,
           "totalPixels": 540000,
-          "shadows": 0.21814297703517205,
-          "midtones": 0.14812444619474258,
-          "target": 0.2640573739223316,
-          "scale": 1.2790062257264974,
+          "shadows": 0.25348287174792095,
+          "midtones": 0.03659897344342787,
+          "target": 0.2634927901121538,
+          "scale": 1.339553993009423,
+          "outLow": 265,
+          "outHigh": 56
+        },
+        {
+          "median": 0.24499885557335774,
+          "madn": 0.006104022739539968,
+          "mad": 0.00411710693345472,
+          "span": 0.0247196154726482,
+          "q1": 0.24084840161745633,
+          "q3": 0.2490882734416724,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.2349126420996414,
+          "p999": 0.9626916914625773,
+          "totalPixels": 540000,
+          "shadows": 0.23468375677119097,
+          "midtones": 0.040401625627540017,
+          "target": 0.24499885557335774,
+          "scale": 1.3066493869006082,
           "outLow": 266,
-          "outHigh": 1
+          "outHigh": 37
         },
         {
-          "median": 0.24568551155870907,
-          "madn": 0.019130395207374886,
-          "mad": 0.012903274792509705,
-          "span": 0.077409018081941,
-          "q1": 0.23274586099031053,
-          "q3": 0.2585488670176242,
+          "median": 0.22989242389562828,
+          "madn": 0.006328056457193542,
+          "mad": 0.0042682156058232446,
+          "span": 0.02558937972075989,
+          "q1": 0.2255893797207599,
+          "q3": 0.2341191729610132,
           "sampled": 540000,
           "stride": 1,
           "nan": 0,
-          "p001": 0.2026245517662318,
-          "p999": 0.9565423056382086,
+          "p001": 0.2192263675898375,
+          "p999": 0.9645380331120775,
           "totalPixels": 540000,
-          "shadows": 0.20152590218966965,
-          "midtones": 0.15235588312713866,
-          "target": 0.24568551155870907,
-          "scale": 1.2523887784742394,
-          "outLow": 269,
-          "outHigh": 0
-        },
-        {
-          "median": 0.23041123064011595,
-          "madn": 0.018397934226560636,
-          "mad": 0.012409236629273328,
-          "span": 0.07447928587777522,
-          "q1": 0.2179751277943084,
-          "q3": 0.24280155642023346,
-          "sampled": 540000,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.18879987792782482,
-          "p999": 0.9585564965285726,
-          "totalPixels": 540000,
-          "shadows": 0.18777752346074617,
-          "midtones": 0.15614172348273161,
-          "target": 0.23041123064011595,
-          "scale": 1.2311897649777377,
-          "outLow": 268,
-          "outHigh": 0
+          "shadows": 0.21890592813000687,
+          "midtones": 0.04561003420752561,
+          "target": 0.22989242389562828,
+          "scale": 1.2802555236476587,
+          "outLow": 267,
+          "outHigh": 35
         }
       ]
     },
     "after": {
       "perChannel": [
         {
-          "median": 0.2640573739223316,
-          "madn": 0.08947939035719578,
-          "mad": 0.060353021959527714,
-          "span": 0.3647058823529413,
-          "q1": 0.19891660944533454,
-          "q3": 0.320485236896315,
+          "median": 0.2635080491340505,
+          "madn": 0.11337061986599964,
+          "mad": 0.07646743549575047,
+          "span": 0.4693980315861752,
+          "q1": 0.17672999160753797,
+          "q3": 0.33319600213626305,
           "sampled": 540000,
           "stride": 1,
           "nan": 0,
-          "p001": 0.00843823910887312,
-          "p999": 0.9905394064240483,
+          "p001": 0.00950637064164187,
+          "p999": 0.9982452124818799,
+          "totalPixels": 540000,
+          "clipLow": 265,
+          "clipHigh": 56,
+          "clipPct": 0.059444444444444446
+        },
+        {
+          "median": 0.24509040970473792,
+          "madn": 0.1098127671655745,
+          "mad": 0.07406769672573486,
+          "span": 0.4536049439230945,
+          "q1": 0.16180666819256886,
+          "q3": 0.3130083161669337,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.007385366598001068,
+          "p999": 0.9978332188906691,
           "totalPixels": 540000,
           "clipLow": 266,
-          "clipHigh": 1,
-          "clipPct": 0.049444444444444444
+          "clipHigh": 37,
+          "clipPct": 0.05611111111111111
         },
         {
-          "median": 0.24571602960250247,
-          "madn": 0.08483544911131038,
-          "mad": 0.05722072650162579,
-          "span": 0.3452048523689631,
-          "q1": 0.18460364690623332,
-          "q3": 0.299671931029221,
+          "median": 0.22990768291752497,
+          "madn": 0.1025622649842486,
+          "mad": 0.06917730000286565,
+          "span": 0.4221560997940032,
+          "q1": 0.15303273060196843,
+          "q3": 0.2937514305333028,
           "sampled": 540000,
           "stride": 1,
           "nan": 0,
-          "p001": 0.007629510948348211,
-          "p999": 0.9897611963073167,
+          "p001": 0.008712901503013657,
+          "p999": 0.9977264057373922,
           "totalPixels": 540000,
-          "clipLow": 269,
-          "clipHigh": 0,
-          "clipPct": 0.04981481481481481
-        },
-        {
-          "median": 0.23041123064011595,
-          "madn": 0.08060882476253212,
-          "mad": 0.05436990743459606,
-          "span": 0.3278553444724193,
-          "q1": 0.1726863508049134,
-          "q3": 0.2819714656290532,
-          "sampled": 540000,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.0067750057221332115,
-          "p999": 0.9901426718547341,
-          "totalPixels": 540000,
-          "clipLow": 268,
-          "clipHigh": 0,
-          "clipPct": 0.04962962962962963
+          "clipLow": 267,
+          "clipHigh": 35,
+          "clipPct": 0.05592592592592593
         }
       ]
     }
+  },
+  {
+    "id": "quantise",
+    "name": "Quantise to 8-bit",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "dither": true,
+      "ditherSeed": 20260906,
+      "ditherAmplitudeLevels": 0.5
+    },
+    "notes": [
+      "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
+      "0 values below black and 0 above white were clamped here, out of 1620000."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": {
+      "low": 0,
+      "high": 0,
+      "nonFinite": 0,
+      "samples": 1620000,
+      "lowPct": 0,
+      "highPct": 0
+    },
+    "before": null,
+    "after": null
   }
 ]
