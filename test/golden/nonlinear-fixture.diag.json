@@ -108,10 +108,12 @@
   "timingsMs": {
     "header": 1,
     "decode": 25,
-    "stats": 46,
-    "transfer": 134,
+    "preview": 2,
+    "stats": 55,
+    "transfer": 96,
+    "quantise": 23,
     "downscale": 0,
-    "total": 208
+    "total": 204
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",
