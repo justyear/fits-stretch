@@ -108,6 +108,41 @@ function buildLog(ctx){
            ', no stretch recorded in the header. Full autostretch applied.');
   }
 
+  // --- background -------------------------------------------------
+  //
+  // Flipping a step to applied has two effects and only one of them is
+  // automatic. The "Not applied" sentence retracts its denial on its own, which
+  // is what steps/registry.js was built for. Nothing, however, makes the log
+  // SAY what happened — and a log that stopped denying an operation without
+  // describing it is the same silent operation, entered from the other side.
+  // The numbers below all come from the record; none is recomputed here.
+  var bg = null;
+  for (var bi = 0; bi < ctx.records.length; bi++){
+    if (ctx.records[bi].id === 'background' && ctx.records[bi].applied) bg = ctx.records[bi];
+  }
+  if (bg){
+    var s = bg.samples, sf = bg.surface, rj = s.rejected;
+    var why = [];
+    if (rj.bright) why.push(rj.bright + ' brighter than the background');
+    if (rj.edge) why.push(rj.edge + ' on the frame edge');
+    if (rj.clipped) why.push(rj.clipped + ' saturated');
+    if (rj.nan) why.push(rj.nan + ' with unusable pixels');
+
+    L.push('• Background extraction: measured the sky in ' + s.generated + ' boxes of ' +
+           s.boxSizeEffective + ' pixels on a ' + s.grid.cols + ' × ' + s.grid.rows +
+           ' grid and used ' + s.accepted + ' of them' +
+           (why.length ? ' (' + why.join(', ') + ' were left out)' : '') +
+           '. A thin-plate spline through those points is the model that was removed.');
+    L.push('    Each channel got its own model median back as a pedestal (' +
+           (ctx.outChannels === 3 ? 'R ' + fx(sf.perChannel[0].pedestal, 5) +
+                                    ', G ' + fx(sf.perChannel[1].pedestal, 5) +
+                                    ', B ' + fx(sf.perChannel[2].pedestal, 5)
+                                  : fx(sf.perChannel[0].pedestal, 5)) +
+           '), so the background level is preserved and only its variation was removed.');
+    L.push('    The ratio between channels is therefore unchanged: no colour grading, ' +
+           'no white balance, nothing was decided about the colour of the sky.');
+  }
+
   // --- stretch ----------------------------------------------------
   L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
          (st.nonLinear
@@ -135,9 +170,19 @@ function buildLog(ctx){
   }
 
   // --- output -----------------------------------------------------
+  var qz = null;
+  for (var qi = 0; qi < ctx.records.length; qi++){
+    if (ctx.records[qi].id === 'quantise') qz = ctx.records[qi];
+  }
   L.push('• Output: 8-bit sRGB' + (ctx.exportScaled
       ? ', downscaled to ' + ctx.exportW + ' × ' + ctx.exportH + ' (this browser cannot allocate a canvas at full size)'
-      : ', full resolution, no resampling') + '.');
+      : ', full resolution, no resampling') + '.' +
+      (qz && qz.params.dither
+        ? ' Rounded with ±' + qz.params.ditherAmplitudeLevels +
+          ' of a level of dither, from the fixed seed ' + qz.params.ditherSeed +
+          ', which breaks the banding a subtracted surface would otherwise leave. ' +
+          'The seed is fixed, so the same file always produces the same image.'
+        : ''));
   // Generated, not written: the complement between the catalogue in
   // steps/registry.js and the steps that reported themselves applied. A step
   // added to the chain drops out of this sentence on its own, which is the

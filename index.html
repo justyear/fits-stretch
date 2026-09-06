@@ -1559,6 +1559,83 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
   };
 }
 
+/**
+ * Applies the correction, in place. Returns the per-channel counts of what it
+ * produced, which the record reports.
+ *
+ *   subtract:  out = in - model + pedestal
+ *   divide:    out = in / model * pedestal
+ *
+ * THE PEDESTAL IS NOT OPTIONAL, and it is per channel. Subtracting the model
+ * and giving nothing back drops the background to around zero, which is not a
+ * dark sky, it is a clipped shadow — the faint end of the nebula goes with it.
+ * Giving back the model's own median per channel preserves the level and
+ * removes only the VARIATION, which is what the word gradient means.
+ *
+ * PER CHANNEL is the part that matters for colour. Returning the same pedestal
+ * to all three channels would move R, G and B by different relative amounts and
+ * change the ratio between them — the tool would have colour-graded the frame
+ * without saying so. Per channel, the ratio survives, and the log gets to say
+ * the colour balance was not touched. That claim is measured, not asserted:
+ * see the R/G and B/G figures in test/golden/MANIFEST.md.
+ *
+ * NOTHING IS CLAMPED. Pixels of noise that sat below the model come out
+ * negative and they are supposed to. Clamping here would fold the bottom half
+ * of the noise distribution onto zero, which biases the median upward — the
+ * measurement would then report a background that the file does not contain.
+ * The Image contract says not clamped, and quantise is where the range is
+ * finally decided.
+ */
+function bgApplyCorrection(data, surface, w, h, N, nch, mode){
+  var divisor = surface.divisor, gw = surface.gw;
+  var rowbuf = new Float64Array(gw);
+
+  // gx and tx depend only on x, so they are computed once for the whole frame
+  // instead of once per pixel per channel.
+  var gxA = new Int32Array(w), txA = new Float64Array(w);
+  for (var x = 0; x < w; x++){
+    var fx = x / divisor, gx = fx | 0;
+    gxA[x] = gx; txA[x] = fx - gx;
+  }
+
+  var stats = [];
+  var divide = (mode === 'divide');
+  // A divisor that reaches zero would send a pixel to infinity. The spline can
+  // undershoot below the data, so this is reachable, and a guard that silently
+  // did nothing would be an operation with no record. Counted and reported.
+  var GUARD = 1e-6;
+
+  for (var c = 0; c < nch; c++){
+    var g = surface.grid[c], base = c * N;
+    var ped = surface.perChannel[c].pedestal;
+    var negatives = 0, guarded = 0;
+
+    for (var y = 0; y < h; y++){
+      var fy = y / divisor, gy = fy | 0, ty = fy - gy;
+      var r0 = gy * gw, r1 = r0 + gw;
+      for (var k = 0; k < gw; k++) rowbuf[k] = g[r0 + k] + (g[r1 + k] - g[r0 + k]) * ty;
+
+      var o = base + y * w;
+      for (x = 0; x < w; x++){
+        var gx2 = gxA[x], tx = txA[x];
+        var model = rowbuf[gx2] + (rowbuf[gx2 + 1] - rowbuf[gx2]) * tx;
+        var vin = data[o + x], vout;
+        if (divide){
+          if (model > GUARD || model < -GUARD) vout = vin / model * ped;
+          else { vout = vin; guarded++; }
+        } else {
+          vout = vin - model + ped;
+        }
+        if (vout < 0) negatives++;
+        data[o + x] = vout;
+      }
+    }
+    stats.push({ pedestal: ped, negatives: negatives, guarded: guarded,
+                 negativePct: 100 * negatives / N });
+  }
+  return stats;
+}
+
 // Five decimals for a value on the [0,1] axis, one for a percentage. These end
 // up in a tooltip a person reads while deciding whether the tool was right to
 // throw a point away, so the precision is the precision that helps them.
@@ -1727,7 +1804,17 @@ function stepBackground(img, params, report){
   // yesterday, before anything depends on it being right.
   var surface = bgFitSurface(points, w, h, nch, params.smoothing, BG_GRID_DIVISOR);
   var surfaceRecord = null;
+  var correction = null;
+  var after = null;
+
   if (surface){
+    // The pixels move here, and from this line on the step is applied. That is
+    // why `applied` is computed from whether this ran rather than set by hand:
+    // the log's "Not applied" sentence is generated from it, and a sentence
+    // that has to be maintained by hand is a sentence that eventually lies.
+    correction = bgApplyCorrection(data, surface, w, h, N, nch, params.correction);
+    after = measure(img, params.stride);
+
     surfaceRecord = {
       method: 'thin-plate-spline',
       // One lambda, not three: A is built from the sample POSITIONS, which the
@@ -1739,6 +1826,7 @@ function stepBackground(img, params, report){
       maxInterpErrorLevels: surface.maxInterpErrorLevels,
       interpProbes: BG_INTERP_PROBES,
       interpLimitLevels: BG_INTERP_LIMIT_LEVELS,
+      correction: params.correction,
       perChannel: surface.perChannel
     };
   }
@@ -1748,16 +1836,14 @@ function stepBackground(img, params, report){
   // Two different falsehoods would be available here and neither is taken. The
   // step does not claim to have run, because no pixel moved. And it does not
   // stay silent, because it did do something and the points are the something.
-  var skipReason;
+  var applied = !!surfaceRecord;
+  var skipReason = null;
   if (accepted < BG_MIN_SAMPLES){
     skipReason = 'only ' + accepted + ' of ' + generated + ' samples survived rejection, ' +
                  'and a surface is never fitted to fewer than ' + BG_MIN_SAMPLES + ' points';
   } else if (!surfaceRecord){
     skipReason = 'the ' + accepted + ' accepted samples do not define a surface: the linear ' +
                  'system is singular, which means two samples share a position';
-  } else {
-    skipReason = 'the surface is fitted and reported but not applied: this build models the ' +
-                 'background and changes no pixel';
   }
 
   var notes = [
@@ -1784,14 +1870,23 @@ function stepBackground(img, params, report){
                'between; measured against direct evaluation at ' + BG_INTERP_PROBES +
                ' pixels, worst case ' + bgFixed(surfaceRecord.maxInterpErrorLevels) +
                ' of one 8-bit level.');
-    notes.push('Background level preserved per channel; the colour balance between channels ' +
-               'is not touched.');
+    var peds = [];
+    for (c = 0; c < nch; c++) peds.push(chNames[c] + ' ' + bgFixed(surface.perChannel[c].pedestal));
+    notes.push('Corrected by ' + (params.correction === 'divide' ? 'division' : 'subtraction') +
+               ', returning each channel its own model median as the pedestal (' +
+               peds.join(', ') + '). The background LEVEL is preserved and only the ' +
+               'variation is removed, so the ratio between channels is unchanged and no ' +
+               'colour grading happened.');
+    var negTotal = 0;
+    for (c = 0; c < nch; c++) negTotal += correction[c].negatives;
+    notes.push(negTotal + ' pixels came out below zero, which is expected: noise that sat ' +
+               'under the model stays under it, and nothing is clamped until the 8-bit step.');
   }
 
   report({
     id: 'background',
     name: 'Background extraction',
-    applied: false,
+    applied: applied,
     skipReason: skipReason,
     // Only the knobs this build actually reads. `smoothing`, `correction` and
     // `pedestal` belong to the surface and the correction; listing them now
@@ -1801,7 +1896,9 @@ function stepBackground(img, params, report){
       boxSize: params.boxSize,
       tolerance: params.tolerance,
       edgeMargin: params.edgeMargin,
-      smoothing: params.smoothing
+      smoothing: params.smoothing,
+      correction: params.correction,
+      pedestal: params.pedestal
     },
     samples: {
       generated: generated,
@@ -1818,11 +1915,16 @@ function stepBackground(img, params, report){
       points: points
     },
     surface: surfaceRecord,
+    // What the correction produced, per channel. `negatives` is the count that
+    // has to be non-zero on real data: a background subtraction that produces
+    // no negative pixel has clamped somewhere it should not have, and the
+    // symmetry of the noise is gone.
+    correction: correction,
     before: before,
-    // Nothing was measured after, because nothing happened after. A copy of
+    // Measured when the pixels moved, null when they did not. A copy of
     // `before` under a name that says "after" would be a measurement that was
     // never taken.
-    after: null,
+    after: after,
     notes: notes
   });
 
@@ -1993,23 +2095,112 @@ function stepStretchMTF(img, params, report){
  * band.
  * ------------------------------------------------------------------ */
 
-function quantise(img){
+/* ------------------------------------------------------------------ *
+ * Dither
+ *
+ * Subtracting a smooth surface from quantised data produces banding: a whole
+ * region of the frame lands on the same side of the same rounding boundary and
+ * the boundary becomes a visible contour. The chain is float, so the banding
+ * can only appear here, at the one place a level is decided — and it can only
+ * be broken here.
+ *
+ * Plus or minus half a level of noise, added before rounding, turns the hard
+ * threshold into a probabilistic one. A value sitting exactly on k stays on k;
+ * a value on k+0.5 goes either way with equal chance, so the contour becomes
+ * noise and the eye stops seeing an edge that is not in the sky.
+ *
+ * DETERMINISTIC, and that is not a convenience. Two reasons, and the second is
+ * the product:
+ *   - a golden that moved every capture would not be a golden;
+ *   - the whole argument of this tool is that nothing happens to the pixels
+ *     that is not written down. "Random noise was added" is not something the
+ *     log can honestly claim to have measured. A seed makes it reproducible by
+ *     anyone holding the same file, which is the difference between a stated
+ *     process and a black box.
+ *
+ * The value is a hash of the planar index rather than a running generator, so
+ * it does not depend on iteration order and the three channels decorrelate for
+ * free — index c*N+i already differs per channel, so the dither does not paint
+ * coloured speckle.
+ * ------------------------------------------------------------------ */
+
+var QUANTISE_DITHER_SEED = 20260906;
+var QUANTISE_DITHER_LEVELS = 0.5;
+
+function ditherAt(seed, idx){
+  var x = (idx + seed) | 0;
+  x = Math.imul(x ^ (x >>> 16), 2246822507);
+  x = Math.imul(x ^ (x >>> 13), 3266489909);
+  x = (x ^ (x >>> 16)) >>> 0;
+  return x / 4294967296;           // [0, 1)
+}
+
+/**
+ * Float Image -> 8-bit RGBA.
+ *
+ * @param {Image}    img
+ * @param {Object}   opts    { dither: bool, ditherSeed: int }
+ * @param {Function} report  optional report(record)
+ *
+ * `dither: false` exists because a non-regression comparison may want the
+ * transfer without it. It is not a quality setting and the default is on.
+ */
+function quantise(img, opts, report){
+  opts = opts || {};
+  var useDither = (opts.dither !== false);
+  var seed = (opts.ditherSeed === undefined) ? QUANTISE_DITHER_SEED : (opts.ditherSeed | 0);
+  var amp = QUANTISE_DITHER_LEVELS;
+
   var data = img.data, N = img.N, channels = img.channels;
   var rgba = new Uint8ClampedArray(N * 4);
-  var c, i, o, v, out;
+  var c, i, o, v, out, idx;
+  var low = 0, high = 0, nan = 0;
 
   for (c = 0; c < channels; c++){
     var base = c * N;
     for (i = 0; i < N; i++){
-      v = data[base + i];
-      if (v !== v) v = 0;
-      out = Math.round(v * 255);
+      idx = base + i;
+      v = data[idx];
+      if (v !== v){ v = 0; nan++; }
+      var scaled = v * 255;
+      if (useDither) scaled += (ditherAt(seed, idx) - 0.5) * 2 * amp;
+      out = Math.round(scaled);
+      // Counted before Uint8ClampedArray does the clamping, because after it
+      // the information is gone. These are the negatives a background
+      // subtraction is allowed to produce and the highlights a stretch is
+      // allowed to blow: the chain does not clamp, so this is where they land,
+      // and the record says how many.
+      if (out < 0){ low++; }
+      else if (out > 255){ high++; }
       o = i * 4 + c;
       rgba[o] = out;
       if (channels === 1){ rgba[o + 1] = out; rgba[o + 2] = out; }
     }
   }
   for (i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+
+  if (report){
+    var total = N * channels;
+    report({
+      id: 'quantise',
+      name: 'Quantise to 8-bit',
+      applied: true,
+      skipReason: null,
+      params: { dither: useDither, ditherSeed: useDither ? seed : null,
+                ditherAmplitudeLevels: useDither ? amp : 0 },
+      clamped: { low: low, high: high, nonFinite: nan, samples: total,
+                 lowPct: 100 * low / total, highPct: 100 * high / total },
+      before: null, after: null,
+      notes: [
+        useDither
+          ? ('Dithered by plus or minus ' + amp + ' of one level before rounding, from a fixed seed (' +
+             seed + '), so the result is reproducible from the same file.')
+          : 'Dither off: rounding only.',
+        low + ' value' + (low === 1 ? '' : 's') + ' below black and ' + high +
+          ' above white were clamped here, out of ' + total + '.'
+      ]
+    });
+  }
   return rgba;
 }
 
@@ -2154,6 +2345,41 @@ function buildLog(ctx){
            ', no stretch recorded in the header. Full autostretch applied.');
   }
 
+  // --- background -------------------------------------------------
+  //
+  // Flipping a step to applied has two effects and only one of them is
+  // automatic. The "Not applied" sentence retracts its denial on its own, which
+  // is what steps/registry.js was built for. Nothing, however, makes the log
+  // SAY what happened — and a log that stopped denying an operation without
+  // describing it is the same silent operation, entered from the other side.
+  // The numbers below all come from the record; none is recomputed here.
+  var bg = null;
+  for (var bi = 0; bi < ctx.records.length; bi++){
+    if (ctx.records[bi].id === 'background' && ctx.records[bi].applied) bg = ctx.records[bi];
+  }
+  if (bg){
+    var s = bg.samples, sf = bg.surface, rj = s.rejected;
+    var why = [];
+    if (rj.bright) why.push(rj.bright + ' brighter than the background');
+    if (rj.edge) why.push(rj.edge + ' on the frame edge');
+    if (rj.clipped) why.push(rj.clipped + ' saturated');
+    if (rj.nan) why.push(rj.nan + ' with unusable pixels');
+
+    L.push('• Background extraction: measured the sky in ' + s.generated + ' boxes of ' +
+           s.boxSizeEffective + ' pixels on a ' + s.grid.cols + ' × ' + s.grid.rows +
+           ' grid and used ' + s.accepted + ' of them' +
+           (why.length ? ' (' + why.join(', ') + ' were left out)' : '') +
+           '. A thin-plate spline through those points is the model that was removed.');
+    L.push('    Each channel got its own model median back as a pedestal (' +
+           (ctx.outChannels === 3 ? 'R ' + fx(sf.perChannel[0].pedestal, 5) +
+                                    ', G ' + fx(sf.perChannel[1].pedestal, 5) +
+                                    ', B ' + fx(sf.perChannel[2].pedestal, 5)
+                                  : fx(sf.perChannel[0].pedestal, 5)) +
+           '), so the background level is preserved and only its variation was removed.');
+    L.push('    The ratio between channels is therefore unchanged: no colour grading, ' +
+           'no white balance, nothing was decided about the colour of the sky.');
+  }
+
   // --- stretch ----------------------------------------------------
   L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
          (st.nonLinear
@@ -2181,9 +2407,19 @@ function buildLog(ctx){
   }
 
   // --- output -----------------------------------------------------
+  var qz = null;
+  for (var qi = 0; qi < ctx.records.length; qi++){
+    if (ctx.records[qi].id === 'quantise') qz = ctx.records[qi];
+  }
   L.push('• Output: 8-bit sRGB' + (ctx.exportScaled
       ? ', downscaled to ' + ctx.exportW + ' × ' + ctx.exportH + ' (this browser cannot allocate a canvas at full size)'
-      : ', full resolution, no resampling') + '.');
+      : ', full resolution, no resampling') + '.' +
+      (qz && qz.params.dither
+        ? ' Rounded with ±' + qz.params.ditherAmplitudeLevels +
+          ' of a level of dither, from the fixed seed ' + qz.params.ditherSeed +
+          ', which breaks the banding a subtracted surface would otherwise leave. ' +
+          'The seed is fixed, so the same file always produces the same image.'
+        : ''));
   // Generated, not written: the complement between the catalogue in
   // steps/registry.js and the steps that reported themselves applied. A step
   // added to the chain drops out of this sentence on its own, which is the
@@ -2264,6 +2500,8 @@ function plainRecords(records){
       // step is not doing something silently.
       samples: r.samples || null,
       surface: r.surface || null,
+      correction: r.correction || null,
+      clamped: r.clamped || null,
       before: plainMeasurement(r.before),
       after: plainMeasurement(r.after)
     });
@@ -2450,7 +2688,10 @@ async function openFile(buffer, fileName, opts, post){
     bgBoxSize: 25,
     bgTolerance: 1.0,
     bgEdgeMargin: 0.02,
-    bgSmoothing: 0.10
+    bgSmoothing: 0.10,
+    bgCorrection: 'subtract',
+    bgPedestal: 'model-median',
+    dither: true
   };
 
   SESSION = {
@@ -2521,12 +2762,10 @@ async function runChain(params, mode, post){
   var records = [];
   function report(record){ records.push(record); }
 
-  // One histogram pass, two copies of the result. Both steps measure the same
-  // pixels, so measuring twice would burn a pass for identical numbers — but
-  // they must not share the object: stepStretchMTF writes shadows, midtones,
-  // target and scale onto the channels of its own `before`, and the background
-  // record would then carry stretch parameters inside a measurement it took
-  // before the stretch existed.
+  // The measurement is copied rather than shared: stepStretchMTF writes
+  // shadows, midtones, target and scale onto the channels of its own `before`,
+  // and the background record would otherwise carry stretch parameters inside a
+  // measurement taken before the stretch existed.
   stage('Sampling the background', 60);
   work = stepBackground(work, {
     samplesPerRow: params.bgSamplesPerRow,
@@ -2534,6 +2773,8 @@ async function runChain(params, mode, post){
     tolerance: params.bgTolerance,
     edgeMargin: params.bgEdgeMargin,
     smoothing: params.bgSmoothing,
+    correction: params.bgCorrection,
+    pedestal: params.bgPedestal,
     // Which buffer this is, expressed as a fraction of the frame the user is
     // working on. The step scales its sample box by it. Full runs are 1 by
     // definition; the preview is whatever downscaleFloat produced.
@@ -2547,20 +2788,36 @@ async function runChain(params, mode, post){
   step = Date.now();
   stage('Applying autostretch', 68);
 
+  // THE STRETCH MUST MEASURE THE FRAME IT IS ABOUT TO TRANSFORM, not the frame
+  // that arrived. Background extraction removes the gradient, and the gradient
+  // was part of the spread the MADN measured: reusing the earlier measurement
+  // sets the black point at `median - 2.8 x MADN` on a MADN inflated by
+  // variation that is no longer there, and the stretch comes out weaker than it
+  // should be, everywhere, quietly.
+  //
+  // This was harmless while the background step only sampled — the two
+  // measurements described the same pixels — and became wrong the moment a
+  // pixel moved. The background step already measured the corrected frame as
+  // its own `after`, so the right number is free; what is not free is
+  // remembering to use it.
+  var bgRecord = records[records.length - 1];
+  var stretchBefore = bgRecord.after ? copyMeasurement(bgRecord.after)
+                                     : copyMeasurement(measured);
+
   work = stepStretchMTF(work, {
     shadowSigma: params.shadowSigma,
     target: params.target,
     blackPct: params.blackPct,
     nonLinear: params.nonLinear,
     stride: full ? SESSION.statStride : 1,
-    before: copyMeasurement(measured)
+    before: stretchBefore
   }, report);
   mark('transfer', step);
 
   // Quantise ----------------------------------------------------------
   await yieldNow();
   step = Date.now();
-  var rgba = quantise(work);
+  var rgba = quantise(work, { dither: params.dither }, report);
   mark('quantise', step);
 
   // Display copy ------------------------------------------------------

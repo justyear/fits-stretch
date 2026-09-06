@@ -100,30 +100,30 @@ function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize, [int]
 # just outside one specific limit, so a limit that silently widened shows up as
 # a MISMATCH here instead of as a quiet pass.
 #
-#   median  unit rule,  max(1e-4 * ref, 4/65535)      = 6.104e-5 at ref 0.264
-#   madn    span rule,  max(1e-4 * ref, 8*span/65535) = 9.851e-6 at span 0.0807
+#   median  unit rule,  max(1e-4 * ref, 4/65535)      = 6.104e-5 at ref 0.2635
+#   madn    span rule,  max(1e-4 * ref, 8*span/65535) = 2.884e-6 at span 0.02362
 #   clip    0.05% of totalPixels                      = 270 of 540000
 #
-# The madn +2e-5 case is the one that matters most: it fails the span rule and
-# would pass the [0,1] rule, which is six times looser at this magnitude. It is
+# The madn +8e-6 case is the one that matters most: it fails the span rule and
+# would pass the [0,1] rule, which is 21 times looser at this magnitude. It is
 # the only case that can tell the two rules apart.
 $cases = @(
     @{ name = 'baseline, untouched'; art = $null; want = 'PASS'; do = { } }
 
     @{ name = 'records median +5e-5 (0.82 of limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2640573739223316' '0.2641073739223316' } }
+         Edit-Text $tmpdir $ART_REC '0.2634927901121538' '0.26354279011215381' } }
     @{ name = 'records median +7e-5 (1.15 of limit)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2640573739223316' '0.2641273739223316' } }
+         Edit-Text $tmpdir $ART_REC '0.2634927901121538' '0.26356279011215383' } }
 
-    @{ name = 'records madn +8e-6 (0.81 of span limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.0199431101944289' '0.0199511101944289' } }
-    @{ name = 'records madn +2e-5, fails span rule, passes [0,1] rule'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.0199431101944289' '0.0199631101944289' } }
+    @{ name = 'records madn +2e-6 (0.69 of the span limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '0.005833267217727239' '0.0058352672177272389' } }
+    @{ name = 'records madn +8e-6, fails span rule, passes [0,1] rule'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '0.005833267217727239' '0.0058412672177272388' } }
 
-    @{ name = 'records clipLow 266 -> 500 (234 of 270)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipLow": 266' '"clipLow": 500' } }
-    @{ name = 'records clipLow 266 -> 600 (334 of 270)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipLow": 266' '"clipLow": 600' } }
+    @{ name = 'records clipHigh 56 -> 290 (234 of 270)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 290' } }
+    @{ name = 'records clipHigh 56 -> 390 (334 of 270)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 390' } }
 
     @{ name = 'records params.target nudged (input knob, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"target": 0.25,' '"target": 0.2501,' } }
@@ -135,7 +135,7 @@ $cases = @(
          Edit-Text $tmpdir $ART_REC '"applied": true' '"applied": false' } }
 
     @{ name = 'diag channels[0].median +5e-5'; art = $ART_DIAG; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_DIAG '"median": 0.2640573739223316' '"median": 0.2641073739223316' } }
+         Edit-Text $tmpdir $ART_DIAG '"median": 0.2634927901121538' '"median": 0.26354279011215381' } }
     @{ name = 'diag decoded.normMax nudged (off the file, exact)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_DIAG '"normMax": 1' '"normMax": 1.0001' } }
 
@@ -173,7 +173,7 @@ $cases = @(
          Edit-Png $tmpdir $ART_PNG 2 99999999 } }
 
     @{ name = 'log one digit changed'; art = $ART_LOG; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_LOG 'median 0.26406' 'median 0.26407' } }
+         Edit-Text $tmpdir $ART_LOG 'median 0.26349' 'median 0.26350' } }
 )
 
 $good = 0; $bad = 0

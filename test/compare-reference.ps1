@@ -77,6 +77,15 @@ $KNOWN = @()
 # still is comparable, and is compared.
 $MOSAIC_ONLY = @('seestar-fixture')
 
+# The steps reference.py implements. A step that runs here and is missing from
+# this list makes the per-channel comparison meaningless, and the comparator
+# says so once instead of failing every number. Add an id here only when the
+# reference actually models it.
+#
+# 'quantise' is listed because the reference stops at the float chain and never
+# measures the 8-bit output, so nothing in the per-channel block depends on it.
+$REFERENCE_MODELS = @('stretch-mtf', 'quantise')
+
 function Get-Known($fixture, $field) {
     foreach ($k in $KNOWN) { if ($k.fixture -eq $fixture -and $k.field -eq $field) { return $k } }
     return $null
@@ -188,6 +197,31 @@ foreach ($fixture in $MAP.Keys) {
     if ($MOSAIC_ONLY -contains $fixture) {
         $rows += New-Row $fixture 'canais' '(todos)' '-' '-' 'N/A' `
                  'referencia mede o mosaico CFA, antes do debayer - imagens diferentes'
+        continue
+    }
+
+    # --- does the reference still describe this pipeline? ----------------
+    #
+    # reference.py models the decode and the autostretch. When the chain runs a
+    # step it does not model, every per-channel number is a comparison between
+    # two different images, and reporting that as sixty-odd numeric FAILs
+    # describes the symptom instead of the fact.
+    #
+    # One fact, said once: the reference is behind the pipeline. The decode
+    # block above still compares, because the decode is what both still share.
+    #
+    # This is N/A and not KNOWN on purpose. The KNOWN list is for divergences
+    # the two implementations have while describing the same thing; this is the
+    # two no longer describing the same thing. Filling KNOWN with sixty entries
+    # would turn a debt register into wallpaper - see section 7 of
+    # modulo-0-spec.md, "KNOWN nao e uma saida de emergencia".
+    $unmodelled = @()
+    foreach ($rec in $records) {
+        if ($rec.applied -and ($REFERENCE_MODELS -notcontains $rec.id)) { $unmodelled += $rec.id }
+    }
+    if ($unmodelled.Count -gt 0) {
+        $rows += New-Row $fixture 'canais' '(todos)' '-' '-' 'N/A' `
+                 ("pipeline roda " + ($unmodelled -join ', ') + " e reference.py nao modela - passo 8 da secao 6")
         continue
     }
 
