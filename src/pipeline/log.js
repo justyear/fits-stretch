@@ -138,7 +138,18 @@ function buildLog(ctx){
   L.push('• Output: 8-bit sRGB' + (ctx.exportScaled
       ? ', downscaled to ' + ctx.exportW + ' × ' + ctx.exportH + ' (this browser cannot allocate a canvas at full size)'
       : ', full resolution, no resampling') + '.');
-  L.push('• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.');
+  // Generated, not written: the complement between the catalogue in
+  // steps/registry.js and the steps that reported themselves applied. A step
+  // added to the chain drops out of this sentence on its own, which is the
+  // whole point — the line is a claim, and a claim that has to be maintained
+  // by hand is a claim that eventually stops being true.
+  var denied = notAppliedLabels(ctx.records);
+  if (denied.length > 1){
+    L.push('• Not applied: ' + denied.slice(0, -1).join(', ') +
+           ', or ' + denied[denied.length - 1] + '.');
+  } else if (denied.length === 1){
+    L.push('• Not applied: ' + denied[0] + '.');
+  }
   L.push('');
   L.push('Every number above was measured from the file itself.');
 
