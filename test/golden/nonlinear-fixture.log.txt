@@ -1,0 +1,18 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-nonlinear.fit
+900 × 600 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.18413 to 1.00000.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is already non-linear: the header records Autostretch and Histogram Transf. and Midtones transfer, the measured median sits at 0.2467. Stretch reduced accordingly — black point taken at the 0.050% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), target background held at each channel’s own median, applied per channel (unlinked). Highlights untouched at 1.000.
+    R  median 0.26406  MADN 0.01994  →  shadows 0.21814  midtones 0.14812
+    G  median 0.24569  MADN 0.01913  →  shadows 0.20153  midtones 0.15236
+    B  median 0.23041  MADN 0.01840  →  shadows 0.18778  midtones 0.15614
+    0.050% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

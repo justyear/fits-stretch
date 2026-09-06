@@ -1,0 +1,22 @@
+# Nenhum dado astronômico de terceiro entra nesta árvore — CLAUDE.md.
+#
+# Ignorado por extensão, em qualquer pasta, e liberado por nome só para os
+# fixtures sintéticos de .claude/make-fixture.ps1. Um arquivo novo desses fica
+# invisível para o git até alguém escrever a exceção à mão, que é exatamente
+# quando a pergunta "de quem é isso?" precisa ser feita.
+*.fit
+*.fits
+*.fz
+*.fts
+*.xisf
+
+!test/fixtures/fixture-seestar.fit
+!test/fixtures/fixture-rice.fit.fz
+!test/fixtures/fixture-nonlinear.fit
+
+# Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
+!.claude/notfits.fit
+
+# Ponto de queda das capturas do navegador. Os artefatos são promovidos para
+# test/golden/ à mão; o que fica aqui é descartável.
+.claude/shots/

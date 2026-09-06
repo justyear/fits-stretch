@@ -1,0 +1,19 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-seestar.fit
+1920 × 1080 · 16-bit integer · 3 channels · 2026-09-05
+
+• Read the FITS: 16-bit unsigned integer (BZERO 32768), one image plane, rows stored bottom-up and flipped back the right way up. Pixel values rescaled onto 0–1 from the 0 to 65535 range they were stored in, where the data spans 0.00780 to 0.31510.
+• Colour filter array: BAYERPAT = GRBG read from the header, and its green sites already match the main diagonal the pixels show. Measured lattice contrast 11.1%, neighbour ratio 3.23 H / 2.73 V.
+• Debayered with bilinear interpolation to full-resolution RGB.
+• Data is linear: median 0.01100, no stretch recorded in the header. Full autostretch applied.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
+    R  median 0.01224  MADN 0.00094  →  shadows 0.00961  midtones 0.00792
+    G  median 0.01093  MADN 0.00084  →  shadows 0.00857  midtones 0.00711
+    B  median 0.00983  MADN 0.00077  →  shadows 0.00767  midtones 0.00648
+    0.000% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, background extraction, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.
