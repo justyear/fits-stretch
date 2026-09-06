@@ -95,8 +95,9 @@ versionado.
 | `seestar-fixture` | `test/fixtures/fixture-seestar.fit` | 4.150.080 | `6d0acf7bbd4ce595d926ccc9bbf8e239447cda8ed7207c682fe598f5534cb28b` |
 | `rice-fixture` | `test/fixtures/fixture-rice.fit.fz` | 8.671.680 | ver `make-fixture.ps1` |
 | `nonlinear-fixture` | `test/fixtures/fixture-nonlinear.fit` | 6.482.880 | ver `make-fixture.ps1` |
+| `gradient-fixture` | `test/fixtures/fixture-gradient.fit` | 23.042.880 | `b14ac76614949a4feef20e1c9aa263b29813f7b2a7298f9b461388d482e1fc25` |
 
-Três, e não um, porque cobrem caminhos disjuntos:
+Quatro, e não um, porque cobrem caminhos disjuntos:
 
 - **`seestar-fixture`** — 1920×1080, BITPIX 16, BZERO 32768, ROWORDER BOTTOM-UP,
   BAYERPAT GRBG. Leitura de inteiro, flip de linha, detecção de CFA, debayer,
@@ -118,6 +119,95 @@ Três, e não um, porque cobrem caminhos disjuntos:
   gerador foi calibrado para pousar a mediana em ~0,25, que é onde um frame
   realmente esticado no Siril fica — um valor mais agressivo levava a mediana
   para 0,73 e o fixture deixava de representar o caso.
+- **`gradient-fixture`** — 1600×1200×3, float32, TOP-DOWN. Para o Módulo 1.
+  Ver a seção própria abaixo: é o único da suíte cujo fundo é conhecido
+  independentemente das duas implementações.
+
+## `fixture-gradient.fit` — o único com uma verdade externa
+
+Os outros três respondem "hoje é igual a ontem?" e "as duas implementações
+concordam?". Nenhuma das duas perguntas alcança um erro de fórmula, porque a
+referência do Python leu a fórmula daqui — está registrado na §7 do Módulo 0 e
+na §5 do Módulo 1. Este responde a uma terceira: **o modelo ajustado é o
+gradiente que eu coloquei?**
+
+O que está gravado em cards `HISTORY`, e é lido de volta pelo teste:
+
+```
+g(u,v) = A0 + A1*u + A2*v + A3*u^2 + A4*v^2 + A5*u*v
+u = x/(NAXIS1-1)   v = y/(NAXIS2-1)   TOP-DOWN, então v=0 é a primeira linha
+```
+
+com os seis coeficientes por canal, mais a geometria do objeto estendido
+(`CX CY A B PEAK K`, perfil `I = PEAK*exp(-K*R)` em raio elíptico), as posições
+das estrelas-sonda, o sigma do ruído e as sementes. 21 cards. O gerador escreve
+os cards **das mesmas variáveis** que passa ao construtor da cena, então não há
+dois lugares onde o número possa divergir.
+
+**Por que TOP-DOWN:** o flip de linha já está coberto pelo `seestar-fixture`.
+Aqui a clareza do contrato vale mais — com TOP-DOWN as coordenadas do `HISTORY`
+são as coordenadas da imagem, sem inversão no meio da comparação.
+
+**Por que 1600×1200:** não é número redondo. Com `samplesPerRow` 12 a grade é
+12×9, e com `PREVIEW_EDGE` 1024 o fator de preview é 2 — então o fixture
+exercita o escalonamento de `boxSize` da §2.1, que é a exigência de que uma
+caixa de amostra signifique o mesmo pedaço de céu no preview e no render.
+
+**Por que ruído gaussiano, e não uniforme como nos outros:** a rejeição é
+`mediana da caixa > mediana global + tolerance × MADN`, e MADN só significa
+"sigma" para ruído gaussiano. Com ruído uniforme o limiar de rejeição cairia num
+lugar sem interpretação e o fixture estaria testando outra coisa.
+
+### Medido no fixture gerado, com os parâmetros padrão da §2.2
+
+Grade 12×9 = 108 amostras, caixa 25 px, margem 24 px, `tolerance` 1,0:
+
+| | |
+|---|---|
+| aceitas | 93 |
+| rejeitadas por brilho | 15, das quais **12 sobre o objeto** |
+| rejeitadas por borda | 0 |
+| fração rejeitada | 13,9% |
+
+Fica bem acima da salvaguarda de 8 pontos e bem abaixo dos 40% que a §3.5 manda
+avisar. O objeto força rejeição, que é para o que ele existe.
+
+**Resíduo |mediana da caixa − verdade| nas aceitas: máximo 0,242 nível de 255,
+médio 0,030.** A §5 sugere 1 nível como tolerância de partida para o modelo
+ajustado contra o gradiente verdadeiro; a amostragem sozinha já entrega um
+quarto disso, então o orçamento sobra para a RBF.
+
+### A mediana sobrevive à estrela; a média não
+
+Oito estrelas-sonda em posições gravadas, `PEAK` 0,45 e `sigma` 2,2. O sigma é
+pequeno de propósito: numa caixa de 625 pixels a estrela levanta cerca de 22%
+deles, confortavelmente abaixo de metade. Um sigma maior viraria a mediana
+também e o fixture passaria a argumentar o contrário do que a §2.1 afirma.
+
+Nas caixas que contêm uma sonda, canal G, em níveis de 255:
+
+| desvio da mediana | desvio da média |
+|---|---|
+| 0,08 a 0,30 | **5,1 a 5,8** |
+
+Cerca de **20× pior para a média**. É a §2.1 deixando de ser asserção e virando
+número.
+
+### Duas coisas que o fixture expõe de graça
+
+**A fraqueza da tolerância global.** Uma das oito caixas-sonda, em (1253, 1112),
+é rejeitada por brilho — e ali não há objeto nenhum, só fundo mais uma estrela.
+No canto claro do gradiente o próprio fundo já passa de
+`mediana global + 1,0 × MADN`. É exatamente a queixa registrada contra o Siril
+na §1 ("tolerância global única para a imagem inteira"), reproduzida num arquivo
+onde dá para medir. Não é defeito do fixture: é o defeito que o Módulo 1b
+promete resolver, disponível para teste antes de a solução existir.
+
+**Custo em disco.** 23,0 MB, contra 19,3 MB dos outros três somados. A árvore de
+fixtures passa de 19,3 para 42,3 MB. O tamanho é consequência de 1600×1200×3 em
+float32 sem compressão, e 1600×1200 é carregado pelos dois motivos acima. Se
+isso incomodar, o caminho é gravar este fixture como `.fz` — o gerador já sabe
+escrever Rice — e não encolher o quadro.
 
 ## Artefatos
 
@@ -135,6 +225,16 @@ Três, e não um, porque cobrem caminhos disjuntos:
 | `nonlinear-fixture.diag.json` | 3.604 | `790642a11e7b47001137a8f5dd9f3971da132fd4ffc4a344a39ce17a21eeb972` |
 | `nonlinear-fixture.records.json` | 3.860 | `f7108ba8dc3cc427f70ba7380f9efa179340dc4201c86b9e725bdd365d55dd8c` |
 | `nonlinear-fixture.png` | 1.340.894 | `3003c8f9ccb75042fb430b9772825ae5fbb2d0aafefc17761cdd71cc37de04ec` |
+| `gradient-fixture.log.txt` | 1.380 | `3a3c952b8ff1e2b3f2a090964316a3c846987c538beef96fe0bb3c63303aad78` |
+| `gradient-fixture.diag.json` | 6.188 | `541719610abf00d68e231b6063e2cb18d6ed50b7b9a325dce181da266c40a80a` |
+| `gradient-fixture.records.json` | 3.854 | `4000acd7bd3aaa2abe33ac7a8495431c68cbdb25a6220c52e733a609c03f1b92` |
+| `gradient-fixture.png` | 4.814.737 | `45f6a1a2e0b32dcd78d906c728e379d1933f954d9fe09347cf72a68e120579a9` |
+
+O golden do `gradient-fixture` foi capturado **antes** de qualquer código de
+extração de fundo existir. Hoje ele fixa só o decode e o autostretch de um
+quadro 1600×1200 — nada na cadeia lê o gradiente ainda. É de propósito: quando a
+etapa entrar, "o que mudou" precisa de uma linha de base tirada antes de ela
+existir.
 
 O `.diag.json` é `JSON.stringify(state.diag, null, 2)` — o objeto cru, não o
 `dump()` do painel, que arredonda para 8 dígitos significativos. Guardar o cru
@@ -168,8 +268,10 @@ debayer estão cobertos em separado, nunca combinados. O gerador consegue
 produzir isso (é o caminho int16 + BAYERPAT dentro do escritor Rice); ninguém
 escreveu ainda.
 
-E nenhum fixture tem gradiente ou objeto extenso, então a rejeição de amostras
-do Módulo 1 ainda não é testável. É o passo 3 da §6 daquela spec:
-`fixture-gradient.fit`, com os coeficientes do gradiente gravados em cards
-`HISTORY` para que o teste compare o modelo ajustado contra a verdade, e não
-contra si mesmo.
+**FECHADO — gradiente e objeto extenso.** Era o passo 3 da §6 do Módulo 1 e
+existe: `fixture-gradient.fit`, seção própria acima.
+
+O que ainda falta em volta dele: o `reference.py` não conhece este fixture, então
+`compare-reference.ps1` continua em 116 linhas e não o cobre. É o passo 8 da §6,
+e até lá o gradiente é verificável contra os cards `HISTORY` mas não contra uma
+segunda implementação.

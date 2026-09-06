@@ -74,7 +74,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture'),
     [switch]   $Detail
 )
 

@@ -67,7 +67,12 @@ window.__GOLDEN_DATE = '2026-09-05';
 window.__GOLDEN = [
   ['seestar-fixture',   '/f/test/fixtures/fixture-seestar.fit'],
   ['rice-fixture',      '/f/test/fixtures/fixture-rice.fit.fz'],
-  ['nonlinear-fixture', '/f/test/fixtures/fixture-nonlinear.fit']
+  ['nonlinear-fixture', '/f/test/fixtures/fixture-nonlinear.fit'],
+  // Module 1. Nothing in the chain reads its gradient yet, so today this
+  // golden only pins the decode and the autostretch of a 1600x1200 frame. It
+  // is captured now anyway: when background extraction lands, "what changed"
+  // has to be answerable against a baseline taken before it existed.
+  ['gradient-fixture',  '/f/test/fixtures/fixture-gradient.fit']
 ];
 
 window.__captureAll = async function () {
