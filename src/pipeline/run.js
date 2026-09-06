@@ -108,18 +108,22 @@ async function runPipeline(buffer, fileName, post, opts){
 
   var N = w * h;
 
+  // The linear frame, as read. Steps are allowed to mutate what they are given,
+  // and when no debayer ran this array IS dec.data — the buffer the FITS export
+  // hands back untouched. So the chain runs on a clone and `source` is never
+  // written to. That is the same rule the open/run protocol will need, arriving
+  // early because the aliasing is already here.
+  var source = new Image(data, w, h, outChannels);
+  var work = source.clone();
+
   // Statistics --------------------------------------------------------
   await yieldNow();
   step = Date.now();
   stage('Measuring median and MAD', 56);
   var statStride = Math.max(1, Math.ceil(N / 8000000));
-  var channels = [];
-  for (var c = 0; c < outChannels; c++){
-    var s = analysePlane(data, c * N, N, statStride);
-    if (!s) throw FitsError('empty', 'channel ' + c + ' has no usable pixels');
-    s.totalPixels = N;
-    channels.push(s);
-  }
+  var measured = measure(work, statStride);
+  var channels = measured.perChannel;
+  var c;
   mark('stats', step);
 
   // Linearity ---------------------------------------------------------
@@ -144,57 +148,26 @@ async function runPipeline(buffer, fileName, post, opts){
   step = Date.now();
   stage('Applying autostretch', 68);
 
-  var luts = [];
-  for (c = 0; c < channels.length; c++){
-    var st = channels[c];
-    var shadows, target;
+  // The chain. One step so far; `records` is what the harness and, from the
+  // protocol change on, the host will read.
+  var records = [];
+  function report(record){ records.push(record); }
 
-    if (nonLinear){
-      shadows = st.percentile(BLACK_PCT);
-      target = Math.min(0.6, Math.max(0.02, st.median));
-    } else {
-      shadows = st.median + SHADOW_SIGMA * st.madn;
-      target = TARGET;
-    }
-    if (!(shadows >= 0)) shadows = 0;
-    if (shadows >= st.median) shadows = Math.max(0, st.median * 0.5);
-    if (shadows >= 1) shadows = 0;
-
-    var x = (st.median - shadows) / (1 - shadows);
-    var midtones = (st.madn > 0 && x > 0 && x < 1) ? MTF(x, target) : 0.5;
-    if (!(midtones > 0 && midtones < 1)) midtones = 0.5;
-
-    st.shadows = shadows;
-    st.midtones = midtones;
-    st.target = target;
-    st.scale = 1 / (1 - shadows);
-    st.outLow = 0; st.outHigh = 0;
-    luts.push(buildLUT(midtones));
-  }
-
-  var rgba = new Uint8ClampedArray(N * 4);
-  var LMAX = LUT_N - 1;
-
-  for (c = 0; c < channels.length; c++){
-    var stc = channels[c];
-    var lut = luts[c], sh = stc.shadows, sc = stc.scale, base = c * N;
-    var low = 0, high = 0;
-    for (var i = 0; i < N; i++){
-      var v = data[base + i];
-      if (v !== v) v = 0;
-      var u = (v - sh) * sc;
-      var out;
-      if (u <= 0){ out = 0; low++; }
-      else if (u >= 1){ out = 255; high++; }
-      else out = lut[(u * LMAX) | 0];
-      var o = i * 4 + c;
-      rgba[o] = out;
-      if (channels.length === 1){ rgba[o + 1] = out; rgba[o + 2] = out; }
-    }
-    stc.outLow = low; stc.outHigh = high;
-  }
-  for (i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+  work = stepStretchMTF(work, {
+    shadowSigma: SHADOW_SIGMA,
+    target: TARGET,
+    blackPct: BLACK_PCT,
+    nonLinear: nonLinear,
+    stride: statStride,
+    before: measured
+  }, report);
   mark('transfer', step);
+
+  // Quantise ----------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  var rgba = quantise(work);
+  mark('quantise', step);
 
   // Display copy ------------------------------------------------------
   await yieldNow();

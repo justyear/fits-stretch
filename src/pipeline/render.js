@@ -1,4 +1,41 @@
 /* ------------------------------------------------------------------ *
+ * Quantise: float Image -> 8-bit RGBA. Mono is replicated across R, G and B.
+ *
+ * The multiply back to 255 is exact, not approximate: the stretch step resolved
+ * every pixel through the LUT, so the values arriving here are 8-bit levels
+ * carried as floats, and fl32(k/255) * 255 rounds back to k for all 256 of
+ * them. Uint8ClampedArray still does the clamping, which is what will catch the
+ * negatives a background-subtraction step is allowed to produce.
+ *
+ * That exactness is a property of today's one-step chain, not a guarantee this
+ * function offers. From the second step on the chain carries full float, this
+ * runs once at the very end, and the rounding here becomes real quantisation
+ * rather than a lossless unpacking. Nothing changes in this function; what
+ * changes is that the goldens stop being byte-comparable. See the decision
+ * block in modulo-0-spec.md section 4.
+ * ------------------------------------------------------------------ */
+
+function quantise(img){
+  var data = img.data, N = img.N, channels = img.channels;
+  var rgba = new Uint8ClampedArray(N * 4);
+  var c, i, o, v, out;
+
+  for (c = 0; c < channels; c++){
+    var base = c * N;
+    for (i = 0; i < N; i++){
+      v = data[base + i];
+      if (v !== v) v = 0;
+      out = Math.round(v * 255);
+      o = i * 4 + c;
+      rgba[o] = out;
+      if (channels === 1){ rgba[o + 1] = out; rgba[o + 2] = out; }
+    }
+  }
+  for (i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+  return rgba;
+}
+
+/* ------------------------------------------------------------------ *
  * Display downscale (box average)
  * ------------------------------------------------------------------ */
 
