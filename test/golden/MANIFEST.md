@@ -11,9 +11,9 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`dde0e8b7ca3556c57b90546436f2c21992370777f6b44e2eda4a3908d3be650f`
-(123.320 bytes — pipeline em 13 arquivos, cadeia em float pleno, amostragem de
-fundo na cadeia).
+`4f753942345449d39f861e531db7e083364d82b24146d481e645e8f06208cd09`
+(134.974 bytes — pipeline em 13 arquivos, cadeia em float pleno, amostragem,
+rejeição e superfície de fundo na cadeia).
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
@@ -38,14 +38,20 @@ powershell -File test\compare-reference.ps1   # correção, contra o Python
 powershell -File test\negative-controls.ps1   # a tolerância ainda reprova?
 ```
 
-O terceiro não precisa de captura nem de navegador: ele muta cópias
+E, no mesmo console do navegador, colar `test/compare-truth.js` e
+`await __compareTruth()` — compara o modelo de fundo ajustado contra o gradiente
+que está gravado nos cards `HISTORY` do `fixture-gradient.fit` e escreve
+`gradient-truth.json`. É a única verificação da suíte que não herda a fórmula
+compartilhada; ver a seção "O modelo contra a verdade", abaixo.
+
+`negative-controls.ps1` não precisa de captura nem de navegador: ele muta cópias
 descartáveis dos próprios goldens e confere que o comparador chega ao veredito
 certo em cada caso. Existe porque "controle negativo verificado" escrito numa
 spec é uma afirmação que deixa de ser verdadeira no instante em que ninguém
 consegue rodá-la de novo. São 23 casos, e dois importam mais que os outros. O
-`madn +2e-5`:
-ele reprova pela regra de `span` e passaria pela regra de [0,1], que nessa
-magnitude é seis vezes mais frouxa — é o único caso capaz de distinguir as duas.
+`madn +2e-5` reprova pela regra de `span` e passaria pela regra de [0,1], que
+nessa magnitude é seis vezes mais frouxa — é o único caso capaz de distinguir as
+duas.
 E o par `png every sample +1` contra `png one sample +1`: mesmo veredito, mesma
 magnitude, mesmo limite, achados opostos. É o que prova que o detector de
 deslocamento sistemático não dispara em arredondamento comum.
@@ -225,21 +231,27 @@ exercitar o gradiente. Um fixture, uma pergunta.
 | arquivo | bytes | sha256 |
 |---|---|---|
 | `seestar-fixture.log.txt` | 1.609 | `9e8c6311cf06c888e8c2357cccf780060bc6765d5043757f8a893f68c3175869` |
-| `seestar-fixture.diag.json` | 4.273 | `5c498ca243706bcdfff1af9c9f8c9d28ead58c72f1977363df858eaf8a80b204` |
-| `seestar-fixture.records.json` | 28.658 | `0eccfca99f12b164d51502fffe8ee68d0d63df7cb2b70350c69c34e02e3d1454` |
+| `seestar-fixture.diag.json` | 4.275 | `fcc20b8ab21fe64b2712187705b003319badd362a01af689f6727f1525aa6d54` |
+| `seestar-fixture.records.json` | 29.986 | `d3aeb976efb32f18b110bd652a3144965a07a52a98854e20a6d808ef7f7056f1` |
 | `seestar-fixture.png` | 4.546.701 | `6287a0b25b937c3b5cb309cc9a9df130136e3e6dbda7fb0e987f54a6c28162a5` |
 | `rice-fixture.log.txt` | 1.765 | `6337bfc4a2f5b73645798896ae5668e7c1e8e94c03908dd2734e9490efd7fc4f` |
-| `rice-fixture.diag.json` | 4.708 | `15663b67284a4b3c591ea2b99eefb3b4b1cbd5d0c2b923d1bc27562479a67bbb` |
-| `rice-fixture.records.json` | 22.154 | `6465260e959a2533ab034a45f77579a7e302d8adfe5ca70bb8e2aedca0b2eb6f` |
+| `rice-fixture.diag.json` | 4.709 | `64ed091af725331e0204d19b19cb6309118c095e515bd7094289d00bf283ef81` |
+| `rice-fixture.records.json` | 23.479 | `0e044b351c602d4f86d7e97bdda7d5231ef77de79571e22e01c35312c2a72564` |
 | `rice-fixture.png` | 5.862.158 | `2af37579df49ff18becf49a0f2b5917230fe3298310321f943800e28a19be65d` |
 | `nonlinear-fixture.log.txt` | 1.634 | `f4b8c6e22a629ba8ddb825da0f6fe557908f11242261d7cfe3bb38c29c61847e` |
-| `nonlinear-fixture.diag.json` | 3.626 | `930192758594769478df7a6c0ee4ea27f48ee5ed9cc233194926e673f973c6f1` |
-| `nonlinear-fixture.records.json` | 31.186 | `b5c3fb0e8f9ba00d34b8bc4fd36dba92cdb73c357140df8e6dcfda561c68e290` |
+| `nonlinear-fixture.diag.json` | 3.627 | `f408a2b20253fe5cf80ceb92577cf865d0043979d971c76de5a826aa138036f0` |
+| `nonlinear-fixture.records.json` | 32.498 | `710b1ef2eecb2e2d2c4130f84448831003d8977e8e36e815c2c9901e7906f7dd` |
 | `nonlinear-fixture.png` | 1.340.894 | `3003c8f9ccb75042fb430b9772825ae5fbb2d0aafefc17761cdd71cc37de04ec` |
 | `gradient-fixture.log.txt` | 1.380 | `3a3c952b8ff1e2b3f2a090964316a3c846987c538beef96fe0bb3c63303aad78` |
-| `gradient-fixture.diag.json` | 6.210 | `4d0217e69affe6bea836e68df8e9d6b668fd23b4867d9a1ce5efee2a0817e3cb` |
-| `gradient-fixture.records.json` | 34.994 | `b755b4f2e4f59d060d7d31b830d5e09320534ed9cc5475f022f89c16a5bfdbd9` |
+| `gradient-fixture.diag.json` | 6.211 | `26c1d56193136cdbf48d6e9d0cdba0b5647e946a448f7578fcbc12d4f073beb1` |
+| `gradient-fixture.records.json` | 36.315 | `89dbd98f711cbe75a4181181e56730c799fff1bc7fcb1c99cbb43d8818db268a` |
 | `gradient-fixture.png` | 4.814.737 | `45f6a1a2e0b32dcd78d906c728e379d1933f954d9fe09347cf72a68e120579a9` |
+| `gradient-truth.json` | 4.144 | `dd5d2351e46eec9e80ccecf4afe6e47fd577ae7326ad83e034f21db57b99fe93` |
+
+`gradient-truth.json` é o único destes que `compare-golden.ps1` **não** compara:
+ele vem de `compare-truth.js`, não da captura, e é medida de referência e não
+artefato de saída. Comparar automaticamente entra junto com o passo 8, quando o
+`reference.py` conhecer o fixture.
 
 ### O que o passo 4 mudou nestes goldens, medido
 
@@ -265,6 +277,76 @@ amostra com coordenada, estado, mediana por canal e a frase que diz por que foi
 rejeitada. A §2.2 pede que o motivo esteja no record e não só no tooltip, e um
 ponto rejeitado que some do registro é a operação silenciosa que a confusão 21
 proíbe. 117 KB somados, contra 16,5 MB de PNG nos mesmos goldens.
+
+## O modelo contra a verdade — passo 5
+
+`test/compare-truth.js` roda no navegador, ajusta a superfície com o código
+entregue e compara contra os coeficientes do gradiente lidos de volta dos cards
+`HISTORY`. O relatório fica em `test/golden/gradient-truth.json`.
+
+Isto é o que `compare-golden` e `compare-reference` não conseguem responder. Um
+pergunta se hoje é igual a ontem; o outro se as duas implementações concordam —
+e elas concordam sobre uma fórmula que foi lida deste código. Um erro de fórmula
+é invisível para os dois. Aqui a resposta vem de números que o gerador escreveu
+e que nenhuma das duas implementações viu.
+
+### Resíduo `|modelo − gradiente verdadeiro|`, em níveis de 255
+
+| região | máximo | médio |
+|---|---|---|
+| fora do objeto (raio elíptico > 2) | **0,168** | 0,031 |
+| no canto que a rejeição global descarta | **0,168** | 0,067 |
+| sob o objeto (raio ≤ 1) | 0,840 | 0,649 |
+
+A §5 do Módulo 1 sugere 1 nível como tolerância de partida fora das regiões
+rejeitadas. O medido é **0,168** — seis vezes dentro.
+
+O resíduo sob o objeto **não é erro**: ali o esperado é o gradiente sozinho,
+porque o objeto é sinal a preservar e não fundo a remover. O número mede
+**contaminação** — quanto do objeto vazou para o modelo e seria subtraído dele
+no passo 6.
+
+### Contaminação, e o que a rejeição compra
+
+O pico do objeto vale 13,39 níveis. O modelo absorve 0,840 → **6,27%**.
+
+| `tolerance` | aceitas | contaminação | resíduo fora do objeto |
+|---|---|---|---|
+| 10 (sem rejeição) | 108 | **38,9%** | 0,267 |
+| 2,0 | 101 | 10,96% | 0,148 |
+| **1,0 (padrão)** | **93** | **6,27%** | **0,168** |
+| 0,5 | 72 | 5,43% | 0,170 |
+| 0,25 | 62 | 4,27% | 0,216 |
+| 0,0 | 54 | 4,35% | 0,333 |
+
+**A rejeição vale um fator de 6.** Sem ela o modelo come 38,9% do objeto — três
+vezes pior que os 12,5% que o GraXpert perdeu num braço do M31 (§1). Com ela,
+6,27%, entre os 12,5% do modo IA e os 5% do ajuste manual.
+
+Apertar além de 1,0 rende pouco e cobra: a contaminação para de melhorar perto
+de 4% enquanto o resíduo fora do objeto piora de 0,168 para 0,333. O padrão 1,0
+está perto do joelho da curva, e agora isso é medida e não escolha.
+
+### Erro da interpolação — medido, não presumido
+
+A §2.3 manda avaliar numa grade de 1/8 e interpolar, e **medir** o erro contra
+avaliação direta em 1000 pixels, aumentando a grade se passar de 0,5 nível.
+
+| fixture | grade | erro máximo |
+|---|---|---|
+| `seestar` | 241×136 | 0,0001 |
+| `rice` | 326×126 | 0,0000 |
+| `nonlinear` | 114×76 | 0,0039 |
+| `gradient` | 201×151 | 0,0004 |
+
+Duas ordens de grandeza dentro do limite no pior caso. O divisor nunca precisou
+aumentar — mas isso é resultado, não premissa, e é remedido a cada execução.
+
+Os 1000 pixels são varridos por passo primo (104729) sobre o índice, que é
+ímpar e portanto coprimo com qualquer potência de dois: sondas consecutivas
+caem em fases diferentes dentro da célula da grade, que é onde o erro vive. Um
+passo que compartilhasse fator com o divisor amostraria os cantos das células e
+reportaria zero.
 
 ### Amostragem, por fixture
 

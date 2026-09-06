@@ -3,17 +3,21 @@
     "id": "background",
     "name": "Background extraction",
     "applied": false,
-    "skipReason": "sampling only: this build places and judges the samples, fits no surface and changes no pixel",
+    "skipReason": "the surface is fitted and reported but not applied: this build models the background and changes no pixel",
     "params": {
       "samplesPerRow": 12,
       "boxSize": 25,
       "tolerance": 1,
-      "edgeMargin": 0.02
+      "edgeMargin": 0.02,
+      "smoothing": 0.1
     },
     "notes": [
       "Placed 60 samples on a 12 x 5 grid, 25 px boxes, 53 accepted and 7 rejected.",
       "Rejected: 7 brighter than the background estimate, 0 on the edge margin, 0 clipped, 0 non-finite.",
-      "Every rejected sample is still in the record, with the reason it was rejected."
+      "Every rejected sample is still in the record, with the reason it was rejected.",
+      "Thin-plate spline through the 53 accepted samples, smoothing 0.1, per channel and unlinked.",
+      "Evaluated on every 8th pixel and interpolated between; measured against direct evaluation at 1000 pixels, worst case 0.00003 of one 8-bit level.",
+      "Background level preserved per channel; the colour balance between channels is not touched."
     ],
     "samples": {
       "generated": 60,
@@ -698,7 +702,39 @@
         }
       ]
     },
-    "surface": null,
+    "surface": {
+      "method": "thin-plate-spline",
+      "lambda": 0.010923411895786496,
+      "kernelScale": 0.10923411895786496,
+      "gridDivisor": 8,
+      "gridSize": [
+        326,
+        126
+      ],
+      "maxInterpErrorLevels": 0.00002618460887230528,
+      "interpProbes": 1000,
+      "interpLimitLevels": 0.5,
+      "perChannel": [
+        {
+          "modelMin": 0.013148355343007194,
+          "modelMax": 0.02055043648724244,
+          "modelMedian": 0.01693013571495347,
+          "pedestal": 0.01693013571495347
+        },
+        {
+          "modelMin": 0.011974191903854969,
+          "modelMax": 0.018645683386190395,
+          "modelMedian": 0.01540275194617111,
+          "pedestal": 0.01540275194617111
+        },
+        {
+          "modelMin": 0.010983984680464383,
+          "modelMax": 0.017218905080279883,
+          "modelMedian": 0.014168050064812927,
+          "pedestal": 0.014168050064812927
+        }
+      ]
+    },
     "before": {
       "perChannel": [
         {

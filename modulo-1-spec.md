@@ -158,6 +158,44 @@ e o defeito estar medido contra o gradiente verdadeiro. Não antecipar: uma
 estimativa local escrita antes de haver superfície seria a terceira coisa nesta
 etapa a estimar fundo, e as três poderiam discordar.
 
+#### MEDIDO NO PASSO 5 — e a decisão é adiar, com prazo
+
+O modelo foi ajustado com o critério global como está e comparado contra o
+gradiente verdadeiro dos cards `HISTORY`. **A rejeição falsa não custa nada
+mensurável.**
+
+A sonda em (1253, 1112) continua sendo rejeitada. O resíduo do modelo naquele
+ponto é **0,039 nível de 255 — o menor das oito sondas**, incluindo as sete
+aceitas. A spline atravessa o buraco sem sagar, porque o gradiente ali é suave e
+há pontos aceitos em volta.
+
+E a região inteira onde o fundo passa do limiar global tem resíduo máximo de
+**0,168 nível**, que é exatamente o resíduo máximo fora do objeto no quadro
+todo. O canto rejeitado não é onde o modelo erra; ele erra sob o objeto, que é
+onde deve errar.
+
+**Portanto: fica global.** Trocar por estimativa local agora seria arquitetura
+nova para consertar um defeito de custo medido igual a zero, e a §7 do Módulo 0
+já registra que o que não é medido não deve ser otimizado.
+
+**O que muda a decisão, e o que observar:**
+
+| sinal | onde aparece |
+|---|---|
+| fração rejeitada acima de 40% | já é aviso na §3.5 |
+| uma borda inteira rejeitada | já é aviso na §3.5 |
+| resíduo no canto rejeitado subindo acima do resíduo geral | `gradient-truth.json`, campos `rejectedCorner` contra `outsideObject` |
+
+O terceiro é o sinal específico desta pendência e agora tem número de linha de
+base: `0,168` contra `0,168`, iguais. **Quando `rejectedCorner.maxLevels` passar
+de `outsideObject.maxLevels` de forma consistente, a rejeição local vira
+necessária e não mais opcional.** Até lá, a queixa contra o Siril está
+reproduzida, medida e custando zero.
+
+Reabrir com dado real: o gradiente sintético daqui é mais fraco que poluição
+luminosa de verdade, e a fração rejeitada cresce do lado claro. O fixture mostra
+o mecanismo; ele não mostra a magnitude que o mecanismo alcança em campo.
+
 ### 2.3 A superfície — RBF
 
 Thin-plate spline sobre os pontos aceitos, por canal, independentemente.
@@ -174,6 +212,21 @@ escala da imagem.
 `N` é o número de pontos aceitos — tipicamente 40 a 150. O sistema é
 `(N+3) x (N+3)`. Resolva por eliminação de Gauss com pivotamento parcial. Em
 JavaScript puro isso é milissegundos e não precisa de biblioteca.
+
+> **CORREÇÃO, aplicada no passo 5.** "Escalado pela média da diagonal de `A`"
+> não funciona: para thin-plate spline a diagonal de `A` é `phi(0) = 0`, em toda
+> entrada, por definição. A regra ao pé da letra zera `lambda` e o `smoothing`
+> deixa de fazer efeito.
+>
+> O implementado escala pela média de `|A[i][j]|` **fora** da diagonal, que é a
+> magnitude que o kernel de fato tem. Mantém a intenção — `lambda` significar a
+> mesma coisa em qualquer escala de imagem — e o `smoothing` volta a ser um
+> knob.
+>
+> Medido no `fixture-gradient.fit`: `smoothing 0` (que é o que a regra literal
+> produziria sempre) dá resíduo máximo de 0,245 nível fora do objeto e absorve
+> 8,49% do objeto. Com `smoothing 0,10` são 0,168 nível e 6,27%. A regra
+> literal é a pior linha da tabela.
 
 **Avaliação:** calcule a superfície numa grade de 1/8 da resolução e interpole
 bilinearmente para a resolução cheia. Avaliar RBF em 8 milhões de pixels com 100

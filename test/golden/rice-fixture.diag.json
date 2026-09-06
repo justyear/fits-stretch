@@ -128,16 +128,16 @@
     "downscaleFactor": 2
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 371,
+    "header": 1,
+    "decode": 345,
     "roworder": 3,
-    "preview": 58,
-    "stats": 170,
-    "background": 17,
-    "transfer": 271,
-    "quantise": 75,
+    "preview": 56,
+    "stats": 167,
+    "background": 191,
+    "transfer": 270,
+    "quantise": 73,
     "downscale": 38,
-    "total": 1025
+    "total": 1156
   },
   "historyCards": [],
   "allCards": [
