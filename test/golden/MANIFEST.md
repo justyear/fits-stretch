@@ -11,8 +11,9 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`056aa018c30f02b097d7a4a403b017f8f4465b5c2b617796555e30699c650a4f`
-(107.877 bytes — pipeline em 12 arquivos, cadeia em float pleno).
+`dde0e8b7ca3556c57b90546436f2c21992370777f6b44e2eda4a3908d3be650f`
+(123.320 bytes — pipeline em 13 arquivos, cadeia em float pleno, amostragem de
+fundo na cadeia).
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
@@ -41,9 +42,13 @@ O terceiro não precisa de captura nem de navegador: ele muta cópias
 descartáveis dos próprios goldens e confere que o comparador chega ao veredito
 certo em cada caso. Existe porque "controle negativo verificado" escrito numa
 spec é uma afirmação que deixa de ser verdadeira no instante em que ninguém
-consegue rodá-la de novo. São 19 casos, e o que mais importa é o `madn +2e-5`:
+consegue rodá-la de novo. São 23 casos, e dois importam mais que os outros. O
+`madn +2e-5`:
 ele reprova pela regra de `span` e passaria pela regra de [0,1], que nessa
-magnitude é seis vezes mais frouxa. É o único caso capaz de distinguir as duas.
+magnitude é seis vezes mais frouxa — é o único caso capaz de distinguir as duas.
+E o par `png every sample +1` contra `png one sample +1`: mesmo veredito, mesma
+magnitude, mesmo limite, achados opostos. É o que prova que o detector de
+deslocamento sistemático não dispara em arredondamento comum.
 
 ## O que o float pleno mudou, medido
 
@@ -53,7 +58,7 @@ decidido. A tabela é a captura float comparada contra os goldens de 8 bits:
 
 | artefato | veredito | o que aconteceu |
 |---|---|---|
-| `log.txt` × 3 | **PASS** byte a byte | todo número que o log imprime vem de `record.before`, e `buildLog` recebe `records[0].before.perChannel` |
+| `log.txt` × 3 | **PASS** byte a byte | todo número que o log imprime vem do `before` do record de stretch, que nenhuma etapa a jusante move |
 | `diag.json` × 3 | **PASS** byte a byte | mesmo motivo: o painel também é construído do `before` |
 | `png` × 3 | **PASS~** | 0,031% a 0,781% das amostras diferem, **todas por exatamente 1 nível** (média do \|d\| = 1,00) |
 | `records.json` × 3 | **FAIL** | 23 a 24 campos, **todos em `after.perChannel[*]`**: median, mad, madn, span, q1, q3, p001, p999 |
@@ -85,7 +90,7 @@ que isso precisa ser medido de verdade quando a RBF entrar.
 
 ## Fixtures — todos sintéticos
 
-**Nenhum arquivo de terceiro entra aqui.** Ver `CLAUDE.md`. Os três saem de
+**Nenhum arquivo de terceiro entra aqui.** Ver `CLAUDE.md`. Os quatro saem de
 `.claude/make-fixture.ps1` com semente fixa e são reprodutíveis byte a byte —
 verificado: regerar o `fixture-seestar.fit` devolve o mesmo sha256 do arquivo
 versionado.
@@ -203,38 +208,84 @@ na §1 ("tolerância global única para a imagem inteira"), reproduzida num arqu
 onde dá para medir. Não é defeito do fixture: é o defeito que o Módulo 1b
 promete resolver, disponível para teste antes de a solução existir.
 
-**Custo em disco.** 23,0 MB, contra 19,3 MB dos outros três somados. A árvore de
-fixtures passa de 19,3 para 42,3 MB. O tamanho é consequência de 1600×1200×3 em
-float32 sem compressão, e 1600×1200 é carregado pelos dois motivos acima. Se
-isso incomodar, o caminho é gravar este fixture como `.fz` — o gerador já sabe
-escrever Rice — e não encolher o quadro.
+**Custo em disco, e a decisão sobre ele.** 23,0 MB, contra 19,3 MB dos outros
+três somados; a árvore de fixtures passa a 42,3 MB.
+
+**Fica assim: 1600×1200, sem compressão. Decidido, não pendente.**
+
+Encolher o quadro perde o que ele testa — a grade 12×9 e o fator de preview 2
+são os dois motivos de ele ter esse tamanho. E comprimir para `.fz` misturaria o
+caminho Rice com o caminho do gradiente: uma falha neste fixture passaria a ter
+duas explicações possíveis, e separar as duas custaria mais do que os 23 MB
+valem. O `fixture-rice.fit.fz` existe para exercitar o Rice; este existe para
+exercitar o gradiente. Um fixture, uma pergunta.
 
 ## Artefatos
 
 | arquivo | bytes | sha256 |
 |---|---|---|
 | `seestar-fixture.log.txt` | 1.609 | `9e8c6311cf06c888e8c2357cccf780060bc6765d5043757f8a893f68c3175869` |
-| `seestar-fixture.diag.json` | 4.251 | `642f32e25ee32b519556aa2bede9445c283d72f6ec5563cc52697f40c0df97ab` |
-| `seestar-fixture.records.json` | 3.798 | `7cb47250bcc2c9ffb825ea64725f0294fd53d70f66dae3b203dcb6a8fb6d3f01` |
+| `seestar-fixture.diag.json` | 4.273 | `5c498ca243706bcdfff1af9c9f8c9d28ead58c72f1977363df858eaf8a80b204` |
+| `seestar-fixture.records.json` | 28.658 | `0eccfca99f12b164d51502fffe8ee68d0d63df7cb2b70350c69c34e02e3d1454` |
 | `seestar-fixture.png` | 4.546.701 | `6287a0b25b937c3b5cb309cc9a9df130136e3e6dbda7fb0e987f54a6c28162a5` |
 | `rice-fixture.log.txt` | 1.765 | `6337bfc4a2f5b73645798896ae5668e7c1e8e94c03908dd2734e9490efd7fc4f` |
-| `rice-fixture.diag.json` | 4.685 | `96d69e52ebd6f63c94dc8ea64bdef45de5359ad6ba1afdccfed984048ea38e40` |
-| `rice-fixture.records.json` | 3.842 | `f95a93459726ada75f3aa047f2c074376c176b4017c352474e2b1984efe6b706` |
+| `rice-fixture.diag.json` | 4.708 | `15663b67284a4b3c591ea2b99eefb3b4b1cbd5d0c2b923d1bc27562479a67bbb` |
+| `rice-fixture.records.json` | 22.154 | `6465260e959a2533ab034a45f77579a7e302d8adfe5ca70bb8e2aedca0b2eb6f` |
 | `rice-fixture.png` | 5.862.158 | `2af37579df49ff18becf49a0f2b5917230fe3298310321f943800e28a19be65d` |
 | `nonlinear-fixture.log.txt` | 1.634 | `f4b8c6e22a629ba8ddb825da0f6fe557908f11242261d7cfe3bb38c29c61847e` |
-| `nonlinear-fixture.diag.json` | 3.604 | `790642a11e7b47001137a8f5dd9f3971da132fd4ffc4a344a39ce17a21eeb972` |
-| `nonlinear-fixture.records.json` | 3.860 | `f7108ba8dc3cc427f70ba7380f9efa179340dc4201c86b9e725bdd365d55dd8c` |
+| `nonlinear-fixture.diag.json` | 3.626 | `930192758594769478df7a6c0ee4ea27f48ee5ed9cc233194926e673f973c6f1` |
+| `nonlinear-fixture.records.json` | 31.186 | `b5c3fb0e8f9ba00d34b8bc4fd36dba92cdb73c357140df8e6dcfda561c68e290` |
 | `nonlinear-fixture.png` | 1.340.894 | `3003c8f9ccb75042fb430b9772825ae5fbb2d0aafefc17761cdd71cc37de04ec` |
 | `gradient-fixture.log.txt` | 1.380 | `3a3c952b8ff1e2b3f2a090964316a3c846987c538beef96fe0bb3c63303aad78` |
-| `gradient-fixture.diag.json` | 6.188 | `541719610abf00d68e231b6063e2cb18d6ed50b7b9a325dce181da266c40a80a` |
-| `gradient-fixture.records.json` | 3.854 | `4000acd7bd3aaa2abe33ac7a8495431c68cbdb25a6220c52e733a609c03f1b92` |
+| `gradient-fixture.diag.json` | 6.210 | `4d0217e69affe6bea836e68df8e9d6b668fd23b4867d9a1ce5efee2a0817e3cb` |
+| `gradient-fixture.records.json` | 34.994 | `b755b4f2e4f59d060d7d31b830d5e09320534ed9cc5475f022f89c16a5bfdbd9` |
 | `gradient-fixture.png` | 4.814.737 | `45f6a1a2e0b32dcd78d906c728e379d1933f954d9fe09347cf72a68e120579a9` |
 
-O golden do `gradient-fixture` foi capturado **antes** de qualquer código de
-extração de fundo existir. Hoje ele fixa só o decode e o autostretch de um
-quadro 1600×1200 — nada na cadeia lê o gradiente ainda. É de propósito: quando a
-etapa entrar, "o que mudou" precisa de uma linha de base tirada antes de ela
-existir.
+### O que o passo 4 mudou nestes goldens, medido
+
+A etapa de fundo entrou na cadeia amostrando e rejeitando, sem ajustar
+superfície e sem tocar em pixel. Contra os goldens do passo 3:
+
+| artefato | veredito |
+|---|---|
+| `log.txt` × 4 | **PASS** byte a byte |
+| `diag.json` × 4 | **PASS** byte a byte |
+| `png` × 4 | **PASS** byte a byte |
+| `records.json` × 4 | **FAIL**, `length 1 vs 2` |
+
+O PNG idêntico é a verificação de que a etapa devolve a imagem intacta: se um
+pixel tivesse se movido, ele apareceria. O log idêntico é a verificação de que
+"background extraction" continua na frase "Not applied" — `applied: false`, e
+`notAppliedLabels` chaveia nisso. E o `records.json` reprova por **mudança
+estrutural**, não por deriva numérica: a cadeia ganhou um record, e nenhuma
+tolerância deve perdoar isso.
+
+Os `records.json` cresceram de ~3,8 KB para 22–35 KB. É a lista de pontos: cada
+amostra com coordenada, estado, mediana por canal e a frase que diz por que foi
+rejeitada. A §2.2 pede que o motivo esteja no record e não só no tooltip, e um
+ponto rejeitado que some do registro é a operação silenciosa que a confusão 21
+proíbe. 117 KB somados, contra 16,5 MB de PNG nos mesmos goldens.
+
+### Amostragem, por fixture
+
+| fixture | quadro | grade | caixa | geradas | aceitas | brilho | borda |
+|---|---|---|---|---|---|---|---|
+| `seestar` | 1920×1080 | 12×7 | 25 | 84 | 72 | 12 | 0 |
+| `rice` | 2600×1000 | 12×5 | 25 | 60 | 53 | 7 | 0 |
+| `nonlinear` | 900×600 | 12×8 | 25 | 96 | 85 | 11 | 0 |
+| `gradient` | 1600×1200 | 12×9 | 25 | 108 | 93 | 15 | 0 |
+
+Os quatro reportam `applied: false` com o mesmo `skipReason`: *sampling only*.
+
+**Verificação cruzada do `gradient`:** 93/15/0/0 é exatamente o que a análise
+independente em PowerShell tinha medido no fixture, e ela usou mediana e MAD por
+**seleção exata** enquanto a etapa usa **histograma de 65536 bins**. Dois
+estimadores diferentes do limiar, 108 vereditos idênticos.
+
+**Preview contra render, medido:** com o buffer reduzido a 800×600 e `boxSize`
+escalado de 25 para 13, os 108 pontos recebem a **mesma classificação** e a
+maior diferença de mediana de caixa é **0,0185 nível de 255**. É a afirmação da
+§2.1 sobre correspondência preview/render, com número.
 
 O `.diag.json` é `JSON.stringify(state.diag, null, 2)` — o objeto cru, não o
 `dump()` do painel, que arredonda para 8 dígitos significativos. Guardar o cru

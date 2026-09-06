@@ -53,6 +53,13 @@ function plainRecords(records){
     out.push({
       id: r.id, name: r.name, applied: r.applied, skipReason: r.skipReason,
       params: r.params, notes: r.notes,
+      // `samples` and `surface` are plain data — numbers, strings and nulls —
+      // so they cross the worker boundary as they are. They are carried rather
+      // than dropped because they are the audit trail: the point that was
+      // rejected, and the sentence saying why, are the whole argument that this
+      // step is not doing something silently.
+      samples: r.samples || null,
+      surface: r.surface || null,
       before: plainMeasurement(r.before),
       after: plainMeasurement(r.after)
     });
@@ -226,11 +233,19 @@ async function openFile(buffer, fileName, opts, post){
     };
   }
 
+  // One flat bag for the whole chain, so the host has one object to edit and
+  // one object to send back. The background knobs carry a bg prefix here and
+  // lose it on the way into the step: `tolerance` and `target` are meaningful
+  // names inside a step and ambiguous the moment two steps share a namespace.
   var defaults = {
     shadowSigma: -2.80,
     target: 0.25,
     blackPct: 0.0005,
-    nonLinear: nonLinear
+    nonLinear: nonLinear,
+    bgSamplesPerRow: 12,
+    bgBoxSize: 25,
+    bgTolerance: 1.0,
+    bgEdgeMargin: 0.02
   };
 
   SESSION = {
@@ -290,18 +305,41 @@ async function runChain(params, mode, post){
 
   await yieldNow();
   var step = Date.now();
-  stage('Applying autostretch', 68);
 
   var work = base.clone();
   // Full mode reuses the measurement open() already took of these exact pixels.
   // Preview is a different frame and has to be measured on its own — reusing
   // the full-frame numbers would stretch the preview by parameters derived
   // from an image it is not.
-  var before = full ? copyMeasurement(SESSION.sourceStats)
-                    : measure(work, 1);
+  var measured = full ? SESSION.sourceStats : measure(work, 1);
 
   var records = [];
   function report(record){ records.push(record); }
+
+  // One histogram pass, two copies of the result. Both steps measure the same
+  // pixels, so measuring twice would burn a pass for identical numbers — but
+  // they must not share the object: stepStretchMTF writes shadows, midtones,
+  // target and scale onto the channels of its own `before`, and the background
+  // record would then carry stretch parameters inside a measurement it took
+  // before the stretch existed.
+  stage('Sampling the background', 60);
+  work = stepBackground(work, {
+    samplesPerRow: params.bgSamplesPerRow,
+    boxSize: params.bgBoxSize,
+    tolerance: params.bgTolerance,
+    edgeMargin: params.bgEdgeMargin,
+    // Which buffer this is, expressed as a fraction of the frame the user is
+    // working on. The step scales its sample box by it. Full runs are 1 by
+    // definition; the preview is whatever downscaleFloat produced.
+    scale: full ? 1 : (work.w / SESSION.source.w),
+    stride: full ? SESSION.statStride : 1,
+    before: copyMeasurement(measured)
+  }, report);
+  mark('background', step);
+
+  await yieldNow();
+  step = Date.now();
+  stage('Applying autostretch', 68);
 
   work = stepStretchMTF(work, {
     shadowSigma: params.shadowSigma,
@@ -309,7 +347,7 @@ async function runChain(params, mode, post){
     blackPct: params.blackPct,
     nonLinear: params.nonLinear,
     stride: full ? SESSION.statStride : 1,
-    before: before
+    before: copyMeasurement(measured)
   }, report);
   mark('transfer', step);
 
@@ -326,7 +364,19 @@ async function runChain(params, mode, post){
   var view = downscale(rgba, work.w, work.h);
   mark('downscale', step);
 
-  var channels = records[0].before.perChannel;
+  // By id, not by position. The log and the diagnostics print the numbers the
+  // autostretch derived — shadows, midtones, the clip counts — and those live
+  // on the channels of the stretch step's own `before`. Reading records[0]
+  // worked only while the stretch was the whole chain, and would have silently
+  // started reporting another step's measurement the moment one landed in
+  // front of it.
+  var stretchRecord = null;
+  for (var ri = 0; ri < records.length; ri++){
+    if (records[ri].id === 'stretch-mtf') stretchRecord = records[ri];
+  }
+  if (!stretchRecord) throw FitsError('unknown', 'the chain produced no stretch record');
+
+  var channels = stretchRecord.before.perChannel;
   var log = null, diag = null;
 
   if (full){

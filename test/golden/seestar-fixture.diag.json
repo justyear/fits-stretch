@@ -129,17 +129,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 62,
-    "roworder": 1,
+    "header": 1,
+    "decode": 57,
+    "roworder": 2,
     "cfa": 40,
-    "debayer": 132,
-    "preview": 55,
-    "stats": 129,
-    "transfer": 216,
-    "quantise": 62,
-    "downscale": 0,
-    "total": 711
+    "debayer": 135,
+    "preview": 56,
+    "stats": 134,
+    "background": 17,
+    "transfer": 207,
+    "quantise": 64,
+    "downscale": 1,
+    "total": 772
   },
   "historyCards": [],
   "allCards": [

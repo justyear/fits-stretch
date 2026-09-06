@@ -129,6 +129,35 @@ devolve `applied: false` com `skipReason` explicando, e a UI mostra a mensagem
 sobre a imagem. Nunca ajustar superfície com amostragem insuficiente — é como se
 produz o artefato que come nebulosa.
 
+### PENDÊNCIA DO PASSO 5 — rejeição contra fundo local, não global
+
+O critério de `rejected-bright` acima compara a mediana da caixa contra a
+**mediana global** da imagem. Isso é o que o Siril faz e é a queixa registrada
+contra ele na §1: *tolerância global única para a imagem inteira*.
+
+**O defeito está medido, num arquivo, antes de a solução existir.** No
+`fixture-gradient.fit` a caixa em (1253, 1112) é rejeitada por brilho e não tem
+objeto nenhum — é fundo puro mais uma estrela-sonda. O que a rejeita é o próprio
+gradiente: naquele canto o fundo vale 0,020181 e o limiar global é
+`0,016703 + 1,0 × 0,003269 = 0,019972`. A amostra está 0,2 nível de 255 acima de
+um limiar que descreve a imagem inteira e não descreve aquele canto.
+
+Com 13,9% rejeitado o fixture ainda funciona. **Com dado real vai piorar**, porque
+gradiente de poluição luminosa é mais forte que o sintético daqui, e a fração
+rejeitada cresce no lado claro justamente onde o modelo mais precisa de pontos.
+
+**A correção não é ajustar a constante.** Subir `tolerance` para salvar o canto
+claro deixa de rejeitar o objeto no canto escuro — é o mesmo trade que a §1
+descreve como o problema, não como a solução. A correção é comparar cada caixa
+contra uma **estimativa local** de fundo em vez da global: mediana de uma
+vizinhança, ou uma primeira passada de superfície usada só como referência para
+a segunda.
+
+Isso é decisão de arquitetura e fica para o passo 5, **depois** de a RBF existir
+e o defeito estar medido contra o gradiente verdadeiro. Não antecipar: uma
+estimativa local escrita antes de haver superfície seria a terceira coisa nesta
+etapa a estimar fundo, e as três poderiam discordar.
+
 ### 2.3 A superfície — RBF
 
 Thin-plate spline sobre os pontos aceitos, por canal, independentemente.
@@ -364,6 +393,11 @@ partida: 1 nível fora das regiões rejeitadas.
 4. `steps/background.js`: amostragem, rejeição, record. Sem RBF ainda — a etapa
    devolve a imagem intacta e só reporta os pontos. Testável.
 5. RBF e avaliação em grade. Comparar contra o gradiente verdadeiro do fixture.
+   **E decidir a pendência da §2.2:** rejeição contra fundo local em vez de
+   global. O caso que a motiva é a sonda em (1253, 1112) do
+   `fixture-gradient.fit`, rejeitada por brilho sem objeto nenhum. Decidir aqui,
+   e não antes, porque a estimativa local provavelmente sai da própria
+   superfície — e antes do passo 5 não existe superfície de onde tirá-la.
 6. Correção com pedestal, e dither no `quantise`.
 7. `registry.js`: `background` passa a `applied: true`. A linha "Not applied"
    perde "background extraction" sozinha — verificar que perde.

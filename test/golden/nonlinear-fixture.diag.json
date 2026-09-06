@@ -107,13 +107,14 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 25,
-    "preview": 2,
-    "stats": 55,
-    "transfer": 96,
-    "quantise": 23,
+    "decode": 24,
+    "preview": 1,
+    "stats": 54,
+    "background": 15,
+    "transfer": 81,
+    "quantise": 22,
     "downscale": 0,
-    "total": 204
+    "total": 215
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

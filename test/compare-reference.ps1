@@ -197,8 +197,16 @@ foreach ($fixture in $MAP.Keys) {
     $rows += Compare-Value $fixture 'linearidade' 'nonLinear' $mineNonLinear ("$($rf.nonLinear)" -eq 'True') 'exact' 0 0
 
     # --- per channel ----------------------------------------------------
-    $rec = $records[0]
-    if (-not $rec) { $rows += New-Row $fixture 'canais' '-' '-' '-' 'NO RECORD' 'records vazio'; continue }
+    # By id, not by position. What the reference has numbers for is the
+    # autostretch: its before, its after, its shadows and midtones. records[0]
+    # meant that only while the stretch was the whole chain, and stopped
+    # meaning it the moment background sampling landed in front of it - which
+    # showed up here as a null-array crash, not as a wrong comparison, only
+    # because the background step reports `after: null`. A step that reported a
+    # measurement would have been compared against the stretch's reference
+    # numbers and the mismatch would have read as a pipeline regression.
+    $rec = $records | Where-Object { $_.id -eq 'stretch-mtf' } | Select-Object -First 1
+    if (-not $rec) { $rows += New-Row $fixture 'canais' '-' '-' '-' 'NO RECORD' 'nenhum record de stretch-mtf'; continue }
 
     $names = $rf.canais.PSObject.Properties.Name
     for ($i = 0; $i -lt $names.Count; $i++) {
