@@ -27,9 +27,18 @@
 #                           black point by percentile, target at the channel's
 #                           own median.
 #
+#   fixture-gradient.fit    1600 x 1200 x 3, BITPIX -32, ROWORDER TOP-DOWN.
+#                           A background gradient whose coefficients are in the
+#                           HISTORY cards, an extended object over 12% of the
+#                           frame, probe stars at recorded positions, Gaussian
+#                           noise. For Module 1: sample rejection, and the only
+#                           check in this suite that can answer "is the fitted
+#                           model the gradient I put in?" rather than "is the
+#                           model the same as yesterday?".
+#
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -50,6 +59,18 @@ public static class FitsFixture
         public Lcg(ulong seed){ s = seed; }
         public double Next(){ s = s * 6364136223846793005UL + 1442695040888963407UL;
                               return ((s >> 11) & 0x1FFFFFFFFFFFFFUL) / 9007199254740992.0; }
+
+        // Box-Muller. The other fixtures use uniform noise, which is fine when
+        // nothing reads the shape of the distribution. The gradient fixture is
+        // different: sample rejection is `box median > global median +
+        // tolerance * MADN`, and MADN only means "sigma" for Gaussian noise.
+        // Uniform noise would put the rejection threshold somewhere that has no
+        // interpretation, and the fixture would be testing the wrong thing.
+        public double Gauss(){
+            double u1 = Next(); if (u1 < 1e-12) u1 = 1e-12;
+            double u2 = Next();
+            return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+        }
     }
 
     struct Star { public double X, Y, Sigma, R, G, B; }
@@ -187,6 +208,127 @@ public static class FitsFixture
             img[i] = (float)v;
         }
         return img;
+    }
+
+    /* ---------------------------------------------------------------- *
+     * The gradient fixture — the only one in this suite whose background is
+     * known independently of both implementations.
+     *
+     * Everything the caller passes in is also written into HISTORY cards by
+     * the caller, from the same variables. That is the whole point: the test
+     * compares the fitted background model against these numbers, which came
+     * out of neither the JavaScript nor the Python. It is what breaks the
+     * limitation recorded in section 5 of modulo-1-spec.md and section 7 of
+     * modulo-0-spec.md — that both implementations share the formula, so a
+     * wrong formula is invisible to both.
+     *
+     * Build order matters and is fixed: gradient, then object, then probe
+     * stars, then field stars, then noise. The noise is last so that nothing
+     * downstream is a smooth function of it.
+     * ---------------------------------------------------------------- */
+    public static float[] GradientScene(
+        int W, int H, ulong seed,
+        double[] coefR, double[] coefG, double[] coefB,   // A0..A5 each
+        double noiseSigma,
+        double[] obj,          // cx, cy, a, b, peak, k
+        double[] objTint,      // per-channel scale for the object
+        double[] probes,       // x0,y0,x1,y1,... flattened
+        double probeAmp, double probeSigma,
+        int nField, ulong fieldSeed)
+    {
+        int N = W * H;
+        var img = new float[N * 3];
+        var coef = new double[][] { coefR, coefG, coefB };
+
+        // 1. The gradient, evaluated exactly as the HISTORY cards state it.
+        //    u and v are normalised on (NAXIS-1) so that u=1 lands on the last
+        //    column rather than one past it. Off-by-one here would make the
+        //    truth wrong by a fraction of a pixel everywhere, which is the kind
+        //    of error a test compares against itself and never sees.
+        for (int c = 0; c < 3; c++)
+        {
+            var k = coef[c];
+            for (int y = 0; y < H; y++)
+            {
+                double v = (double)y / (H - 1);
+                for (int x = 0; x < W; x++)
+                {
+                    double u = (double)x / (W - 1);
+                    img[c * N + y * W + x] =
+                        (float)(k[0] + k[1] * u + k[2] * v + k[3] * u * u + k[4] * v * v + k[5] * u * v);
+                }
+            }
+        }
+
+        // 2. The extended object. Exponential in elliptical radius, so it has
+        //    a bright core that any sane rejection catches and faint outskirts
+        //    that blend into the background — which is the case that matters.
+        //    An object with a hard edge would make rejection look easy.
+        double cx = obj[0], cy = obj[1], oa = obj[2], ob = obj[3], peak = obj[4], kk = obj[5];
+        int bx0 = Math.Max(0, (int)(cx - 3.0 * oa)), bx1 = Math.Min(W - 1, (int)(cx + 3.0 * oa));
+        int by0 = Math.Max(0, (int)(cy - 3.0 * ob)), by1 = Math.Min(H - 1, (int)(cy + 3.0 * ob));
+        for (int y = by0; y <= by1; y++)
+            for (int x = bx0; x <= bx1; x++)
+            {
+                double dx = (x - cx) / oa, dy = (y - cy) / ob;
+                double R = Math.Sqrt(dx * dx + dy * dy);
+                double I = peak * Math.Exp(-kk * R);
+                for (int c = 0; c < 3; c++) img[c * N + y * W + x] += (float)(I * objTint[c]);
+            }
+
+        // 3. Probe stars, at positions the header records.
+        //
+        //    Sigma is small on purpose. A 25-pixel sample box holds 625 pixels;
+        //    a Gaussian of sigma 2.2 puts roughly 140 of them meaningfully
+        //    above background, which is 22% — comfortably under half. So the
+        //    box MEDIAN survives the star and the box MEAN does not, which is
+        //    exactly the property section 2.1 of the spec asks for and exactly
+        //    what this fixture exists to check. A larger sigma would flip the
+        //    median too and the fixture would be arguing the opposite case.
+        for (int s = 0; s + 1 < probes.Length; s += 2)
+            AddStar(img, W, H, probes[s], probes[s + 1], probeSigma,
+                    probeAmp, probeAmp, probeAmp);
+
+        // 4. Ordinary field stars, so the frame's statistics look like a frame.
+        //    Not part of the truth: the box median is meant to reject them too.
+        var rnd = new Lcg(fieldSeed);
+        for (int k2 = 0; k2 < nField; k2++)
+        {
+            double amp = 0.006 + 0.35 * Math.Pow(rnd.Next(), 3.0);
+            double sig = 1.3 + 1.4 * rnd.Next();
+            double sx = rnd.Next() * W, sy = rnd.Next() * H;
+            double shade = 0.80 + 0.40 * rnd.Next();
+            AddStar(img, W, H, sx, sy, sig, amp * shade, amp, amp / shade);
+        }
+
+        // 5. Noise, last.
+        var nrnd = new Lcg(seed);
+        for (int i = 0; i < img.Length; i++)
+        {
+            double val = img[i] + nrnd.Gauss() * noiseSigma;
+            if (val < 0) val = 0; else if (val > 1) val = 1;
+            img[i] = (float)val;
+        }
+        return img;
+    }
+
+    static void AddStar(float[] img, int W, int H, double sx, double sy,
+                        double sigma, double ar, double ag, double ab)
+    {
+        int N = W * H;
+        double[] amps = { ar, ag, ab };
+        int rad = (int)Math.Ceiling(sigma * 4);
+        int x0 = Math.Max(0, (int)sx - rad), x1 = Math.Min(W - 1, (int)sx + rad);
+        int y0 = Math.Max(0, (int)sy - rad), y1 = Math.Min(H - 1, (int)sy + rad);
+        double twoSigmaSq = 2.0 * sigma * sigma;
+        for (int c = 0; c < 3; c++)
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    double dx = x - sx, dy = y - sy;
+                    double f = Math.Exp(-(dx * dx + dy * dy) / twoSigmaSq);
+                    img[c * N + y * W + x] += (float)(amps[c] * f);
+                }
     }
 
     // The same midtones transfer the tool applies, used here to make the
@@ -624,6 +766,114 @@ if ($Only -eq 'all' -or $Only -eq 'nonlinear') {
         ('HISTORY Histogram transformation, unlinked channels'.PadRight(80))
     )
     Write-Fits (Join-Path $outDir 'fixture-nonlinear.fit') $cards `
+               ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+}
+
+# --------------------------------------------------------------- gradient
+if ($Only -eq 'all' -or $Only -eq 'gradient') {
+    # 1600 x 1200 is load-bearing, not a round number: at samplesPerRow 12 the
+    # grid is 12 x 9, and PREVIEW_EDGE 1024 gives a preview factor of 2, so the
+    # fixture exercises the boxSize scaling of section 2.1 - a sample box has to
+    # mean the same patch of sky in the preview and in the full render.
+    $W = 1600; $H = 1200; $planes = 3
+    Write-Host "fixture-gradient.fit  ($W x $H x $planes, float32, TOP-DOWN, known gradient)"
+
+    # ---- the truth ------------------------------------------------------
+    #
+    # These numbers are the fixture's reason to exist. Every other check in the
+    # suite compares this code against itself (goldens) or against a second
+    # implementation that was handed this code's formula (the Python). Both are
+    # blind to a wrong formula. These coefficients are not: they are written
+    # into the file by the generator and read back by the test, so "is the
+    # fitted model the gradient I put in?" has an answer that neither
+    # implementation can influence.
+    #
+    # Levels are chosen so the frame stays clearly linear. The mean lands near
+    # 0.0159 and the maximum near 0.023; the non-linear branch triggers at
+    # median >= 0.05, or >= 0.02 with a stretch recorded in HISTORY. The HISTORY
+    # cards below are deliberately worded to match none of the STRETCH_HISTORY
+    # patterns in run.js - no "autostretch", no "histogram transf", no
+    # "midtone", no "curve". Both guards, because one of them is a regex.
+    $coefR = @(0.0121, 0.0071, 0.0041, -0.0024, 0.0014, 0.0011)
+    $coefG = @(0.0110, 0.0062, 0.0038, -0.0021, 0.0013, 0.0009)
+    $coefB = @(0.0101, 0.0053, 0.0035, -0.0018, 0.0011, 0.0008)
+
+    # cx, cy, a, b, peak, k.  Area of the R<=1 ellipse over the frame area is
+    # pi*a*b/(W*H) = pi*343*214/1920000 = 12.0%, which is the fraction of the
+    # frame M31 occupied in the partner's own image (section 4).
+    $obj     = @(430.0, 880.0, 343.0, 214.0, 0.050, 3.0)
+    $objTint = @(1.05, 1.00, 0.95)
+
+    # Probe stars, at the centres a 12 x 9 grid with edgeMargin 0.02 would use.
+    # The grid is not binding - the sampler is not written yet - so the contract
+    # is only that these positions are recorded. A test finds whichever boxes
+    # contain them and asserts those box medians still track the gradient.
+    # Placed clear of the object, so a failure means "the star broke the median"
+    # and not "the object did".
+    $probes    = @(218.0,216.0, 606.0,216.0, 994.0,216.0, 1382.0,216.0,
+                   1382.0,600.0, 1382.0,856.0, 994.0,856.0, 1252.0,1100.0)
+    $probeAmp  = 0.450
+    $probeSig  = 2.2
+    $noiseSig  = 0.0012
+    $nField    = 300
+    $fieldSeed = 20260907
+    $noiseSeed = 20260908
+
+    # ---- the cards, written from the same variables ---------------------
+    function Fmt6([double]$v) { return $v.ToString('0.000000000', [cultureinfo]::InvariantCulture) }
+    function Hist([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+    function CoefRows([string]$ch, [double[]]$k) {
+        return @(
+            (Hist ("GRADIENT $ch A0=" + (Fmt6 $k[0]) + ' A1=' + (Fmt6 $k[1]) + ' A2=' + (Fmt6 $k[2]))),
+            (Hist ("GRADIENT $ch A3=" + (Fmt6 $k[3]) + ' A4=' + (Fmt6 $k[4]) + ' A5=' + (Fmt6 $k[5])))
+        )
+    }
+
+    $pxA = ($probes[0..7]  | ForEach-Object { $_.ToString('0', [cultureinfo]::InvariantCulture) })
+    $pxB = ($probes[8..15] | ForEach-Object { $_.ToString('0', [cultureinfo]::InvariantCulture) })
+    $probeRowA = "$($pxA[0]),$($pxA[1]) $($pxA[2]),$($pxA[3]) $($pxA[4]),$($pxA[5]) $($pxA[6]),$($pxA[7])"
+    $probeRowB = "$($pxB[0]),$($pxB[1]) $($pxB[2]),$($pxB[3]) $($pxB[4]),$($pxB[5]) $($pxB[6]),$($pxB[7])"
+    $areaPct = 100.0 * [Math]::PI * $obj[2] * $obj[3] / ($W * $H)
+
+    $cards = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Gradient probe' '' -AsString)
+        (New-Card 'EXPTIME'  '600.' 'seconds')
+        (Hist 'GRADIENT synthetic background, known by construction.')
+        (Hist 'GRADIENT g(u,v) = A0 + A1*u + A2*v + A3*u^2 + A4*v^2 + A5*u*v')
+        (Hist 'GRADIENT u = x/(NAXIS1-1)  v = y/(NAXIS2-1)  image coords')
+        (Hist 'GRADIENT ROWORDER is TOP-DOWN so v=0 is the first stored row.')
+    ) + (CoefRows 'R' $coefR) + (CoefRows 'G' $coefG) + (CoefRows 'B' $coefB) + @(
+        (Hist 'OBJECT extended source added on top: I = PEAK*exp(-K*R)')
+        (Hist 'OBJECT R = hypot((x-CX)/A, (y-CY)/B), per-channel tint below')
+        (Hist ("OBJECT CX=$($obj[0]) CY=$($obj[1]) A=$($obj[2]) B=$($obj[3]) PEAK=" + (Fmt6 $obj[4]) + " K=$($obj[5])"))
+        (Hist ("OBJECT tint R/G/B = $($objTint[0])/$($objTint[1])/$($objTint[2]), R<=1 covers " + $areaPct.ToString('0.00', [cultureinfo]::InvariantCulture) + ' pct'))
+        (Hist ("PROBE bright stars, PEAK=" + (Fmt6 $probeAmp) + " SIGMA=$probeSig, positions recorded"))
+        (Hist "PROBE x,y: $probeRowA")
+        (Hist "PROBE x,y: $probeRowB")
+        (Hist ("FIELD $nField ordinary stars, seed $fieldSeed, not part of the truth"))
+        (Hist ("NOISE gaussian sigma=" + (Fmt6 $noiseSig) + ", seed $noiseSeed, added last"))
+        (Hist 'TRUTH the GRADIENT rows above came from neither implementation.')
+        (Hist 'TRUTH See modulo-1-spec.md section 5 for why that matters.')
+    )
+
+    $img = [FitsFixture]::GradientScene($W, $H, $noiseSeed,
+                                        $coefR, $coefG, $coefB, $noiseSig,
+                                        $obj, $objTint, $probes,
+                                        $probeAmp, $probeSig, $nField, $fieldSeed)
+
+    Write-Fits (Join-Path $outDir 'fixture-gradient.fit') $cards `
                ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
 }
 
