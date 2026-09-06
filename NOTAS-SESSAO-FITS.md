@@ -257,9 +257,61 @@ Vale como classe de caso, não como cliente: **MADN muito pequeno contra mediana
 pequena produz midtones de três zeros, e o que aparece na tela é o gradiente.**
 É o argumento mais forte a favor da extração de fundo do Módulo 1.
 
+## Identidade do git deste repositório
+
+Configurada **só localmente** (`git config`, sem `--global`):
+
+```
+Justyear <noreply@justyear.invalid>
+```
+
+`.invalid` é um TLD reservado pela RFC 6761: não resolve, não é registrável, não
+liga a perfil nenhum. A alternativa considerada era
+`<usuario>@users.noreply.github.com`, o formato legado de e-mail privado do
+GitHub, que **ligaria estes commits ao perfil automaticamente** no dia em que a
+conta existisse. Foi descartada por causa do modo de falha: sem a conta criada,
+o endereço não é seu, e se outra pessoa registrar o username antes, os commits
+passam a apontar para o perfil dela — em silêncio, sem erro nenhum. A `.invalid`
+falha de forma explícita (commit sem perfil ligado) e conserta quando se quiser.
+
+**Consequência a saber antes de criar conta no GitHub:** o GitHub dá o endereço
+canônico `ID+usuario@users.noreply.github.com`, com o ID numérico que só existe
+depois da conta. Commits novos ligam sozinhos; **estes não**, e não dá para
+adotá-los adicionando o endereço à conta, porque o GitHub exige verificação por
+e-mail e `.invalid` nunca recebe. Adotar exige reescrever histórico. Com poucos
+commits e sem remote é um `--amend`; com anos e vários branches é `git
+filter-repo`. Decidir cedo custa menos.
+
+## Um commit emendado não some sozinho
+
+`git commit --amend` deixa o commit antigo pendurado, alcançável pelo reflog, com
+o autor antigo intacto. Ele não vai num `push` — não está em branch — mas vai
+numa cópia da pasta, num `git bundle --all` e num clone por sistema de arquivos.
+Some com:
+
+```
+git reflog expire --expire=now --expire-unreachable=now --all
+git gc --prune=now
+```
+
+E confere com `git log --all --reflog --format='%h %ae'`, **não** com
+`git log -S`: o `-S` procura conteúdo, e autor é metadado — ele daria zero antes
+e depois, provando nada.
+
 ## Dado de terceiro nesta árvore
 
-Não há, e não pode haver. Os arquivos de parceiro que estavam aqui foram
-removidos, junto dos goldens derivados deles. Os fixtures são sintéticos e
-gerados por `.claude/make-fixture.ps1`. A regra e o reforço no `.gitignore`
-estão em `CLAUDE.md`.
+Não há, e não pode haver. Os fixtures são sintéticos e gerados por
+`.claude/make-fixture.ps1`. A regra — pixel e texto — e o reforço no
+`.gitignore` estão em `CLAUDE.md`.
+
+Os arquivos de parceiro que estavam aqui saíram, junto dos goldens derivados
+deles. Os originais foram **movidos para fora de qualquer pasta de projeto, não
+apagados**; os derivados (renders, goldens, o `.fit` descomprimido que a própria
+ferramenta exportou) foram apagados, porque são reproduzíveis a partir do
+original e não valia mantê-los.
+
+**O que nenhuma regra deste repositório alcança:** a transcrição da sessão, que
+o Claude Code grava fora da árvore. Ela registra tudo que entrou na conversa —
+inclusive saída de comando que imprimiu header de arquivo de cliente. O controle
+que funciona é a montante: não trazer o dado para dentro da sessão. Auditar
+depois é conserto, não prevenção.
