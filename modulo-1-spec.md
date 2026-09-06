@@ -101,6 +101,47 @@ params: {
 encolhe proporcionalmente, senão a amostra do preview não corresponde à do
 render final. Registre o valor efetivamente usado no record.
 
+### PENDÊNCIA — a grade cobre o quadro inteiro; a margem só rejeita
+
+**A implementação atual aplica `edgeMargin` duas vezes e isso custa medido.**
+
+O que ela faz: encaixa a grade dentro da margem, com centro em
+`margem + (i+0,5)·(w−2·margem)/cols`. Depois testa se a caixa cruza a margem —
+teste que **nunca dispara**, porque a grade já foi encolhida para dentro. Os
+quatro fixtures reportam `rejeitadas por borda: 0`, e eu li isso como normal.
+Era sintoma: **o estado `rejected-edge` da §2.2 é inalcançável por construção**.
+
+O que a §2.2 exige: `rejected-edge` significa "a caixa cruza a margem de borda",
+e isso só pode acontecer se a grade **alcançar** a margem. As duas cláusulas da
+spec juntas pedem grade sobre o quadro inteiro, com centro em
+`(i+0,5)·w/cols`, e a margem servindo só de critério de rejeição — que é o que a
+`reference_bg.py` faz.
+
+**Medido no `fixture-gradient.fit`, canal R:**
+
+| | grade encaixada (atual) | grade no quadro inteiro | `reference_bg.py` |
+|---|---|---|---|
+| aceitas | 93 | **92** | 92 |
+| rejeitadas por brilho | 15 | **16** | 16 |
+| campo limpo, máximo | 0,1688 | **0,1112** | 0,1112 |
+| campo limpo, média | 0,0337 | **0,0115** | 0,0115 |
+| casco das amostras | 1422×1024 | 1466×1066 | — |
+
+Com a grade sobre o quadro inteiro as duas implementações concordam **dígito a
+dígito**, nos quatro números. A divergência que parecia ser "grade diferente e
+álgebra diferente" era uma causa só, e é esta.
+
+O custo da grade encaixada: **31,4% do campo limpo fica fora do casco das
+amostras**, e a spline extrapola ali. O pior pixel de campo limpo está em
+(1599, 1199), o canto exato do quadro.
+
+**Não corrigido nesta rodada** — muda os quatro goldens e é decisão de projeto.
+O que a decisão precisa pesar: corrigir alinha com a §2.2, reativa um estado de
+rejeição que hoje é código morto, reduz o erro de campo limpo em 1,5× no máximo
+e 2,9× na média, e faz as duas implementações coincidirem. Contra: amostras
+mais perto da borda são mais sujeitas a vinheta e a artefato de empilhamento,
+que é a razão de existir uma margem.
+
 ### 2.2 Rejeição — por ponto, com motivo
 
 Estimativa global de fundo: mediana e MADN da imagem inteira, por canal,
@@ -474,6 +515,40 @@ nos cards `HISTORY` e não veio de nenhuma das duas implementações.
 Tolerâncias: as mesmas da §7 do Módulo 0, mais uma nova para o modelo ajustado —
 erro máximo do modelo contra o gradiente verdadeiro, em níveis de 255. Sugestão de
 partida: 1 nível fora das regiões rejeitadas.
+
+### A máscara do objeto para métrica é R ≤ 2,5, não R ≤ 1
+
+**"Fora das regiões rejeitadas" precisa de um raio, e o raio óbvio está errado.**
+
+O objeto é `I = PEAK·exp(−3R)` em raio elíptico. Em `R = 1,2` a intensidade
+ainda é cerca de **1,6× o sigma do ruído** — sinal real, bem fora da elipse
+`R ≤ 1` que define a extensão nominal. Uma máscara em `R ≤ 1` chama de "campo
+limpo" uma região que ainda tem objeto dentro, e o erro do modelo acompanha o
+objeto para fora.
+
+Medido, canal R, máximo em níveis de 255:
+
+| região | fração do quadro | erro |
+|---|---|---|
+| dentro, `R < 1` | 12,0% | 0,839 |
+| halo próximo, `1 ≤ R < 1,5` | 14,0% | 0,616 |
+| halo distante, `1,5 ≤ R < 2,5` | 24,8% | 0,311 |
+| **campo limpo, `R ≥ 2,5`** | **49,2%** | **0,169** |
+
+O ajuste erra **6× mais no halo próximo do que no campo limpo**, e uma métrica
+com máscara em `R ≤ 1` põe esses 14% do quadro do lado de fora e reporta o erro
+deles como se fosse acurácia do modelo.
+
+**As quatro regiões são a métrica.** Duas não bastam: o número que importa para
+acurácia é o do campo limpo, e o que importa para contaminação é o de dentro, e
+entre os dois existe uma faixa de 38% do quadro que não é nenhum dos dois.
+
+Isto **não muda a decisão da rejeição global** da §2.2 — muda o que a mede. O
+resíduo do canto rejeitado continua igual ao do campo limpo.
+
+> Achado por `reference_bg.py`, a segunda implementação. A primeira versão de
+> `compare-truth.js` usava `R ≤ 1` e `R > 2`, e o anel entre os dois não entrava
+> em conta nenhuma.
 
 ---
 
