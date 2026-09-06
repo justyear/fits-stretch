@@ -174,6 +174,51 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### A classe mais cara: erro invisível na métrica de saída
+
+Dois bugs do Módulo 1 são a mesma classe, e nenhum dos dois teria sido pego por
+nenhum teste desta suíte. **Os dois foram achados por medição, não por teste.**
+
+| | o erro | o que ele fazia |
+|---|---|---|
+| λ da RBF | escalado por `mean(diag(A))`, que é 0 para thin-plate spline | `smoothing` não fazia nada; o ajuste era o pior da varredura |
+| `before` do stretch | medido antes da etapa de fundo, usado depois dela | ponto preto 2,5 a 5× fundo demais, em todo quadro |
+
+**A assinatura da classe:**
+
+1. **Não falha.** Nenhuma exceção, nenhum `NaN`, nenhum aviso. Sai imagem, sai
+   log, sai record.
+2. **Não é visivelmente errado.** É pior, não absurdo. Ninguém olhando a imagem
+   desconfia.
+3. **É invisível na métrica de saída.** Esta é a parte que importa. A mediana
+   pós-esticamento fica em ~64 de qualquer jeito, com MADN certo ou 5× errado,
+   porque o MTF mapeia mediana no alvo seja qual for o MADN. A métrica que o
+   produto usa para dizer "está bom" é justamente cega ao erro.
+4. **Só aparece quando outra coisa muda.** O `before` do stretch estava certo
+   enquanto a etapa de fundo só amostrava, e virou errado no instante em que um
+   pixel se moveu. O bug foi escrito num dia em que era correto.
+
+**Por que a suíte não pega.** `compare-golden` pergunta se hoje é igual a
+ontem — e ontem já estava errado. `compare-reference` pergunta se as duas
+implementações concordam — e a referência leu a fórmula daqui. Um golden
+capturado com o bug dentro vira a definição de "certo", e o harness passa a
+defender o erro.
+
+**O que pega, e foi o que pegou os dois:** medir uma grandeza contra algo que
+não saiu deste código.
+
+- O λ apareceu numa varredura de `smoothing` contra o gradiente verdadeiro dos
+  cards `HISTORY` — `smoothing 0` sendo a pior linha da tabela é o que denunciou
+  que a regra literal zerava tudo.
+- O `before` do stretch apareceu ao comparar `bg.before.madn` com
+  `bg.after.madn` e ver o número que o stretch usava ser o primeiro.
+
+**Regra prática:** quando uma etapa nova entra na cadeia, **imprima as
+estatísticas de cada fronteira** — o que cada etapa mediu, e de qual buffer — e
+confira que a etapa seguinte está usando a fronteira certa. É a mesma família da
+regra do λ, uma seção abaixo: calcule o número e olhe para ele, uma vez, em vez
+de confiar que ele é o que você imagina.
+
 ### Regra de escala que assume propriedade não verificada do kernel
 
 **Classe de erro.** Uma constante de regularização "escalada por uma propriedade
