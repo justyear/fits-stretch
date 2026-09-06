@@ -277,6 +277,132 @@ foreach ($fixture in $MAP.Keys) {
     }
 }
 
+# ---------------------------------------------------------------------------
+# Modulo 1: the background step, against reference_bg.py
+# ---------------------------------------------------------------------------
+#
+# A separate reference file and a separate block, because it answers a different
+# question with a different currency.
+#
+# The Modulo 0 reference compares two estimators of the SAME statistic and its
+# tolerance is the resolution of the instrument. Here the two implementations
+# fit DIFFERENT surfaces: they accept 92 and 93 samples out of the same 108,
+# because their global median and MADN come from different estimators and a box
+# near the threshold falls on different sides. The fits are not the same object,
+# so a tolerance sized for histogram resolution would be meaningless.
+#
+# The currency here is the 8-bit level, which is what the output is made of and
+# what section 5 of modulo-1-spec.md states its limit in. Two surfaces that
+# agree to a fraction of a level produce the same image, whatever their
+# intermediate numbers did.
+$M1_REF   = Join-Path $root 'referencia-modulo1.json'
+$M1_MINE  = Join-Path $gold 'gradient-truth.json'
+$LEVEL    = 1.0 / 255.0
+
+# A value on the [0,1] axis, compared with a limit stated in 8-bit levels.
+function Compare-Level($field, $mine, $refv, [double]$limitLevels, $note) {
+    $d = [math]::Abs([double]$mine - [double]$refv) * 255.0
+    $ok = ($d -le $limitLevels)
+    $v = if ($ok) { 'PASS' } else { 'FAIL' }
+    return New-Row 'gradient-fixture' 'fundo' $field ("{0:F6}" -f [double]$mine) ("{0:F6}" -f [double]$refv) $v `
+           ("{0:F4} nivel / limite {1:F2}{2}" -f $d, $limitLevels, $(if ($note) { " - $note" } else { '' }))
+}
+
+# Both must be under a ceiling, and they must agree in magnitude. The ceiling is
+# the criterion; the ratio is the agreement, and it is a judgement call - stated
+# here rather than hidden, because nothing in either spec derives it. Two fits
+# of the same surface from different point sets landing within 3x of each other
+# on a sub-level quantity is a strong statement; 10x would not be.
+function Compare-Both($field, [double]$mineLevels, [double]$refLevels, [double]$ceilingLevels, [double]$ratioLimit) {
+    $hi = [math]::Max($mineLevels, $refLevels)
+    $lo = [math]::Min($mineLevels, $refLevels)
+    $ratio = if ($lo -gt 0) { $hi / $lo } else { [double]::PositiveInfinity }
+    $okCeil  = ($ceilingLevels -le 0) -or ($hi -le $ceilingLevels)
+    $okRatio = ($ratioLimit -le 0) -or ($ratio -le $ratioLimit)
+    $v = if ($okCeil -and $okRatio) { 'PASS' } else { 'FAIL' }
+    $why = @()
+    if (-not $okCeil)  { $why += ("pior {0:F3} > teto {1:F2}" -f $hi, $ceilingLevels) }
+    if (-not $okRatio) { $why += ("razao {0:F2} > {1:F2}" -f $ratio, $ratioLimit) }
+    $detail = if ($why.Count) { $why -join '; ' } else { ("razao {0:F2}{1}" -f $ratio, $(if ($ceilingLevels -gt 0) { " / teto {0:F2}" -f $ceilingLevels } else { ' / sem teto' })) }
+    return New-Row 'gradient-fixture' 'fundo' $field ("{0:F4}" -f $mineLevels) ("{0:F4}" -f $refLevels) $v $detail
+}
+
+if (-not (Test-Path -LiteralPath $M1_REF)) {
+    $rows += New-Row 'gradient-fixture' 'fundo' '(todos)' '-' '-' 'N/A' 'referencia-modulo1.json ausente'
+} elseif (-not (Test-Path -LiteralPath $M1_MINE)) {
+    $rows += New-Row 'gradient-fixture' 'fundo' '(todos)' '-' '-' 'NO GOLDEN' 'rode compare-truth.js e promova gradient-truth.json'
+} else {
+    $m1r = Get-Content -LiteralPath $M1_REF  -Raw | ConvertFrom-Json
+    $m1m = Get-Content -LiteralPath $M1_MINE -Raw | ConvertFrom-Json
+
+    # The fixture both sides measured has to be the same bytes, or nothing below
+    # means anything. Same guard the Modulo 0 block applies to its own fixtures.
+    $fxPath = Join-Path $root 'test\fixtures\fixture-gradient.fit'
+    $fxHash = (Get-FileHash -LiteralPath $fxPath -Algorithm SHA256).Hash.ToLower()
+    $rows += Compare-Value 'gradient-fixture' 'fixture' 'sha256' $fxHash $m1r.fixture.sha256 'exact' 0 0
+
+    $ra = $m1r.minhaImplementacao.amostras
+    $ma = $m1m.samples
+    $rows += Compare-Value 'gradient-fixture' 'fundo' 'amostras.geradas' $ma.generated $ra.geradas 'exact' 0 0
+
+    # Not exact, and the reason is the point of this block: the two grids differ
+    # because the two rejection thresholds come from different estimators.
+    $dAcc = [math]::Abs([double]$ma.accepted - [double]$ra.aceitas)
+    $rows += New-Row 'gradient-fixture' 'fundo' 'amostras.aceitas' $ma.accepted $ra.aceitas `
+             $(if ($dAcc -le 2) { 'PASS' } else { 'FAIL' }) `
+             ("difere de {0} de {1} - estimadores de limiar diferentes; limite 2" -f $dAcc, $ma.generated)
+
+    foreach ($ch in @('R', 'G', 'B')) {
+        $i = @('R', 'G', 'B').IndexOf($ch)
+        $rows += Compare-Level "pedestal.$ch" $m1m.surface.perChannel[$i].pedestal $m1r.minhaImplementacao.pedestais.$ch 0.5 'piso de quantizacao'
+    }
+
+    # One lambda here, three there (identical to each other), because A is built
+    # from the sample positions and the channels share them.
+    $rows += Compare-Both 'lambda' ($m1m.surface.lambda * 255) ($m1r.minhaImplementacao.lambdas.R * 255) 0 1.5
+
+    $rows += Compare-Both 'erroInterpolacao' $m1m.surface.maxInterpErrorLevels `
+             $m1r.minhaImplementacao.erroInterpolacaoMaxNiveis 0.5 0
+
+    # Residual against the analytic truth, region by region and channel by
+    # channel. Only the clean field has a ceiling from the spec (section 5, one
+    # level outside the rejected regions); under the object the residual IS the
+    # contamination and there is no published limit, so agreement carries it.
+    $regions = @(
+        @{ mine = 'dentroObjeto'; ref = 'dentroObjeto'; ceiling = 0.0; ratio = 3.0 },
+        @{ mine = 'haloProximo';  ref = 'haloProximo';  ceiling = 0.0; ratio = 3.0 },
+        @{ mine = 'haloDistante'; ref = 'haloDistante'; ceiling = 0.0; ratio = 3.0 },
+        @{ mine = 'campoLimpo';   ref = 'campoLimpo';   ceiling = 1.0; ratio = 3.0 }
+    )
+    foreach ($rg in $regions) {
+        $mr = $m1m.residualVsGradient.($rg.mine)
+        $rr = $m1r.minhaImplementacao.residuoContraVerdade.($rg.ref)
+        # The masks have to select the same pixels before the errors mean
+        # anything. This is the check that the four regions were adopted, not
+        # merely named.
+        $rows += Compare-Value 'gradient-fixture' 'fundo' "$($rg.mine).pixels" $mr.pixels $rr.pixels 'exact' 0 0
+        foreach ($ch in @('R', 'G', 'B')) {
+            $rows += Compare-Both "$($rg.mine).$ch.max"  $mr.$ch.maxLevels  $rr.$ch.maxLevels  $rg.ceiling $rg.ratio
+            $rows += Compare-Both "$($rg.mine).$ch.mean" $mr.$ch.meanLevels $rr.$ch.meanLevels $rg.ceiling $rg.ratio
+        }
+    }
+
+    # The 192-point lattice. This one has no reference counterpart to compare
+    # against and does not need one: the target is the analytic gradient from
+    # the HISTORY cards, so the comparison is against arithmetic, not against
+    # another implementation. Ceiling from section 5.
+    if ($m1m.latticeVsTruth -and $m1m.latticeVsTruth.points) {
+        $rows += Compare-Value 'gradient-fixture' 'reticula' 'pontos' $m1m.latticeVsTruth.points $m1r.verdade.reticula.Count 'exact' 0 0
+        foreach ($ch in @('R', 'G', 'B')) {
+            $cl = $m1m.latticeVsTruth.campoLimpo.$ch.maxLevels
+            $ok = ($cl -le 1.0)
+            $rows += New-Row 'gradient-fixture' 'reticula' "campoLimpo.$ch.max" ("{0:F4}" -f $cl) 'verdade analitica' `
+                     $(if ($ok) { 'PASS' } else { 'FAIL' }) `
+                     ("{0} pontos, teto 1,00 nivel (secao 5)" -f $m1m.latticeVsTruth.campoLimpo.points)
+        }
+    }
+}
+
 if (-not $Quiet) { $rows | Format-Table -AutoSize -Wrap }
 
 # Not $known: PowerShell variable names are case-insensitive, so that would be

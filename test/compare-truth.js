@@ -122,19 +122,43 @@ window.__compareTruth = async function (opts) {
 
   // --- residual over the whole frame, by region -----------------------
   //
-  // Every pixel, not a sample: the interesting error is between the sample
-  // points, and a model can pass at its own knots while sagging in between.
+  // Every pixel and every channel. Not a sample: the interesting error is
+  // between the sample points, and a model can pass at its own knots while
+  // sagging in between.
+  //
+  // FOUR REGIONS, NOT TWO, and the boundary that matters is 2.5.
+  //
+  // The first version of this file split the frame at R<=1 (object) and R>2
+  // (clean), which quietly threw away the shell between them and called what
+  // was left "outside the object". That was wrong, and the object's own profile
+  // says why: it is PEAK*exp(-3R), so at R=1.2 it still sits at about 1.6x the
+  // noise sigma. There is real signal well past R=1, the model error follows it
+  // out, and a mask at R=1 reports the error of a region that is not clean.
+  //
+  //   dentro       R < 1      the model is supposed to be wrong here
+  //   halo proximo 1 <= R < 1.5   still bright enough to pull the fit
+  //   halo distante 1.5 <= R < 2.5  the object fading into the background
+  //   campo limpo  R >= 2.5    the only region where "model accuracy" is the
+  //                            whole story
   var BX = 10, BY = 8;                        // block map, for "where is it worst"
-  var blockMax = [], blockSum = [], blockN = [];
-  for (var b = 0; b < BX * BY; b++) { blockMax.push(0); blockSum.push(0); blockN.push(0); }
+  var blockMax = [];
+  for (var b = 0; b < BX * BY; b++) blockMax.push(0);
 
+  function mkRegion() {
+    var r = { pixels: 0, ch: [] };
+    for (var i = 0; i < planes; i++) r.ch.push({ max: 0, sum: 0 });
+    return r;
+  }
   var regions = {
-    frame:        { max: 0, sum: 0, n: 0 },
-    outsideObject:{ max: 0, sum: 0, n: 0 },   // elliptical radius > 2
-    insideObject: { max: 0, sum: 0, n: 0 },   // elliptical radius <= 1
-    rejectedCorner:{ max: 0, sum: 0, n: 0 }   // background above the global threshold
+    dentroObjeto: mkRegion(),
+    haloProximo:  mkRegion(),
+    haloDistante: mkRegion(),
+    campoLimpo:   mkRegion(),
+    frame:        mkRegion(),
+    // Kept because the local-rejection pendency in section 2.2 tracks it: the
+    // region where the background alone passes the global rejection threshold.
+    cantoRejeitado: mkRegion()
   };
-  function add(reg, e) { if (e > reg.max) reg.max = e; reg.sum += e; reg.n++; }
 
   var thr = [];
   for (var c = 0; c < planes; c++) {
@@ -142,41 +166,113 @@ window.__compareTruth = async function (opts) {
   }
 
   var worst = { e: 0, x: 0, y: 0, c: 0 };
-  // Every 2nd pixel in each direction: a quarter of the work, and the surface
-  // varies by far less than one level over two pixels.
-  for (var y = 0; y < h; y += 2) {
+  // Where the CLEAN-FIELD worst pixel sits, separately: if it lands on a frame
+  // corner it is extrapolation past the sample hull, which is a different
+  // failure from the model sagging between points.
+  var cleanWorst = { e: 0, x: 0, y: 0, R: 0 };
+  var errBuf = new Float64Array(planes);
+
+  for (var y = 0; y < h; y++) {
     var by = Math.min(BY - 1, (y * BY / h) | 0);
-    for (var x = 0; x < w; x += 2) {
+    for (var x = 0; x < w; x++) {
       var bx = Math.min(BX - 1, (x * BX / w) | 0);
       var bi = by * BX + bx;
       var R = objectRadius(x, y);
+      var inCorner = false;
       for (c = 0; c < planes; c++) {
         // Expected = THE GRADIENT ALONE, everywhere, including under the
         // object. That is the definition of the thing being modelled: the
         // object is signal to be preserved, not background to be removed, and
-        // a background model that follows it is a background model that will
-        // subtract it. So the residual means two different things in two
-        // places, and both are worth having:
-        //
-        //   outside the object -> how accurate the model is
-        //   inside the object  -> how much of the object leaked into the model,
-        //                         which is exactly the GraXpert failure in
-        //                         section 1: 12.5% of an M31 arm eaten
+        // a background model that follows it is one that will subtract it.
         var expected = truthAt(c, x, y);
-        var got = P.bgSampleGrid(surface, c, x, y);
-        var e = Math.abs(got - expected) * 255;
+        var e = Math.abs(P.bgSampleGrid(surface, c, x, y) - expected) * 255;
+        errBuf[c] = e;
         if (e > blockMax[bi]) blockMax[bi] = e;
-        blockSum[bi] += e; blockN[bi]++;
-        add(regions.frame, e);
-        if (R > 2) add(regions.outsideObject, e);
-        if (R <= 1) add(regions.insideObject, e);
-        if (truthAt(c, x, y) > thr[c]) add(regions.rejectedCorner, e);
         if (e > worst.e) { worst = { e: e, x: x, y: y, c: c }; }
+        if (expected > thr[c]) inCorner = true;
+      }
+      var target = (R < 1)   ? regions.dentroObjeto
+                 : (R < 1.5) ? regions.haloProximo
+                 : (R < 2.5) ? regions.haloDistante
+                             : regions.campoLimpo;
+      if (R >= 2.5 && errBuf[0] > cleanWorst.e) {
+        cleanWorst = { e: errBuf[0], x: x, y: y, R: +R.toFixed(2) };
+      }
+      target.pixels++; regions.frame.pixels++;
+      if (inCorner) regions.cantoRejeitado.pixels++;
+      for (c = 0; c < planes; c++) {
+        var ee = errBuf[c];
+        if (ee > target.ch[c].max) target.ch[c].max = ee;
+        target.ch[c].sum += ee;
+        if (ee > regions.frame.ch[c].max) regions.frame.ch[c].max = ee;
+        regions.frame.ch[c].sum += ee;
+        if (inCorner) {
+          if (ee > regions.cantoRejeitado.ch[c].max) regions.cantoRejeitado.ch[c].max = ee;
+          regions.cantoRejeitado.ch[c].sum += ee;
+        }
       }
     }
   }
 
-  function fin(r) { return { maxLevels: +r.max.toFixed(4), meanLevels: +(r.n ? r.sum / r.n : 0).toFixed(4), pixels: r.n }; }
+  function fin(r) {
+    var out = { pixels: r.pixels, pctFrame: +(100 * r.pixels / (w * h)).toFixed(6) };
+    for (var i = 0; i < planes; i++) {
+      out[chans[i]] = { maxLevels: +r.ch[i].max.toFixed(6),
+                        meanLevels: +(r.pixels ? r.ch[i].sum / r.pixels : 0).toFixed(6) };
+    }
+    return out;
+  }
+
+  // --- the 192-point lattice: the target that shares nothing --------------
+  //
+  // The reference publishes a lattice of the ANALYTIC gradient, computed from
+  // the HISTORY coefficients. Evaluating this surface there and differencing is
+  // the one comparison in the suite that depends on neither implementation's
+  // sampling grid, neither one's linear algebra, and neither one's formula: the
+  // right answer is arithmetic on numbers the fixture generator wrote.
+  var lattice = null;
+  try {
+    var refJson = await fetch('/f/referencia-modulo1.json').then(function (r) { return r.json(); });
+    if (refJson && refJson.verdade && refJson.verdade.reticula) {
+      var pts = refJson.verdade.reticula;
+      // Binned by the same four regions as the pixel pass. A single number over
+      // all 192 points is dominated by the handful that sit on the object, and
+      // would read as model error when it is contamination.
+      var bins = { todos: [], dentroObjeto: [], haloProximo: [], haloDistante: [], campoLimpo: [] };
+      for (var bn in bins) {
+        for (c = 0; c < planes; c++) bins[bn].push({ max: 0, sum: 0, n: 0, worstAt: null });
+      }
+      function latAdd(bin, ci, d, pt) {
+        var s = bins[bin][ci];
+        s.sum += d; s.n++;
+        if (d > s.max) { s.max = d; s.worstAt = [pt.x, pt.y, +pt.objectRadius.toFixed(3)]; }
+      }
+      for (var li = 0; li < pts.length; li++) {
+        var pt = pts[li];
+        var Rp = pt.objectRadius;
+        var bin = (Rp < 1) ? 'dentroObjeto' : (Rp < 1.5) ? 'haloProximo'
+                : (Rp < 2.5) ? 'haloDistante' : 'campoLimpo';
+        for (c = 0; c < planes; c++) {
+          var d2 = Math.abs(P.bgSampleGrid(surface, c, pt.x, pt.y) - pt[chans[c]]) * 255;
+          latAdd('todos', c, d2, pt);
+          latAdd(bin, c, d2, pt);
+        }
+      }
+      lattice = { points: pts.length, source: 'referencia-modulo1.json verdade.reticula',
+                  note: 'analytic gradient from the HISTORY cards; shares neither grid nor algebra' };
+      for (var bn2 in bins) {
+        var o = { points: bins[bn2][0].n };
+        for (c = 0; c < planes; c++) {
+          o[chans[c]] = { maxLevels: +bins[bn2][c].max.toFixed(6),
+                          meanLevels: +(bins[bn2][c].n ? bins[bn2][c].sum / bins[bn2][c].n : 0).toFixed(6),
+                          worstAt: bins[bn2][c].worstAt };
+        }
+        lattice[bn2] = o;
+      }
+    }
+  } catch (e) {
+    lattice = { error: String(e && e.message || e) };
+  }
 
   // The object's own peak, in levels, so contamination reads as a fraction of
   // the thing at risk rather than as a bare number.
@@ -213,21 +309,36 @@ window.__compareTruth = async function (opts) {
       lambda: rec.surface.lambda, kernelScale: rec.surface.kernelScale,
       gridDivisor: rec.surface.gridDivisor, gridSize: rec.surface.gridSize,
       maxInterpErrorLevels: +rec.surface.maxInterpErrorLevels.toFixed(4),
-      interpLimitLevels: rec.surface.interpLimitLevels
+      interpLimitLevels: rec.surface.interpLimitLevels,
+      // Carried so compare-reference.ps1 can check the pedestals without
+      // having to re-run the fit: they are the one number of the surface that
+      // reaches the pixels directly.
+      perChannel: rec.surface.perChannel.map(function (p) {
+        return { modelMin: p.modelMin, modelMax: p.modelMax,
+                 modelMedian: p.modelMedian, pedestal: p.pedestal };
+      })
     },
-    // Model minus the true gradient. Outside the object this is accuracy;
-    // inside it, it is contamination.
+    // Model minus the true gradient, by region. In the clean field this is
+    // model accuracy; under the object and in its halo it is contamination.
     residualVsGradient: {
-      frame: fin(regions.frame),
-      outsideObject: fin(regions.outsideObject),
-      insideObject: fin(regions.insideObject),
-      rejectedCorner: fin(regions.rejectedCorner),
-      worst: { levels: +worst.e.toFixed(3), x: worst.x, y: worst.y, channel: chans[worst.c] }
+      dentroObjeto:   fin(regions.dentroObjeto),
+      haloProximo:    fin(regions.haloProximo),
+      haloDistante:   fin(regions.haloDistante),
+      campoLimpo:     fin(regions.campoLimpo),
+      frame:          fin(regions.frame),
+      cantoRejeitado: fin(regions.cantoRejeitado),
+      worst: { levels: +worst.e.toFixed(3), x: worst.x, y: worst.y, channel: chans[worst.c] },
+      campoLimpoWorst: { levels: +cleanWorst.e.toFixed(3), x: cleanWorst.x, y: cleanWorst.y, objectRadius: cleanWorst.R, channel: 'R' }
     },
+    latticeVsTruth: lattice,
+    // Contamination per region, as a fraction of the object's own peak. The
+    // halo numbers are the ones the old R<=1 mask was hiding.
     objectContamination: {
-      objectPeakLevels: +objPeakLevels.toFixed(2),
-      absorbedLevels: +regions.insideObject.max.toFixed(3),
-      absorbedPercentOfPeak: +(100 * regions.insideObject.max / objPeakLevels).toFixed(2),
+      objectPeakLevels: +objPeakLevels.toFixed(3),
+      dentroPercentOfPeak: +(100 * regions.dentroObjeto.ch[0].max / objPeakLevels).toFixed(3),
+      haloProximoPercentOfPeak: +(100 * regions.haloProximo.ch[0].max / objPeakLevels).toFixed(3),
+      haloDistantePercentOfPeak: +(100 * regions.haloDistante.ch[0].max / objPeakLevels).toFixed(3),
+      campoLimpoPercentOfPeak: +(100 * regions.campoLimpo.ch[0].max / objPeakLevels).toFixed(3),
       note: 'GraXpert measured 12.5% of an M31 arm removed; 5% for the manual fit. Section 1.'
     },
     blockMap: { cols: BX, rows: BY, maxLevels: blockMax.map(function (v) { return +v.toFixed(2); }) },

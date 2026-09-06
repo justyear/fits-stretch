@@ -27,40 +27,300 @@
       151
     ],
     "maxInterpErrorLevels": 0.0004,
-    "interpLimitLevels": 0.5
+    "interpLimitLevels": 0.5,
+    "perChannel": [
+      {
+        "modelMin": 0.011809253304616945,
+        "modelMax": 0.022743705028550845,
+        "modelMedian": 0.018355448623069173,
+        "pedestal": 0.018355448623069173
+      },
+      {
+        "modelMin": 0.010711298285956506,
+        "modelMax": 0.020664170680368486,
+        "modelMedian": 0.016640475989857,
+        "pedestal": 0.016640475989857
+      },
+      {
+        "modelMin": 0.009848589758033348,
+        "modelMax": 0.018626642787360054,
+        "modelMedian": 0.015136997116408913,
+        "pedestal": 0.015136997116408913
+      }
+    ]
   },
   "residualVsGradient": {
+    "dentroObjeto": {
+      "pixels": 230575,
+      "pctFrame": 12.009115,
+      "R": {
+        "maxLevels": 0.83948,
+        "meanLevels": 0.684713
+      },
+      "G": {
+        "maxLevels": 0.801977,
+        "meanLevels": 0.650085
+      },
+      "B": {
+        "maxLevels": 0.746196,
+        "meanLevels": 0.610669
+      }
+    },
+    "haloProximo": {
+      "pixels": 268127,
+      "pctFrame": 13.964948,
+      "R": {
+        "maxLevels": 0.616418,
+        "meanLevels": 0.363606
+      },
+      "G": {
+        "maxLevels": 0.597419,
+        "meanLevels": 0.342783
+      },
+      "B": {
+        "maxLevels": 0.562151,
+        "meanLevels": 0.331764
+      }
+    },
+    "haloDistante": {
+      "pixels": 476048,
+      "pctFrame": 24.794167,
+      "R": {
+        "maxLevels": 0.310845,
+        "meanLevels": 0.067819
+      },
+      "G": {
+        "maxLevels": 0.29105,
+        "meanLevels": 0.064493
+      },
+      "B": {
+        "maxLevels": 0.276457,
+        "meanLevels": 0.064092
+      }
+    },
+    "campoLimpo": {
+      "pixels": 945250,
+      "pctFrame": 49.231771,
+      "R": {
+        "maxLevels": 0.168757,
+        "meanLevels": 0.033726
+      },
+      "G": {
+        "maxLevels": 0.134354,
+        "meanLevels": 0.034414
+      },
+      "B": {
+        "maxLevels": 0.122164,
+        "meanLevels": 0.030996
+      }
+    },
     "frame": {
-      "maxLevels": 0.8395,
-      "meanLevels": 0.1587,
-      "pixels": 1440000
+      "pixels": 1920000,
+      "pctFrame": 100,
+      "R": {
+        "maxLevels": 0.83948,
+        "meanLevels": 0.166424
+      },
+      "G": {
+        "maxLevels": 0.801977,
+        "meanLevels": 0.158872
+      },
+      "B": {
+        "maxLevels": 0.746196,
+        "meanLevels": 0.150817
+      }
     },
-    "outsideObject": {
-      "maxLevels": 0.1679,
-      "meanLevels": 0.0305,
-      "pixels": 888039
-    },
-    "insideObject": {
-      "maxLevels": 0.8395,
-      "meanLevels": 0.6485,
-      "pixels": 172947
-    },
-    "rejectedCorner": {
-      "maxLevels": 0.1679,
-      "meanLevels": 0.0674,
-      "pixels": 38843
+    "cantoRejeitado": {
+      "pixels": 62370,
+      "pctFrame": 3.248438,
+      "R": {
+        "maxLevels": 0.168757,
+        "meanLevels": 0.082157
+      },
+      "G": {
+        "maxLevels": 0.112423,
+        "meanLevels": 0.052363
+      },
+      "B": {
+        "maxLevels": 0.096374,
+        "meanLevels": 0.047643
+      }
     },
     "worst": {
       "levels": 0.839,
       "x": 456,
       "y": 856,
       "channel": "R"
+    },
+    "campoLimpoWorst": {
+      "levels": 0.169,
+      "x": 1599,
+      "y": 1199,
+      "objectRadius": 3.72,
+      "channel": "R"
+    }
+  },
+  "latticeVsTruth": {
+    "points": 192,
+    "source": "referencia-modulo1.json verdade.reticula",
+    "note": "analytic gradient from the HISTORY cards; shares neither grid nor algebra",
+    "todos": {
+      "points": 192,
+      "R": {
+        "maxLevels": 0.836856,
+        "meanLevels": 0.156394,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      },
+      "G": {
+        "maxLevels": 0.795886,
+        "meanLevels": 0.148494,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      },
+      "B": {
+        "maxLevels": 0.741516,
+        "meanLevels": 0.14128,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      }
+    },
+    "dentroObjeto": {
+      "points": 18,
+      "R": {
+        "maxLevels": 0.836856,
+        "meanLevels": 0.702581,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      },
+      "G": {
+        "maxLevels": 0.795886,
+        "meanLevels": 0.666557,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      },
+      "B": {
+        "maxLevels": 0.741516,
+        "meanLevels": 0.626501,
+        "worstAt": [
+          426,
+          872,
+          0.039
+        ]
+      }
+    },
+    "haloProximo": {
+      "points": 24,
+      "R": {
+        "maxLevels": 0.528603,
+        "meanLevels": 0.388499,
+        "worstAt": [
+          107,
+          763,
+          1.089
+        ]
+      },
+      "G": {
+        "maxLevels": 0.494066,
+        "meanLevels": 0.365399,
+        "worstAt": [
+          107,
+          763,
+          1.089
+        ]
+      },
+      "B": {
+        "maxLevels": 0.493141,
+        "meanLevels": 0.354991,
+        "worstAt": [
+          107,
+          763,
+          1.089
+        ]
+      }
+    },
+    "haloDistante": {
+      "points": 50,
+      "R": {
+        "maxLevels": 0.288912,
+        "meanLevels": 0.083196,
+        "worstAt": [
+          533,
+          1199,
+          1.521
+        ]
+      },
+      "G": {
+        "maxLevels": 0.272857,
+        "meanLevels": 0.078927,
+        "worstAt": [
+          533,
+          1199,
+          1.521
+        ]
+      },
+      "B": {
+        "maxLevels": 0.259444,
+        "meanLevels": 0.078354,
+        "worstAt": [
+          533,
+          1199,
+          1.521
+        ]
+      }
+    },
+    "campoLimpo": {
+      "points": 100,
+      "R": {
+        "maxLevels": 0.168757,
+        "meanLevels": 0.038975,
+        "worstAt": [
+          1599,
+          1199,
+          3.72
+        ]
+      },
+      "G": {
+        "maxLevels": 0.134329,
+        "meanLevels": 0.037968,
+        "worstAt": [
+          1599,
+          0,
+          5.341
+        ]
+      },
+      "B": {
+        "maxLevels": 0.122164,
+        "meanLevels": 0.034113,
+        "worstAt": [
+          1599,
+          0,
+          5.341
+        ]
+      }
     }
   },
   "objectContamination": {
-    "objectPeakLevels": 13.39,
-    "absorbedLevels": 0.839,
-    "absorbedPercentOfPeak": 6.27,
+    "objectPeakLevels": 13.388,
+    "dentroPercentOfPeak": 6.271,
+    "haloProximoPercentOfPeak": 4.604,
+    "haloDistantePercentOfPeak": 2.322,
+    "campoLimpoPercentOfPeak": 1.261,
     "note": "GraXpert measured 12.5% of an M31 arm removed; 5% for the manual fit. Section 1."
   },
   "blockMap": {
@@ -84,7 +344,7 @@
       0.07,
       0.08,
       0.09,
-      0.04,
+      0.05,
       0.08,
       0.11,
       0.05,
@@ -99,16 +359,16 @@
       0.07,
       0.2,
       0.28,
-      0.3,
+      0.31,
       0.31,
       0.25,
-      0.11,
+      0.12,
       0.04,
       0.05,
       0.09,
       0.07,
       0.6,
-      0.71,
+      0.72,
       0.74,
       0.76,
       0.69,
@@ -144,7 +404,7 @@
       0.46,
       0.25,
       0.1,
-      0.1,
+      0.11,
       0.14,
       0.17
     ]
