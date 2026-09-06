@@ -89,6 +89,45 @@ identidade — só apara o preto e preserva a colocação tonal que já existia.
 M45 reprovar, o erro está no código. Um limiar ajustado para agradar um arquivo
 destrói exatamente o que o log deveria provar.
 
+#### A identidade que os 8 bits escondiam — evidência de correção, não de mudança
+
+Neste ramo `target` é a própria mediana do canal, e o midtones é escolhido como
+`MTF(x, target)` com `x = (mediana − shadows) / (1 − shadows)`. Isso torna
+`MTF(x, midtones) = target = mediana` **por construção**: a transformação leva a
+mediana nela mesma. Logo `after.median` tem de ser igual a `before.median`.
+
+Enquanto a cadeia entregava 8 bits, isso era invisível. A mediana de saída
+pousava em `67/255 = 0,262745` — o nível quantizado mais próximo — e não havia
+como distinguir "a identidade vale" de "caiu perto por acaso".
+
+Com a cadeia em float pleno (Módulo 1, passo 2) a identidade aparece:
+
+| canal | `before.median` | `after.median` | diferença |
+|---|---|---|---|
+| R | 0,2640573739223316 | 0,2640573739223316 | 0 |
+| G | 0,24568551155870907 | 0,24571602960250247 | 3,05e-5 |
+| B | 0,23041123064011595 | 0,23041123064011595 | 0 |
+
+R e B batem **dígito a dígito**. O G não bate por 3,05e-5, que é dois bins do
+histograma de 65536 — a mediana é estimada por histograma, não por seleção
+exata, então a mediana medida depois não é exatamente a mesma amostra que
+entrou. O desvio tem o tamanho do instrumento, não o tamanho de um erro.
+
+**Por que isto importa mais do que parece.** É a primeira verificação da suíte
+que não é "hoje é igual a ontem" nem "as duas implementações concordam". É uma
+propriedade algébrica da transformação, derivável no papel, conferida contra a
+saída. A §7 registra que as medidas do Python validam aritmética e não escolha
+de algoritmo, porque a fórmula foi lida daqui — esta identidade não tem essa
+limitação, porque não veio de nenhuma das duas implementações: veio da
+definição do MTF.
+
+Serve como teste permanente do caminho float. Se um dia `after.median` deixar de
+bater com `before.median` no ramo não-linear, alguma coisa entre o cálculo do
+midtones e a gravação do pixel passou a arredondar. Vale a pena virar asserção
+explícita no harness quando o Módulo 1 acrescentar etapas antes do esticamento —
+aí `before` do stretch deixa de ser `before` da cadeia, e a identidade continua
+tendo de valer entre os dois campos da mesma etapa.
+
 ### `BAYERPAT` manda; a estatística não veta — isto foi um bug
 Versão original exigia que o teste de vizinhança (`D1/D2 > 1.15`) confirmasse o
 mosaico antes de debayerizar. **Num sub Seestar real isso falha**: razão medida

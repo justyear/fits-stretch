@@ -57,8 +57,10 @@ function Edit-Text($dir, $file, $from, $to) {
 }
 
 # Shifts `count` colour samples by `delta`, leaving alpha alone. -Resize crops
-# two columns instead, to exercise the dimension check.
-function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize) {
+# two columns instead, to exercise the dimension check. -Lane restricts the
+# shift to one byte lane (0=B, 1=G, 2=R in Format32bppArgb memory order), which
+# is how a partial shift is produced on purpose.
+function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize, [int]$Lane = -1) {
     $path = Join-Path $dir $file
     $src = New-Object System.Drawing.Bitmap($path)
     $w = $src.Width; $h = $src.Height
@@ -76,7 +78,13 @@ function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize) {
     [System.Runtime.InteropServices.Marshal]::Copy($bd.Scan0, $buf, 0, $len)
     $n = 0
     for ($i = 0; $i -lt $len -and $n -lt $count; $i++) {
-        if (($i % 4) -eq 3) { continue }
+        # $laneIdx, not $lane: PowerShell variable names are case-insensitive,
+        # so `$lane` and the -Lane parameter would be one variable and the
+        # filter would erase itself on the first iteration. This file warns
+        # about that trap at the top and still walked into it here.
+        $laneIdx = $i % 4
+        if ($laneIdx -eq 3) { continue }
+        if ($Lane -ge 0 -and $laneIdx -ne $Lane) { continue }
         $v = [int]$buf[$i] + $delta
         if ($v -lt 0) { $v = 0 } elseif ($v -gt 255) { $v = 255 }
         $buf[$i] = [byte]$v
@@ -135,12 +143,34 @@ $cases = @(
          Edit-Png $tmpdir $ART_PNG 1 1 } }
     @{ name = 'png one sample +2'; art = $ART_PNG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Png $tmpdir $ART_PNG 2 1 } }
-    @{ name = 'png every sample +1 (the known blind spot)'; art = $ART_PNG; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Png $tmpdir $ART_PNG 1 99999999 } }
     @{ name = 'png re-encoded, pixels untouched'; art = $ART_PNG; want = 'PASS~'; do = { param($tmpdir)
          Edit-Png $tmpdir $ART_PNG 0 0 } }
     @{ name = 'png width cropped by 2'; art = $ART_PNG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Png $tmpdir $ART_PNG 0 0 -Resize } }
+
+    # The pedestal guard. A constant offset is the failure mode of
+    # `out = in - model + pedestal` and it fits inside the per-pixel limit, so
+    # the limit cannot be what catches it. The signed median is.
+    #
+    # The pair that matters is the first two: same verdict, same magnitude, same
+    # limit - and opposite shift findings. One sample moved is rounding noise
+    # and its signed median stays 0; every sample moved is an offset and the
+    # signed median moves with it.
+    @{ name = 'png every sample +1 (blind spot: passes, must be reported)'
+       art = $ART_PNG; want = 'PASS~'; shift = 'SYSTEMATIC SHIFT'; do = { param($tmpdir)
+         Edit-Png $tmpdir $ART_PNG 1 99999999 } }
+    @{ name = 'png one sample +1 must NOT read as a shift'
+       art = $ART_PNG; want = 'PASS~'; shift = ''; do = { param($tmpdir)
+         Edit-Png $tmpdir $ART_PNG 1 1 } }
+    @{ name = 'png every sample -1 (offset the other way)'
+       art = $ART_PNG; want = 'PASS~'; shift = 'SYSTEMATIC SHIFT'; do = { param($tmpdir)
+         Edit-Png $tmpdir $ART_PNG -1 99999999 } }
+    @{ name = 'png one channel +1 only (colour balance, not a pedestal)'
+       art = $ART_PNG; want = 'PASS~'; shift = 'PARTIAL SHIFT'; do = { param($tmpdir)
+         Edit-Png $tmpdir $ART_PNG 1 99999999 -Lane 2 } }
+    @{ name = 'png every sample +2 (offset AND over the limit: both said)'
+       art = $ART_PNG; want = 'FAIL'; shift = 'SYSTEMATIC SHIFT'; do = { param($tmpdir)
+         Edit-Png $tmpdir $ART_PNG 2 99999999 } }
 
     @{ name = 'log one digit changed'; art = $ART_LOG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_LOG 'median 0.26406' 'median 0.26407' } }
@@ -167,10 +197,23 @@ try {
             if ($line -match '\s(PASS~|PASS|FAIL)\s') { $got = $matches[1] }
         }
 
-        $hit = ($got -eq $c.want)
+        # The shift finding is asserted separately from the verdict, because the
+        # whole point of it is that it is orthogonal: a case can pass the limit
+        # and still have to report a shift, or fail the limit and report one too.
+        # A case with shift = '' asserts the line is ABSENT, which is what stops
+        # the detector from firing on ordinary rounding noise.
+        $wantShift = ''
+        if ($c.ContainsKey('shift')) { $wantShift = $c.shift }
+        $gotShift = ''
+        if     ($raw -cmatch 'SYSTEMATIC SHIFT') { $gotShift = 'SYSTEMATIC SHIFT' }
+        elseif ($raw -cmatch 'PARTIAL SHIFT')    { $gotShift = 'PARTIAL SHIFT' }
+
+        $hit = ($got -eq $c.want) -and ($gotShift -eq $wantShift)
         if ($hit) { $good++ } else { $bad++ }
         $out += [pscustomobject]@{
             case = $c.name; want = $c.want; got = $got
+            wantShift = $(if ($wantShift) { $wantShift } else { '-' })
+            gotShift  = $(if ($gotShift)  { $gotShift }  else { '-' })
             verdict = $(if ($hit) { 'ok' } else { 'MISMATCH' })
         }
         Remove-Item -Recurse -Force $tmpdir

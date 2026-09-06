@@ -44,12 +44,24 @@
 #                  sits on a rounding boundary and flips, recapture - do not
 #                  loosen this.
 #
-# A blind spot worth naming: a whole image shifted by exactly 1 level passes the
-# PNG check. That is what "up to 1 level" means and section 7 chose it. The
-# differing-sample count and the mean absolute difference are printed for every
-# tolerated PNG so that such a shift is legible even though it passes - a
-# uniform shift reads as most of the samples differing, which no rounding
-# boundary ever produces. Above 50% the comparator says so in plain words.
+# The blind spot, and what is done about it: a whole image shifted by exactly 1
+# level passes the PNG check. That is what "up to 1 level" means, section 7
+# chose it, and tightening it would reprove correct work instead.
+#
+# So the shift is detected on a different axis rather than forgiven. Alongside
+# the absolute-difference limit the comparator takes the MEDIAN OF THE SIGNED
+# difference, per colour channel. Rounding noise is symmetric - a pixel near a
+# boundary rounds up about as often as down - so its signed median is 0. A
+# constant offset moves every pixel the same way and its signed median moves
+# with it. When all three colour channels have a non-zero signed median with the
+# same sign, the comparator prints SYSTEMATIC SHIFT, in the row and in a note.
+#
+# This is aimed at one specific failure that has not been written yet: the
+# pedestal of `out = in - model + pedestal` (modulo-1-spec.md section 2.4). A
+# wrong pedestal displaces the entire frame by a constant, which is precisely
+# the thing the per-pixel limit cannot see. It reports, it does not fail - a
+# legitimate rounding change and a bad pedestal are told apart by the operator
+# reading one line, not by a threshold guessing.
 #
 # `timingsMs` is wall-clock and is excised from both sides of diag.json before
 # comparing, as it always was.
@@ -94,6 +106,20 @@ public static class GoldenDiff {
             int d = a[i] - b[i];
             if (d < 0) d = -d;
             h[d]++;
+        }
+        return h;
+    }
+
+    // Signed fresh-minus-golden differences, one histogram per byte lane.
+    // Format32bppArgb is B,G,R,A in memory on a little-endian machine.
+    // Flat layout: lane c occupies [c*511 .. c*511+510], index = diff + 255.
+    public static long[] SignedHist(byte[] a, byte[] b, int len) {
+        long[] h = new long[4 * 511];
+        for (int i = 0; i + 3 < len; i += 4) {
+            for (int c = 0; c < 4; c++) {
+                int d = b[i + c] - a[i + c];
+                h[c * 511 + d + 255]++;
+            }
         }
         return h;
     }
@@ -289,6 +315,36 @@ function Compare-Json([byte[]]$gb, [byte[]]$fb, [string]$kind) {
     return $st
 }
 
+# Median and mean of the signed fresh-minus-golden difference, per byte lane.
+#
+# This is the one statistic that separates rounding noise from an offset.
+# Rounding noise is symmetric: a pixel that lands near a boundary rounds up
+# about as often as down, so the signed median is 0 and the signed mean is near
+# 0. A constant offset is not symmetric at all - it moves every pixel the same
+# way, and the signed median moves with it.
+#
+# It matters because "up to 1 level per pixel" forgives a whole frame shifted by
+# 1 level, and that is exactly the shape of a wrong pedestal: `out = in - model
+# + pedestal` with the wrong pedestal displaces the entire frame by a constant
+# (modulo-1-spec.md section 2.4). The tolerance cannot catch it and should not
+# be tightened to try - the fix is to report it, not to fail it.
+function Get-SignedStats($signedHist, [long]$pixels) {
+    $out = @()
+    for ($c = 0; $c -lt 4; $c++) {
+        $acc = 0L; $sum = 0.0; $med = 0; $found = $false
+        for ($d = -255; $d -le 255; $d++) {
+            $n = $signedHist[$c * 511 + $d + 255]
+            if ($n -eq 0) { continue }
+            $acc += $n; $sum += [double]$n * $d
+            if (-not $found -and ($acc * 2) -ge $pixels) { $med = $d; $found = $true }
+        }
+        $mean = 0.0
+        if ($pixels -gt 0) { $mean = $sum / $pixels }
+        $out += [pscustomobject]@{ lane = @('B', 'G', 'R', 'A')[$c]; median = $med; mean = $mean }
+    }
+    return $out
+}
+
 function Read-Png([string]$path) {
     $bytes = [System.IO.File]::ReadAllBytes($path)
     $ms = New-Object System.IO.MemoryStream(,$bytes)
@@ -364,17 +420,44 @@ foreach ($name in $Names) {
             $mean = 0.0
             if ($ndiff -gt 0) { $mean = $sum / $ndiff }
 
+            # Computed before the verdict, so it is reported whichever way the
+            # verdict goes. A frame that both shifts and breaks the limit should
+            # say both things.
+            $sst   = Get-SignedStats ([GoldenDiff]::SignedHist($gp.data, $fp.data, $gp.len)) ([long]($gp.len / 4))
+            $col   = @($sst[0], $sst[1], $sst[2])
+            $nzero = @($col | Where-Object { $_.median -ne 0 }).Count
+            $pos   = @($col | Where-Object { $_.median -gt 0 }).Count
+            $neg   = @($col | Where-Object { $_.median -lt 0 }).Count
+            $shift = ''
+            if ($nzero -eq 3 -and ($pos -eq 3 -or $neg -eq 3)) { $shift = 'SYSTEMATIC SHIFT' }
+            elseif ($nzero -gt 0)                              { $shift = 'PARTIAL SHIFT' }
+
+            if ($shift) {
+                # The sign is the finding, so it is always printed: the section
+                # format "+0;-0;0" shows it for positive and negative alike.
+                $per = ($col | ForEach-Object { "{0} {1,3:+0;-0;0}" -f $_.lane, $_.median }) -join '  '
+                $avg = ($col | ForEach-Object { "{0} {1,8:+0.000;-0.000;0.000}" -f $_.lane, $_.mean }) -join '  '
+                $notes += "$name.$kind  $shift  signed median (fresh minus golden): $per   signed mean: $avg"
+                if ($shift -eq 'SYSTEMATIC SHIFT') {
+                    $notes += "    Every colour channel moved the same way. Rounding noise has a signed median of zero; a constant offset does not."
+                    $notes += "    This is the shape of a wrong pedestal: out = in - model + pedestal displaces the whole frame by a constant"
+                    $notes += "    (modulo-1-spec.md section 2.4), and the per-pixel limit forgives it. Reported, not failed. Read it before accepting."
+                } else {
+                    $notes += "    Some but not all colour channels moved, or they moved in opposite directions. Not rounding noise either. Worth reading."
+                }
+            }
+
+            $tag = ''
+            if ($shift) { $tag = "  [$shift]" }
+
             if ($maxd -le $TOL_LEVEL) {
                 $rows += [pscustomobject]@{ artifact = "$name.$kind"; result = 'PASS~'
-                    detail = ("{0}x{1}  {2:N0}/{3:N0} samples differ ({4:N3}%), max {5} level (limit {6}), mean abs {7:N2}" -f `
-                              $gp.w, $gp.h, $ndiff, $gp.len, $pct, $maxd, $TOL_LEVEL, $mean) }
-                if ($pct -gt 50) {
-                    $notes += "$name.$kind  NOTE  $([Math]::Round($pct,1))% of samples differ by 1 level. That is a uniform shift, not rounding noise. It passes the section 7 limit, and it is still worth reading before you accept it."
-                }
+                    detail = ("{0}x{1}  {2:N0}/{3:N0} samples differ ({4:N3}%), max {5} level (limit {6}), mean abs {7:N2}{8}" -f `
+                              $gp.w, $gp.h, $ndiff, $gp.len, $pct, $maxd, $TOL_LEVEL, $mean, $tag) }
             } else {
                 $rows += [pscustomobject]@{ artifact = "$name.$kind"; result = 'FAIL'
-                    detail = ("{0}x{1}  max {2} levels over limit {3}; {4:N0} samples differ ({5:N3}%)" -f `
-                              $gp.w, $gp.h, $maxd, $TOL_LEVEL, $ndiff, $pct) }
+                    detail = ("{0}x{1}  max {2} levels over limit {3}; {4:N0} samples differ ({5:N3}%){6}" -f `
+                              $gp.w, $gp.h, $maxd, $TOL_LEVEL, $ndiff, $pct, $tag) }
                 $fail++
             }
             continue
