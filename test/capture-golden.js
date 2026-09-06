@@ -46,6 +46,10 @@ window.__capture = async function (name) {
   return {
     log:  await post(name + '.log.txt',   new Blob([st.log])),
     diag: await post(name + '.diag.json', new Blob([JSON.stringify(st.diag, null, 2)])),
+    // The per-step, per-channel measurements — before and after every step that
+    // touched pixels. This is what survives the day the PNG stops being
+    // byte-comparable, which is the day a second step joins the chain.
+    records: await post(name + '.records.json', new Blob([JSON.stringify(st.records, null, 2)])),
     png:  await post(name + '.png', png)
   };
 };

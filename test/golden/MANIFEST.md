@@ -19,11 +19,18 @@ powershell -File .claude\serve.ps1 -Port 8791
 ```
 
 Abrir `http://127.0.0.1:8791/`, colar `test/capture-golden.js` no console,
-`await __captureAll()`. Os arquivos caem em `.claude/shots/`. Depois:
+`await __captureAll()`. Os quatro artefatos por fixture caem em
+`.claude/shots/`. Depois:
 
 ```
-powershell -File test\compare-golden.ps1
+powershell -File test\compare-golden.ps1      # nao-regressao, byte a byte
+powershell -File test\compare-reference.ps1   # correção, contra o Python
 ```
+
+O quarto artefato é `records.json`: `record.before` / `record.after` por etapa e
+por canal. É o que sobrevive ao dia em que o PNG deixar de ser comparável byte a
+byte, que é o dia em que uma segunda etapa entrar na cadeia (ver a decisão do
+quantise na §4 da spec).
 
 ## Fixtures — todos sintéticos
 

@@ -44,7 +44,7 @@ $fail = 0
 $rows = @()
 
 foreach ($name in $Names) {
-    foreach ($kind in @('log.txt', 'diag.json', 'png')) {
+    foreach ($kind in @('log.txt', 'diag.json', 'records.json', 'png')) {
         $g = Join-Path $gold  "$name.$kind"
         $f = Join-Path $fresh "$name.$kind"
 
