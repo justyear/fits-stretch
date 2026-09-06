@@ -29,3 +29,39 @@ function Image(data, w, h, channels){
 Image.prototype.clone = function(){
   return new Image(new Float32Array(this.data), this.w, this.h, this.channels);
 };
+
+// Box average, per channel, in float. Used to build the preview buffer the
+// chain runs on when the host asks for a fast answer.
+//
+// Not the same thing as downscale() in render.js, which averages 8-bit RGBA for
+// the screen. This one runs before any transfer function, so it has to stay in
+// float: averaging after quantisation would mean the preview measures a
+// different frame than the full run does, and the two would disagree about the
+// numbers the log prints.
+//
+// Always returns a new Image, even when nothing is resampled, so the caller can
+// treat the result as its own.
+function downscaleFloat(img, maxEdge){
+  var f = Math.ceil(Math.max(img.w, img.h) / maxEdge);
+  if (f <= 1) return img.clone();
+
+  var dw = Math.max(1, Math.floor(img.w / f));
+  var dh = Math.max(1, Math.floor(img.h / f));
+  var out = new Float32Array(dw * dh * img.channels);
+  var area = f * f, src = img.data;
+
+  for (var c = 0; c < img.channels; c++){
+    var sBase = c * img.N, dBase = c * dw * dh;
+    for (var y = 0; y < dh; y++){
+      for (var x = 0; x < dw; x++){
+        var acc = 0;
+        for (var yy = 0; yy < f; yy++){
+          var row = sBase + (y * f + yy) * img.w + x * f;
+          for (var xx = 0; xx < f; xx++) acc += src[row + xx];
+        }
+        out[dBase + y * dw + x] = acc / area;
+      }
+    }
+  }
+  return new Image(out, dw, dh, img.channels);
+}
