@@ -582,7 +582,34 @@ diferentes, e o piso do erro é a resolução do histograma daqui, não desacord
         onde span = 3 × (q3 − q1) do canal, ou 1/65535 se o IQR for zero
 
     saída em 8 bits, por pixel:   até 1 nível
-    contagem de clip:             0,05% do total
+    contagem de clip:             0,05% do total  <- SÓ contra o Python
+
+### A contagem de clip tem dois limites, e o motivo é a pergunta
+
+**Contra a segunda implementação (`compare-reference.ps1`): 0,05% do total.**
+As duas contam a mesma coisa por caminhos diferentes — histograma contra seleção
+exata, float32 contra float64 — e um punhado de pixels de cada lado de um limiar
+é o instrumento, não desacordo.
+
+**Contra o golden (`compare-golden.ps1`): EXATA, sem tolerância.** Ali é uma
+implementação contra ela mesma. `outLow` é um inteiro contado por um laço sobre
+os mesmos pixels com o mesmo ramo: entre duas rodadas do mesmo código ou bate,
+ou o código mudou. Não existe piso de ruído a perdoar.
+
+**O que forçou a distinção**, e é por isso que ela está escrita aqui em vez de
+ser convenção: no passo 6 do Módulo 1 a contagem `pixelsBlack` do canal G do
+`nonlinear-fixture` foi de **269 para 0** — o corte de sombra desapareceu por
+inteiro, porque a extração de fundo removeu o gradiente que o causava — e passou
+como "dentro da tolerância", **por um pixel** (269 contra o limite de 270).
+
+Uma tolerância que perdoa uma contagem indo a zero não está medindo aquela
+contagem. E a generalização vale além do clip: **grandeza medida admite piso de
+instrumento; inteiro contado não.** Antes de dar tolerância a um campo, pergunte
+qual das duas coisas ele é.
+
+Controle negativo adicionado, em `test/negative-controls.ps1`: clip de 56 para
+57, de 56 para 290 e de 56 para 0, mais `pixelsBlack` de 265 para 0 no
+diagnóstico. Os quatro reprovam.
 
 **Por que 1e-4 relativo sozinho não serve:** um bin vale 1/65535 = 1,53e-5, que
 numa mediana de 0,017 já são 9e-4 relativos. Um limite de 1e-4 reprovaria 14 dos

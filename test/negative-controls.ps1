@@ -120,10 +120,20 @@ $cases = @(
     @{ name = 'records madn +8e-6, fails span rule, passes [0,1] rule'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '0.005833267217727239' '0.0058412672177272388' } }
 
-    @{ name = 'records clipHigh 56 -> 290 (234 of 270)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
+    # Clip counts are exact in this comparator, so all three of these fail, and
+    # the third is the one the rule exists for. Under the old 0.05% tolerance
+    # the first two passed and the third passed too - a shadow clip vanishing
+    # completely read as "within tolerance", by one pixel.
+    @{ name = 'records clipHigh 56 -> 57 (one pixel, exact now)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 57' } }
+    @{ name = 'records clipHigh 56 -> 290 (was inside the old 0.05%)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 290' } }
-    @{ name = 'records clipHigh 56 -> 390 (334 of 270)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 390' } }
+    @{ name = 'records clipHigh 56 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 0' } }
+    @{ name = 'records clipLow 265 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipLow": 265' '"clipLow": 0' } }
+    @{ name = 'diag pixelsBlack 265 -> 0 (the clip vanished)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_DIAG '"pixelsBlack": 265' '"pixelsBlack": 0' } }
 
     @{ name = 'records params.target nudged (input knob, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"target": 0.25,' '"target": 0.2501,' } }

@@ -35,6 +35,25 @@
 #   diag.json      the same per-channel statistics, and globalMedian.
 #                  `decoded`, `cfa`, `header`, `view`, cards: exact. Those are
 #                  read off the file and must not move at all.
+#
+# CLIP COUNTS ARE EXACT HERE, and section 7 says 0.05% of the frame. The
+# departure is deliberate and the two comparators now differ on purpose:
+#
+#   compare-reference.ps1  keeps 0.05%. It compares two implementations that
+#                          estimate the same quantity by different routes, and
+#                          a handful of pixels either side of a threshold is
+#                          the instrument, not a disagreement.
+#   compare-golden.ps1     exact. It compares one implementation against
+#                          itself. `outLow` is an integer counted by a loop
+#                          over the same pixels with the same branch; between
+#                          two runs of the same code it either matches or the
+#                          code changed. There is no noise floor to forgive.
+#
+# What forced the change: at step 6 of Module 1, `nonlinear channels[1]
+# .pixelsBlack` went from 269 to 0 - the shadow clip disappeared completely,
+# because background extraction had removed the gradient that caused it - and
+# it passed at 269 against a limit of 270. It passed by ONE PIXEL. A tolerance
+# that forgives a count going to zero is not measuring that count.
 #   png            per pixel, per channel, up to 1 level (section 7).
 #   log.txt        EXACT. No tolerance, on purpose: every number the log prints
 #                  comes from record.before, and buildLog is handed
@@ -89,9 +108,10 @@ $L1     = [System.Text.Encoding]::GetEncoding(28591)
 $TOL_REL   = 1e-4          # relative, all measured values
 $TOL_UNIT  = 4 / 65535     # absolute floor for values on the [0,1] axis
 $TOL_MADK  = 8 / 65535     # absolute floor for mad/madn, in units of `span`
-$TOL_COUNT = 0.0005        # clip counts: 0.05% of the channel's pixels
-$TOL_PCT   = 0.05          # clipPct is already a percentage: 0.05 points
 $TOL_LEVEL = 1             # 8-bit output, per pixel, per channel
+
+# Clip counts have NO tolerance here, and that is a deliberate departure from
+# section 7. See the note below.
 
 Add-Type -AssemblyName System.Drawing
 
@@ -181,23 +201,14 @@ function Get-Tolerance([string]$kind, [string]$path, $refVal, $ctx) {
         $stat = '^\[\d+\]\.(before|after)\.perChannel\[\d+\]\.'
         if ($path -match ($stat + '(median|q1|q3|p001|p999|shadows|midtones|target|scale|span)$')) { return $unit }
         if ($path -match ($stat + '(mad|madn)$'))                                                  { return $madn }
-        if ($path -match ($stat + '(outLow|outHigh|clipLow|clipHigh)$')) {
-            $tp = Get-Prop $ctx 'totalPixels'
-            if (Test-Numeric $tp) { return $TOL_COUNT * [double]$tp }
-            return 0
-        }
-        if ($path -match ($stat + 'clipPct$')) { return $TOL_PCT }
+        # outLow / outHigh / clipLow / clipHigh / clipPct fall through to exact.
         return $null
     }
 
     if ($kind -eq 'diag.json') {
         if ($path -match '^channels\[\d+\]\.(median|q1|q3|shadows|midtones|target)$') { return $unit }
         if ($path -match '^channels\[\d+\]\.madn$')                                   { return $madn }
-        if ($path -match '^channels\[\d+\]\.(pixelsBlack|pixelsWhite)$') {
-            $tp = Get-Prop $ctx 'totalPixels'
-            if (Test-Numeric $tp) { return $TOL_COUNT * [double]$tp }
-            return 0
-        }
+        # pixelsBlack / pixelsWhite fall through to exact, same reason.
         if ($path -eq 'linearity.globalMedian') { return $unit }
         return $null
     }

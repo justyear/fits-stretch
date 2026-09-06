@@ -249,13 +249,22 @@ divide:    out = in / model * pedestalMultiplicativo
 para perto de zero, e a métrica alvo é fundo entre 13 e 25 de 255. Zero é
 sombra cortada.
 
-> **A FAIXA 13–25 NÃO É A MÉTRICA DA SAÍDA, e medir mostrou por quê.**
+> **A FAIXA 13–25 DESCREVE OUTRA COISA — corrigido, com a origem.**
 >
-> Esta ferramenta entrega fundo em **~64 de 255**, e isso não é defeito do
-> pedestal: é `target: 0.25`, o padrão do Módulo 0, que é a convenção do
-> PixInsight STF / Siril autostretch e está conferido contra a segunda
-> implementação. `0,25 × 255 = 63,75`. Medido nos quatro fixtures depois da
-> correção: 63,8 / 63,9 / 64,2 / 67,2.
+> Os 13–25 vêm das **entregas manuais**, onde o `target` era escolhido caso a
+> caso entre 0,10 e 0,25 conforme o alvo: `0,10 × 255 = 25,5` e um alvo mais
+> escuro desce a faixa. É a saída de um processo com alvo **variável**, decidido
+> por quem processava, imagem a imagem.
+>
+> Esta ferramenta tem `target` **fixo em 0,25**, que é o padrão do Módulo 0, a
+> convenção do PixInsight STF / Siril, e está conferido contra a segunda
+> implementação. `0,25 × 255 = 63,75`, por definição e não por acidente. Medido
+> nos quatro fixtures depois da correção: 63,8 / 63,9 / 64,2 / 67,2.
+>
+> As duas afirmações são compatíveis e descrevem saídas diferentes. Confundi-las
+> teria custado caro na direção errada: a leitura "13–25 é a métrica, logo o
+> pedestal está errado" levaria a mexer no pedestal, que está certo, para
+> perseguir um número que pertence ao `target`.
 >
 > **O pedestal não decide esse número.** Ele preserva o nível *antes* do
 > esticamento; o autostretch depois mapeia a mediana para o alvo dele, qualquer
@@ -275,10 +284,11 @@ sombra cortada.
 >
 > Deriva máxima 0,14 nível. O gradiente inteiro saiu e o nível ficou.
 >
-> **Decidir depois, e não aqui:** se 64 é o alvo certo é questão do autostretch,
-> não da extração de fundo. Mudar `target` muda a saída de todo mundo e reprova
-> a referência do Python; é decisão do Módulo 0, com dado real, e não efeito
-> colateral desta etapa.
+> **Decidir depois, e não aqui:** se 0,25 fixo é o alvo certo, ou se o `target`
+> deveria voltar a variar como variava no processo manual, é questão do
+> autostretch e não da extração de fundo. Mudar `target` muda a saída de todo
+> mundo e reprova a referência do Python; é decisão do Módulo 0, com dado real,
+> e não efeito colateral desta etapa.
 
 `pedestal: 'model-median'` devolve a mediana do próprio modelo, por canal. Isso
 preserva o nível de fundo e remove só a **variação** — que é o que gradiente

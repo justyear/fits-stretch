@@ -455,6 +455,32 @@ mesma classe do erro do λ — não falha, não avisa, e fica pior para sempre. 
 `before` do stretch passa a vir do `after` da etapa de fundo, que já estava
 medido e custava zero.
 
+## Passo 7 — a frase "Not applied", verificada nos dois sentidos
+
+O passo 7 era verificação, e o que havia a verificar já tinha acontecido
+sozinho: a frase perdeu "background extraction" no passo 6, **com zero edições
+em `registry.js`** — o arquivo não é tocado desde o passo 5 do Módulo 0.
+
+Verificar que o rótulo sumiu é fraco: uma string apagada também some. A prova é
+o **round-trip**, e ela passa pelo `buildLog` real:
+
+| `background.applied` | descreve a etapa | nega a etapa |
+|---|---|---|
+| `true` | **1 linha** | ausente da frase |
+| `false` | 0 linhas | **presente na frase** |
+
+Os dois se movem juntos e em direções opostas. O invariante não é "o rótulo
+some", é **o log ou descreve a operação ou a nega, nunca nenhum dos dois e nunca
+os dois**. Foi essa a segunda metade que o passo 6 quase deixou aberta: a frase
+parou de negar antes de alguém escrever a que afirma.
+
+Com `applied: false`, a frase volta **idêntica** à de antes do Módulo 1 —
+comparada contra o resultado de `notAppliedLabels` sem nenhum record de fundo.
+
+E o guarda do catálogo continua vivo: um passo declarado `neverImplemented`
+reportando que rodou faz `notAppliedLabels` recusar produzir log, em vez de
+produzir um que negue o que acabou de acontecer. Verificado com `id: 'ai'`.
+
 ### Amostragem, por fixture
 
 | fixture | quadro | grade | caixa | geradas | aceitas | brilho | borda |
