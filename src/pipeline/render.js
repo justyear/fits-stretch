@@ -1,18 +1,27 @@
 /* ------------------------------------------------------------------ *
  * Quantise: float Image -> 8-bit RGBA. Mono is replicated across R, G and B.
  *
- * The multiply back to 255 is exact, not approximate: the stretch step resolved
- * every pixel through the LUT, so the values arriving here are 8-bit levels
- * carried as floats, and fl32(k/255) * 255 rounds back to k for all 256 of
- * them. Uint8ClampedArray still does the clamping, which is what will catch the
- * negatives a background-subtraction step is allowed to produce.
+ * This is the only place in the pipeline where a level is decided, and it runs
+ * once, at the end of the chain.
  *
- * That exactness is a property of today's one-step chain, not a guarantee this
- * function offers. From the second step on the chain carries full float, this
- * runs once at the very end, and the rounding here becomes real quantisation
- * rather than a lossless unpacking. Nothing changes in this function; what
- * changes is that the goldens stop being byte-comparable. See the decision
- * block in modulo-0-spec.md section 4.
+ * Until Module 1 it was not: the stretch step resolved every pixel through a
+ * 2^20-entry LUT, so the values arriving here were 8-bit levels carried as
+ * floats and fl32(k/255) * 255 rounded back to k for all 256 of them. The
+ * multiply was a lossless unpacking, and the PNG was byte-reproducible because
+ * of it. The chain now carries full float from the decode to this line, so the
+ * rounding here is real quantisation and the goldens stopped being
+ * byte-comparable — deliberately, on schedule, modulo-1-spec.md section 0.
+ *
+ * Not one character of this function changed when that happened. Uint8Clamped-
+ * Array still does the clamping, which is what catches the negatives a
+ * background-subtraction step is allowed to produce.
+ *
+ * Module 1 adds one thing here and it is not here yet: +/-0.5 level of
+ * deterministic dither, seeded, switchable off. Subtracting a smooth surface
+ * from quantised data bands, and this is the only line where the banding can be
+ * broken. See modulo-1-spec.md section 2.6 — it lands with the correction step,
+ * not before, because until something subtracts a surface there is nothing to
+ * band.
  * ------------------------------------------------------------------ */
 
 function quantise(img){

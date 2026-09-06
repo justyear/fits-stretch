@@ -1263,16 +1263,6 @@ function MTF(x, m){
   return ((m - 1) * x) / (((2 * m - 1) * x) - m);
 }
 
-var LUT_BITS = 20, LUT_N = 1 << LUT_BITS;
-
-function buildLUT(midtones){
-  var lut = new Uint8Array(LUT_N), inv = 1 / (LUT_N - 1);
-  for (var i = 0; i < LUT_N; i++){
-    lut[i] = (MTF(i * inv, midtones) * 255 + 0.5) | 0;
-  }
-  return lut;
-}
-
 /**
  * Autostretch — midtones transfer, per channel, unlinked.
  *
@@ -1288,23 +1278,36 @@ function buildLUT(midtones){
  * pixels twice would burn a histogram pass and put two objects in play where
  * the log and the diagnostics have to agree on one.
  *
- * The output is float, but 8-bit-valued: every pixel comes back as k/255 for
- * the k the 2^20-entry LUT produced. The LUT is the authority on what a pixel
- * becomes, and recomputing MTF at full precision here would move pixels that
- * sit on a rounding boundary, which this module's byte-identity forbids.
+ * The output is full-precision float. Until Module 1 it was float carrying
+ * 8-bit levels — every pixel came back as k/255 for the k a 2^20-entry LUT
+ * produced — because while this was the whole chain the LUT could be the
+ * authority on what a pixel becomes, and byte-identity of the PNG depended on
+ * it staying that way.
  *
- * That holds only while this is the whole chain. THE SECOND STEP ENDS IT: 256
- * levels handed from one step to the next throws away the shadows, which is
- * where the faint nebula lives and exactly where background extraction works.
- * From Module 1 on the chain is full float and quantise runs once, at the end —
- * and the byte-identity criterion dies with it, deliberately. See the decision
- * block in modulo-0-spec.md section 4 before touching this.
+ * The second step ends that, which is why it was ended here, one step early and
+ * on its own: 256 levels handed from one step to the next throws away the
+ * shadows, which is where the faint nebula lives and exactly where background
+ * extraction works. The LUT is gone rather than converted to float, because a
+ * table indexed by `(u * LMAX) | 0` quantises the input too, and the whole
+ * point of this change is that nothing between the decode and the final
+ * quantise rounds anything.
+ *
+ * `quantise` in render.js is now the only place a level is decided, and it runs
+ * once, at the end of the chain. The byte-identity criterion died with this
+ * commit, deliberately and on schedule — modulo-1-spec.md section 0, and the
+ * decision block in modulo-0-spec.md section 4.
+ *
+ * What did NOT change, and is worth knowing before reading a diff of the
+ * goldens: `outLow` and `outHigh` still count the same two branches on the same
+ * `u`, so the clip counts, the log and the diagnostics are unmoved. Only
+ * `record.after` and the PNG can differ, because only they are downstream of
+ * the rounding that went away.
  */
 function stepStretchMTF(img, params, report){
   var before = params.before || measure(img, params.stride);
   var ch = before.perChannel;
   var data = img.data, N = img.N;
-  var luts = [], c, i;
+  var c, i;
 
   for (c = 0; c < ch.length; c++){
     var st = ch[c];
@@ -1330,24 +1333,25 @@ function stepStretchMTF(img, params, report){
     st.target = target;
     st.scale = 1 / (1 - shadows);
     st.outLow = 0; st.outHigh = 0;
-    luts.push(buildLUT(midtones));
   }
-
-  var LMAX = LUT_N - 1, INV255 = 1 / 255;
 
   for (c = 0; c < ch.length; c++){
     var stc = ch[c];
-    var lut = luts[c], sh = stc.shadows, sc = stc.scale, base = c * N;
+    var sh = stc.shadows, sc = stc.scale, mid = stc.midtones, base = c * N;
     var low = 0, high = 0;
     for (i = 0; i < N; i++){
       var v = data[base + i];
       if (v !== v) v = 0;
       var u = (v - sh) * sc;
       var out;
+      // The two clip branches are kept rather than left to MTF's own guards,
+      // because they are what outLow and outHigh count. MTF would return the
+      // same 0 and 1 silently, and the record would lose the two numbers the
+      // log prints.
       if (u <= 0){ out = 0; low++; }
-      else if (u >= 1){ out = 255; high++; }
-      else out = lut[(u * LMAX) | 0];
-      data[base + i] = out * INV255;
+      else if (u >= 1){ out = 1; high++; }
+      else out = MTF(u, mid);
+      data[base + i] = out;
     }
     stc.outLow = low; stc.outHigh = high;
   }
@@ -1390,18 +1394,27 @@ function stepStretchMTF(img, params, report){
 /* ------------------------------------------------------------------ *
  * Quantise: float Image -> 8-bit RGBA. Mono is replicated across R, G and B.
  *
- * The multiply back to 255 is exact, not approximate: the stretch step resolved
- * every pixel through the LUT, so the values arriving here are 8-bit levels
- * carried as floats, and fl32(k/255) * 255 rounds back to k for all 256 of
- * them. Uint8ClampedArray still does the clamping, which is what will catch the
- * negatives a background-subtraction step is allowed to produce.
+ * This is the only place in the pipeline where a level is decided, and it runs
+ * once, at the end of the chain.
  *
- * That exactness is a property of today's one-step chain, not a guarantee this
- * function offers. From the second step on the chain carries full float, this
- * runs once at the very end, and the rounding here becomes real quantisation
- * rather than a lossless unpacking. Nothing changes in this function; what
- * changes is that the goldens stop being byte-comparable. See the decision
- * block in modulo-0-spec.md section 4.
+ * Until Module 1 it was not: the stretch step resolved every pixel through a
+ * 2^20-entry LUT, so the values arriving here were 8-bit levels carried as
+ * floats and fl32(k/255) * 255 rounded back to k for all 256 of them. The
+ * multiply was a lossless unpacking, and the PNG was byte-reproducible because
+ * of it. The chain now carries full float from the decode to this line, so the
+ * rounding here is real quantisation and the goldens stopped being
+ * byte-comparable — deliberately, on schedule, modulo-1-spec.md section 0.
+ *
+ * Not one character of this function changed when that happened. Uint8Clamped-
+ * Array still does the clamping, which is what catches the negatives a
+ * background-subtraction step is allowed to produce.
+ *
+ * Module 1 adds one thing here and it is not here yet: +/-0.5 level of
+ * deterministic dither, seeded, switchable off. Subtracting a smooth surface
+ * from quantised data bands, and this is the only line where the banding can be
+ * broken. See modulo-1-spec.md section 2.6 — it lands with the correction step,
+ * not before, because until something subtracts a surface there is nothing to
+ * band.
  * ------------------------------------------------------------------ */
 
 function quantise(img){

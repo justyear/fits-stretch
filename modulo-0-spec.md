@@ -436,10 +436,29 @@ etapa e por canal, com `median / mad / madn / q1 / q3 / p001 / p999 / span`,
 Os dois comparadores respondem a perguntas diferentes e nenhum substitui o
 outro:
 
-- **`compare-golden.ps1`** — a saída de hoje é a de ontem? PNG, log e
-  `records.json` byte a byte; diagnóstico byte a byte menos `timingsMs`.
+- **`compare-golden.ps1`** — a saída de hoje é a de ontem? ~~PNG, log e
+  `records.json` byte a byte; diagnóstico byte a byte menos `timingsMs`.~~
   Controle negativo verificado: bit virado no log, no PNG e valor trocado no
   diag reprovam os três.
+
+  > **Critério substituído no passo 2 do Módulo 1, como esta spec previu na
+  > §4.** A cadeia virou float pleno, `quantise` passou a rodar uma vez no fim, e
+  > a identidade byte a byte morreu junto — por construção, não por regressão.
+  >
+  > O comparador agora responde em duas partes e diz qual respondeu: `PASS`
+  > quando os bytes são idênticos, `PASS~` quando diferem e toda diferença cabe
+  > na tolerância desta mesma §7, `FAIL` fora disso. O pior caso sai impresso
+  > como fração do limite. O log continua exato, porque todo número que ele
+  > imprime vem de `record.before` e nenhuma etapa a jusante o move.
+  >
+  > A tolerância entrou **antes** da mudança de cadeia, e foi verificada
+  > não-portante: com o build pré-float e os goldens antigos, os doze artefatos
+  > voltaram `PASS` byte a byte. Sem essa ordem, o harness reprovaria trabalho
+  > correto na primeira rodada e não haveria como distinguir isso de regressão.
+  >
+  > Controles negativos refeitos para o critério novo: 19, todos como esperado.
+  > Ver o cabeçalho de `test/compare-golden.ps1` e a seção "O que o float pleno
+  > mudou" em `test/golden/MANIFEST.md`.
 - **`compare-reference.ps1`** — os números concordam com algo que não é este
   código? Compara `records.json` e o bloco `decoded` do diagnóstico contra
   `justyear-referencia.json`, com a tolerância acima. Controle negativo
