@@ -56,6 +56,51 @@ para um aparelho, e um aparelho aponta para uma pessoa.
 Isto não se desfaz depois. Texto commitado fica no histórico do git mesmo depois
 de editado, e mensagem de commit não se edita sem reescrever histórico.
 
+## Regra operacional: o que um comando da sessão pode imprimir
+
+As duas regras acima protegem a árvore. Esta protege o que fica **fora** dela.
+
+A transcrição da sessão grava a saída de todo comando executado, e vive fora do
+projeto — nenhum `.gitignore`, nenhuma varredura desta árvore e nenhuma revisão
+de commit a alcança. Então a regra tem que valer no momento em que o comando
+roda, não depois.
+
+**Nenhum comando executado numa sessão deste projeto imprime, de arquivo de
+terceiro:**
+
+- `OBJECT`, `DATE-OBS`, `TELESCOP`, `INSTRUME`
+- o caminho ou o nome do arquivo
+- README, e-mail ou nota que tenha vindo junto
+
+Precisa distinguir sintético de real num inventário? **O critério é a ausência
+de `DATE-OBS` e `TELESCOP`** — fixture gerado por `make-fixture.ps1` não tem
+nenhum dos dois. Reporte a conclusão, nunca o valor:
+
+```
+    4.150.080 B  test/fixtures/fixture-seestar.fit    sintetico
+   99.544.320 B  <fora da arvore>                     REAL - nao imprimir campos
+```
+
+Isto não é higiene teórica. Uma auditoria encontrou **225 ocorrências do nome de
+um cliente e 86 do serial do equipamento dele** numa transcrição, e a origem foi
+um único inventário que imprimiu esses campos de cada arquivo. Apagar a
+transcrição depois é conserto; esta regra é a prevenção, e é a única que impede
+a repetição.
+
+## Retenção da transcrição: 1 dia
+
+`"cleanupPeriodDays": 1` em `~/.claude/settings.json`. É o mínimo aceito — `0` é
+rejeitado na validação, e não existe interruptor para desligar a escrita.
+
+**Consequência, e ela é operacional:** decisão técnica que só existe na conversa
+**se perde em 24 horas**. Toda decisão que precisa sobreviver à sessão vai para
+`NOTAS-SESSAO-FITS.md` ou para a spec do módulo **antes do fim da sessão** — não
+no dia seguinte, não "quando der".
+
+Isso quase custou a decisão da identidade do git deste repositório, que existia
+só na conversa e só foi para o `NOTAS` porque uma auditoria a procurou de
+propósito antes de apagar a transcrição. Da próxima vez não haverá auditoria.
+
 ## O que os testes usam no lugar
 
 Fixtures sintéticos, gerados por `.claude/make-fixture.ps1` a partir de semente
