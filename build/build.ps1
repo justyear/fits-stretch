@@ -50,6 +50,7 @@ $Sources = @(
     'src\pipeline\stats.js',
     'src\pipeline\cfa.js',
     'src\pipeline\steps\registry.js',
+    'src\pipeline\steps\background.js',
     'src\pipeline\steps\stretch-mtf.js',
     'src\pipeline\render.js',
     'src\pipeline\log.js',

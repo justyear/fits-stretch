@@ -174,6 +174,34 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### Mediana da caixa, não média — agora com número
+
+A §2.1 do Módulo 1 manda usar a **mediana** da caixa de amostra, não a média,
+"para sobreviver a uma estrela dentro da caixa". Era afirmação; passou a ser
+medida, no `fixture-gradient.fit`, que traz oito estrelas-sonda em posições
+gravadas nos cards `HISTORY`.
+
+Nas caixas que contêm uma sonda, canal G, desvio contra o gradiente verdadeiro,
+em níveis de 255:
+
+| | mediana da caixa | média da caixa |
+|---|---|---|
+| desvio | **0,08 a 0,30** | **5,1 a 5,8** |
+
+Cerca de **20× pior para a média**. A média é puxada pela estrela inteira; a
+mediana só se move se a estrela ocupar mais da metade da caixa.
+
+**O que faz o número ser esse, e o que o mudaria.** A sonda tem `sigma` 2,2 e a
+caixa tem 625 pixels: a estrela levanta cerca de 22% deles, confortavelmente
+abaixo de metade. Uma estrela grande o bastante para cobrir mais de 312 pixels
+viraria a mediana também — a mediana não é imune, é robusta até 50%. Se um dia
+o `boxSize` encolher ou o seeing do dado real inchar as estrelas, esta margem é
+a primeira coisa a reconferir.
+
+O sigma da sonda é pequeno **de propósito**, e isso é uma escolha do fixture,
+não uma propriedade do céu: um sigma maior faria o fixture argumentar o
+contrário do que a spec afirma.
+
 ### Outras
 - **Handshake antes de transferir o buffer.** O worker posta `ready`; só então
   o arquivo é transferido. Transferir antes deixaria o buffer destacado e sem
