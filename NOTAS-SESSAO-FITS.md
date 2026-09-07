@@ -216,6 +216,36 @@ nenhum teste desta suíte. **Os dois foram achados por medição, não por teste
 | `before` do stretch | medido antes da etapa de fundo, usado depois dela | ponto preto 2,5 a 5× fundo demais, em todo quadro |
 | grade encaixada na margem | `edgeMargin` aplicado duas vezes | `rejected-edge` inalcançável; 31% do campo limpo fora do casco |
 
+#### Sub-assinatura: indicador verde lido como resposta a outra pergunta
+
+Dois casos, a mesma forma. Um indicador estava verde, eu li como "está tudo
+certo", e ele respondia a uma pergunta mais estreita do que a que eu fazia.
+
+| indicador | o que eu li | o que ele responde |
+|---|---|---|
+| `rejeitadas por borda: 0`, nos quatro fixtures | "não há amostras na borda" | "este estado é inalcançável por construção" |
+| `git status` → *limpo*, em toda rodada da sessão | "está tudo commitado" | "tudo **que é rastreado** está commitado" |
+
+O segundo custou dois fixtures. `fixture-gradient.fit` e `fixture-edge.fit`
+casam com `*.fit` no `.gitignore` e a lista de exceções parou nos três
+primeiros. Eu os gerei, capturei goldens deles, escrevi o MANIFEST com os
+sha256, commitei tudo — e os arquivos nunca entraram no repositório. Num clone
+novo, dois dos cinco fixtures não existiriam, dois goldens falhariam por
+"fixture não encontrado", e a suíte passaria a **mentir sobre o que cobre**.
+
+**A regra:** para todo artefato que a suíte precisa, ou ele está rastreado, ou
+está escrito por que não precisa estar. Não há terceira opção, e "o git não
+reclamou" não é uma delas — o git reclama do que conhece.
+
+Agora é verificado em vez de lembrado: `build.ps1 -Check` confere que todo
+arquivo referenciado por `capture-golden.js` e por `compare-golden.ps1` está em
+`git ls-files`, e reprova se não estiver.
+
+**O padrão que os dois têm em comum, e o que perguntar:** um indicador só
+responde à pergunta que ele foi construído para responder. Antes de aceitar um
+verde, diga em voz alta qual é essa pergunta. Se a frase sair mais estreita do
+que a que você queria fazer, o verde não é a sua resposta.
+
 #### Sub-assinatura: estado documentado que nunca pode ocorrer
 
 O terceiro é os dois primeiros mais uma coisa, e essa coisa merece nome próprio.

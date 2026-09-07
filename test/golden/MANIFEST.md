@@ -23,6 +23,24 @@ agora **decodifica** o PNG e compara pixels, então outro encoder com os mesmos
 pixels passa. O que continua dependendo do Chromium é o sha256 da tabela
 abaixo, não o veredito.
 
+### Abre por duplo clique — os quatro caminhos, e como cada um foi verificado
+
+| navegador | protocolo | caminho | como |
+|---|---|---|---|
+| Firefox 155 | `file://` | worker | automatizado |
+| Chrome 151 | `file://` | inline | automatizado |
+| Chrome 148 | `http://` | worker | automatizado, a sessão inteira |
+| **Chrome** | **`file://`** | **worker** | **manual, 2026-09-07** |
+
+O último foi verificado à mão porque não é automatizável aqui: o headless do
+Chrome com `--virtual-time-budget` não avança os timers de dentro de um Worker,
+então a medição automática diz "não completou" mesmo quando a página funciona.
+Está registrado no `NOTAS` como o caso que gerou a regra do controle positivo.
+
+**Verificado manualmente em 2026-09-07:** `index.html` aberto por duplo clique
+no Chrome, arquivo solto na página, processou. Nos quatro caminhos, nenhuma
+requisição externa.
+
 ## Como reproduzir
 
 ```

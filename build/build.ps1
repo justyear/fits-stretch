@@ -129,6 +129,57 @@ $forbidden = @('__loadFromURL', '__state', 'fetch(')
 $leaks = @()
 foreach ($f in $forbidden) { if ($publish.Contains($f)) { $leaks += $f } }
 
+# Todo arquivo de que a suite depende esta rastreado pelo git?
+#
+# Existe porque `git status` limpo respondeu a pergunta errada por uma sessao
+# inteira: ele diz que tudo QUE E RASTREADO esta commitado, e nao diz nada sobre
+# o que nao e. Dois fixtures foram gerados, tiveram goldens capturados e sha256
+# escritos no MANIFEST, e nunca entraram no repositorio -- casavam com `*.fit` no
+# .gitignore e a lista de excecoes tinha parado nos tres primeiros. Num clone
+# novo a suite passaria a mentir sobre o que cobre.
+#
+# As referencias sao lidas dos proprios arquivos do harness, e nao de uma lista
+# aqui: uma lista aqui seria a terceira copia da mesma verdade, e a que ninguem
+# lembraria de atualizar.
+function Test-Tracked {
+    $probe = & git -C $root rev-parse --is-inside-work-tree 2>$null
+    if ($LASTEXITCODE -ne 0 -or $probe -ne 'true') {
+        Write-Host 'rastreamento: pulado (nao e um repositorio git)'
+        return @()
+    }
+    $tracked = @{}
+    foreach ($f in (& git -C $root ls-files)) { $tracked[$f.Replace('\', '/')] = $true }
+
+    $need = New-Object System.Collections.ArrayList
+    $cap = Join-Path $root 'test\capture-golden.js'
+    if (Test-Path -LiteralPath $cap) {
+        foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($cap), "'/f/([^']+)'")) {
+            [void]$need.Add($m.Groups[1].Value)
+        }
+    }
+    $cmp = Join-Path $root 'test\compare-golden.ps1'
+    if (Test-Path -LiteralPath $cmp) {
+        $txt = [System.IO.File]::ReadAllText($cmp)
+        $m = [regex]::Match($txt, '\$Names\s*=\s*@\(([^)]*)\)')
+        if ($m.Success) {
+            foreach ($n in [regex]::Matches($m.Groups[1].Value, "'([^']+)'")) {
+                foreach ($kind in @('log.txt', 'diag.json', 'records.json', 'png')) {
+                    [void]$need.Add('test/golden/' + $n.Groups[1].Value + '.' + $kind)
+                }
+            }
+        }
+    }
+
+    $missing = @()
+    foreach ($f in ($need | Sort-Object -Unique)) {
+        if (-not $tracked.ContainsKey($f)) { $missing += $f }
+    }
+    if ($missing.Count -eq 0) {
+        Write-Host ("rastreamento: {0} arquivos da suite, todos no git" -f $need.Count)
+    }
+    return $missing
+}
+
 if ($Check) {
     $fail = 0
     foreach ($pair in @(@($outPublish, $bytesPublish, $hashPublish, 'publicacao'),
@@ -145,6 +196,14 @@ if ($Check) {
     }
     if ($leaks.Count) { Write-Host ("CHECK FAIL - vazou para a publicacao: " + ($leaks -join ', ')); $fail++ }
     else { Write-Host ('publicacao limpa: sem ' + ($forbidden -join ', ')) }
+
+    $untracked = Test-Tracked
+    if ($untracked.Count) {
+        Write-Host 'CHECK FAIL - a suite depende de arquivos que nao estao no git:'
+        foreach ($u in $untracked) { Write-Host ("  {0}" -f $u) }
+        $fail++
+    }
+
     if ($fail -gt 0) { exit 1 }
     Write-Host 'CHECK PASS - os dois identicos'; exit 0
 }
