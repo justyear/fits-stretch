@@ -82,14 +82,14 @@ negativo que se auto-desativasse em silêncio seria pior que não existir.
 ## A cadeia completa contra `chain.py`
 
 `referencia-cadeia.json` fecha o que o passo 6 abriu. O comparador vai a **180
-linhas: 168 PASS, 5 N/A, 7 FAIL.**
+linhas: 174 PASS, 5 N/A, 1 FAIL.**
 
 | fixture | linhas | PASS | FAIL | N/A |
 |---|---|---|---|---|
 | `seestar` | 13 | 11 | 0 | 2 |
-| `rice` | 61 | 58 | 2 | 1 |
+| `rice` | 61 | 60 | 0 | 1 |
 | `nonlinear` | 17 | 14 | 1 | 2 |
-| `gradient` | 89 | 85 | 4 | 0 |
+| `gradient` | 89 | 89 | 0 | 0 |
 
 ### A confirmação independente do bug do passo 6
 
@@ -107,20 +107,24 @@ o MADN dela é dominado pelo padrão Bayer, que não é gradiente. O 0,000951 de
 coincide com o valor **pré**-correção daqui (0,000939) porque é a mesma
 grandeza. Bloco por canal em N/A, mesma lacuna do Módulo 0.
 
-### As 7 que reprovam, e o que são
+### A que reprova, e o que é
 
-**1 é a causa, visível:** `nonlinear fundo.aceitas` 81 contra 82. Uma amostra
-de diferença, do mesmo jeito que antes eram 92 contra 93 — limiares estimados
-por caminhos diferentes decidem diferente numa caixa de fronteira.
+**Uma linha: `nonlinear fundo.aceitas` 81 contra 82.** As consequências ficam
+`N/A` com pré-condição explícita no comparador — a tolerância da §7 pressupõe
+que os dois lados medem **os mesmos pixels**, e conjuntos de amostras diferentes
+significam superfícies diferentes.
 
-As **consequências** disso ficam `N/A` e não `FAIL`, com pré-condição explícita
-no comparador: a tolerância da §7 pressupõe que os dois lados medem **os mesmos
-pixels**. Se as duas aceitam conjuntos diferentes, ajustam superfícies
-diferentes, corrigem diferente, e comparar as medianas desses dois quadros mede
-a diferença entre as superfícies e não concordância de estimador. Reprovar 33
-campos descreveria o sintoma 33 vezes.
+A causa foi isolada e **não é nenhuma das três suspeitas óbvias**: os limiares
+concordam a 0,34 / 0,86 / 0,08 bins; a amostra marginal em (638, 563) está 6,2
+bins acima do limiar **exato** também, então os dois a rejeitam; e o critério de
+rejeição é idêntico. O que difere é **onde a caixa está**: `Math.round(562,5)`
+dá 563 em JavaScript e 562 no Python, que arredonda meio para o par. Só o
+`nonlinear` cai nisso, porque só nele `w/cols = 75` produz centros em meio
+exato. Registrado na §2.1 do Módulo 1 como lacuna de especificação.
 
-**6 são `mad`/`madn` acima do piso da §7**, e são reais:
+### As 6 que reprovavam antes do termo da mediana
+
+Eram `mad`/`madn` acima do piso da §7:
 
 | | bins de span | limite |
 |---|---|---|
@@ -136,11 +140,19 @@ depois da correção ficou 2,5 a 5× menor. Um deslocamento de mediana de 0,81 b
 do eixo [0,1] são 143 bins de `span` — o MADN herda a incerteza da mediana
 medida num eixo muito mais grosso.
 
-O limite derivável seria `max(1e-4·ref, 8·span/65535 + 1,4826·|Δmediana|)`, e
-com ele os 6 passam com folga: para `gradient` R o termo novo vale 1,84e-5
-contra um `Δmadn` observado de 1,87e-6, dez vezes maior. **Não aplicado** —
-mudar a §7 é decisão de spec, e um limite que eu ajusto no dia em que ele
-reprova é um limite que parou de medir.
+**O termo entrou na §7**, e é cota e não ajuste: `MAD(m) = mediana(|v−m|)` e
+`‖v−m−d|−|v−m‖ ≤ |d|` pela desigualdade triangular; a mediana é monótona, então
+a cota passa para o MAD. Vale antes de olhar os dados, para qualquer
+distribuição.
+
+    |a − b| ≤ max( 1e-4·|ref| ,  8·span/65535  +  1,4826·|Δmediana| )
+
+Com ele as seis passam com folga — para `gradient` R o termo vale 1,84e-5 contra
+um `Δmadn` observado de 1,87e-6, dez vezes maior. **Controle negativo, para o
+termo não virar licença:** `madn` perturbado em 3× a cota reprova; dentro da
+cota passa. Auto-calibrado a partir do `span` do próprio golden e da mediana da
+própria referência, para não envelhecer em silêncio como os âncoras de clip
+envelheceram.
 
 ## O que o float pleno mudou, medido
 

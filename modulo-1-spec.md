@@ -137,6 +137,39 @@ uma amostra ruim é **rejeitá-la**, com motivo no record e no tooltip — não
 deixar de gerá-la. Rejeitar é visível; não gerar é silencioso, e silêncio é o
 que a confusão 21 proíbe.
 
+### PENDÊNCIA — o modo de arredondamento do centro da amostra não está especificado
+
+O centro é `round((i+0,5)·w/cols)`, e **`round` não é a mesma função nas duas
+implementações**: JavaScript arredonda meio para cima, Python arredonda meio
+para o par. Elas só divergem quando `(i+0,5)·w/cols` cai em **meio exato**, o
+que exige que `w/cols` seja múltiplo de 0,5.
+
+Dos cinco fixtures, só o `nonlinear` cai nisso: `900/12 = 75`, então os doze
+centros são 37,5, 112,5, 187,5… **6 das 12 colunas e 4 das 8 linhas ficam 1
+pixel deslocadas** entre as duas. Nos outros quatro o passo é 160, 216,67,
+133,33 ou 33,33 e nenhum centro cai em meio exato.
+
+E o `nonlinear` é o único fixture que discorda: **81 amostras aceitas contra
+82**. Não é coincidência, é a mesma causa.
+
+**O que foi descartado antes de chegar aqui**, porque a pergunta era se o
+desacordo é quantização ou critério:
+
+| hipótese | medido | veredito |
+|---|---|---|
+| limiares diferentes | 0,34 / 0,86 / 0,08 bins de [0,1] | descartada |
+| a amostra está empatada no limiar | 6,54 bins acima do meu, **6,2 acima do exato** | descartada |
+| critério de rejeição diferente | idêntico: limiar por canal, rejeita se qualquer canal passar | descartada |
+
+A amostra em questão, (638, 563) no canal R, é rejeitada pelos **dois** limiares.
+O que difere é onde a caixa está: 563 é `Math.round(562,5)`; o Python põe em 562.
+
+**Fica como FAIL visível**, não como `KNOWN`. É desacordo real e barato de
+resolver — a spec precisa dizer qual arredondamento, e as duas passam a
+concordar. Enquanto não disser, o desacordo é da spec e não das
+implementações, e esconder isso numa lista de exceções seria transformar uma
+lacuna de especificação em dívida silenciosa.
+
 ### Quando `rejected-edge` dispara, e por que continua 0 no padrão
 
 Com a grade sobre o quadro inteiro, a primeira amostra fica em `w/(2·cols)` da

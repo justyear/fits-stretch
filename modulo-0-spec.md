@@ -578,8 +578,27 @@ diferentes, e o piso do erro é a resolução do histograma daqui, não desacord
         |a − b| ≤ max( 1e-4 × |ref| ,  4 / 65535 )
 
     MAD e MADN:
-        |a − b| ≤ max( 1e-4 × |ref| ,  8 × span / 65535 )
-        onde span = 3 × (q3 − q1) do canal, ou 1/65535 se o IQR for zero
+        |a − b| ≤ max( 1e-4 × |ref| ,  8 × span / 65535  +  1,4826 × |Δmediana| )
+        onde span = 3 × (q3 − q1) do canal, ou 1/65535 se o IQR for zero,
+        e Δmediana é a diferença entre as medianas dos dois lados
+
+**Derivação do termo `1,4826 × |Δmediana|`, em uma linha:**
+`MAD(m) = mediana(|v − m|)`, e `‖v − m − d| − |v − m‖ ≤ |d|` para todo `v` pela
+desigualdade triangular; a mediana é monótona, então a cota passa para o MAD,
+e `MADN = 1,4826 × MAD`. **É cota, não ajuste** — vale antes de olhar qualquer
+dado, para qualquer distribuição.
+
+**O motivo estrutural, que é o que torna o termo necessário e não cosmético:**
+a mediana é julgada em bins do eixo `[0,1]` e o MAD em bins de `span`. Depois da
+extração de fundo o `span` encolhe 2,5 a 5×, porque a variação que ele media era
+o gradiente — então **o MAD passa a ser julgado numa escala fina carregando
+incerteza herdada de uma escala grossa**. Um deslocamento de mediana de 0,81 bins
+de `[0,1]` são 143 bins de `span`. Sem o termo, seis comparações corretas
+reprovavam.
+
+Medido no que forçou o termo: `gradient` R, `Δmadn` observado 1,87e-6 contra um
+termo novo de 1,84e-5 — dez vezes de folga. A cota não é apertada; ela só
+precisa existir.
 
     saída em 8 bits, por pixel:   até 1 nível
     contagem de clip:             0,05% do total  <- SÓ contra o Python

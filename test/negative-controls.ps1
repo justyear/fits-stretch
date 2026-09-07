@@ -235,5 +235,76 @@ try {
 $out | Format-Table -AutoSize
 Write-Host ''
 Write-Host "$($out.Count) negative controls: $good as expected, $bad mismatched"
+
+# ---------------------------------------------------------------------------
+# compare-reference.ps1: the mad/madn median term must not become a licence
+# ---------------------------------------------------------------------------
+#
+# Section 7 gained `+ 1.4826*|dMediana|` in the mad/madn floor. It is a derived
+# bound, but a bound that cannot fail is indistinguishable from no bound at all,
+# so this proves it still refuses an error larger than itself.
+#
+# Self-calibrating on purpose: the perturbations are computed from the golden's
+# own span and the reference's own median, so they stay meaningful when the
+# goldens are recaptured. A hardcoded delta here would go stale exactly like the
+# clip anchors did, and would go stale SILENTLY, by drifting to the wrong side
+# of a limit instead of failing to match a string.
+$refChain = Join-Path (Split-Path -Parent $here) 'referencia-cadeia.json'
+$cmpRef   = Join-Path $here 'compare-reference.ps1'
+$madOut   = @()
+
+if ((Test-Path $refChain) -and (Test-Path $cmpRef)) {
+    $FX2  = 'gradient'
+    $recF = Join-Path $gold "$FX2-fixture.records.json"
+    $cr2  = Get-Content $refChain -Raw | ConvertFrom-Json
+    $e3   = $cr2.fixtures.$FX2.canais.G.estatisticaExata
+
+    $recJ = Get-Content $recF -Raw | ConvertFrom-Json
+    $sti  = 0
+    for ($k2 = 0; $k2 -lt @($recJ).Count; $k2++) { if (@($recJ)[$k2].id -eq 'stretch-mtf') { $sti = $k2 } }
+    $b3   = @($recJ)[$sti].before.perChannel[1]           # canal G
+
+    $bound = [math]::Max(1e-4 * [math]::Abs([double]$e3.madn),
+                         8.0 * [double]$b3.span / 65535.0 + 1.4826 * [math]::Abs([double]$b3.median - [double]$e3.median))
+    $have  = [math]::Abs([double]$b3.madn - [double]$e3.madn)
+    $room  = $bound - $have
+    if ($room -le 0) { $room = $bound * 0.1 }
+
+    foreach ($case in @(
+        @{ label = 'madn dentro da cota'; delta = $room * 0.5;  want = 'PASS' },
+        @{ label = 'madn acima da cota';  delta = $bound * 3.0; want = 'FAIL' })) {
+
+        # Copia descartavel do diretorio inteiro de goldens, e o comparador
+        # apontado para ela com -Golden. Os goldens reais nao sao tocados.
+        $d2 = Join-Path $work ([guid]::NewGuid().ToString('N').Substring(0, 8))
+        New-Item -ItemType Directory -Force $d2 | Out-Null
+        Get-ChildItem $gold -File | Copy-Item -Destination $d2 -Force
+
+        # Reserializa em vez de trocar literal: o valor perturbado nao precisa
+        # casar com nenhuma string do arquivo, e reserializar nao pode errar o
+        # alvo como uma busca por texto pode.
+        $j2 = Get-Content (Join-Path $d2 "$FX2-fixture.records.json") -Raw | ConvertFrom-Json
+        @($j2)[$sti].before.perChannel[1].madn = [double]$b3.madn + $case.delta
+        [System.IO.File]::WriteAllText((Join-Path $d2 "$FX2-fixture.records.json"),
+                                       (@($j2) | ConvertTo-Json -Depth 30))
+
+        $csv = & powershell -NoProfile -ExecutionPolicy Bypass -File $cmpRef -Csv -Golden $d2 2>$null | ConvertFrom-Csv
+        $row = $csv | Where-Object { $_.fixture -eq $FX2 -and $_.campo -eq 'corrigido.madn' -and $_.escopo -eq 'G' } | Select-Object -First 1
+        $got = if ($row) { $row.resultado } else { 'NONE' }
+        $madOut += [pscustomobject]@{ case = $case.label; want = $case.want; got = $got
+                                      verdict = $(if ($got -eq $case.want) { 'ok' } else { 'MISMATCH' }) }
+        Remove-Item -Recurse -Force $d2 -ErrorAction SilentlyContinue
+    }
+}
+
+if ($madOut.Count) {
+    Write-Host ''
+    Write-Host 'termo da mediana no piso de mad/madn (compare-reference):'
+    $madOut | Format-Table -AutoSize
+    $badMad = @($madOut | Where-Object { $_.verdict -ne 'ok' }).Count
+    Write-Host "$($madOut.Count) controles do termo: $(@($madOut | Where-Object { $_.verdict -eq 'ok' }).Count) como esperado, $badMad divergentes"
+    $bad += $badMad
+}
+
 if ($bad -gt 0) { exit 1 }
 exit 0
