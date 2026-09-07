@@ -244,6 +244,49 @@ function FitsError(kind, message){
 }
 
 /* ------------------------------------------------------------------ *
+ * Allocation
+ *
+ * Every large typed array in the chain goes through here, so that running out
+ * of memory reaches the user as "not enough memory" and not as "something went
+ * wrong — if it opens correctly in Siril, it is worth reporting".
+ *
+ * That distinction is the whole reason this exists. A big frame is not an
+ * exceptional case for this audience: a 4K sensor is the ordinary one, and the
+ * ordinary case must not produce a message that asks for a bug report about a
+ * browser limit. The message says what to do instead.
+ *
+ * A RangeError here can only mean allocation: the header is validated before
+ * any of these run — `truncated` fires when the declared data exceeds the file,
+ * `baddims` when a dimension is not positive — so by the time a buffer is
+ * requested, the size asked for is a size the file really claims.
+ *
+ * `what` names the buffer, so the diagnostics say which allocation failed and
+ * at what size rather than just that one did.
+ * ------------------------------------------------------------------ */
+function alloc(ctor, length, what){
+  try {
+    return new ctor(length);
+  } catch (e){
+    throw FitsError('memory',
+      'could not allocate ' + what + ' (' + length + ' values, ' +
+      Math.round(length * ctor.BYTES_PER_ELEMENT / 1048576) + ' MB): ' +
+      String((e && e.message) || e));
+  }
+}
+
+// The copy-constructor form, for cloning an existing buffer.
+function allocFrom(ctor, source, what){
+  try {
+    return new ctor(source);
+  } catch (e){
+    throw FitsError('memory',
+      'could not copy ' + what + ' (' + (source && source.length) + ' values, ' +
+      Math.round((source && source.length || 0) * ctor.BYTES_PER_ELEMENT / 1048576) + ' MB): ' +
+      String((e && e.message) || e));
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * FITS header parsing
  * ------------------------------------------------------------------ */
 
@@ -601,7 +644,7 @@ function decodeTileCompressed(buffer, hdu, report, stage){
     throw FitsError('cmptype', 'table holds ' + rows + ' tiles but the geometry needs ' + expected);
   }
 
-  var out = new Float32Array(w * h * planes);
+  var out = alloc(Float32Array, w * h * planes, 'the decompressed frame');
   var idata = new Int32Array(t1 * t2 * t3);
   var plane = w * h;
   var scaleIdentity = (bzero === 0 && bscale === 1);
@@ -799,7 +842,8 @@ function toNormalisedFloat(buffer, hdu, report){
     // 64-bit source keeps 64-bit intermediates: physical values can be far
     // outside [0,1], and rounding them to float32 before normalising would
     // throw away precision the file actually carries.
-    out = (bitpix === -64) ? new Float64Array(n) : new Float32Array(n);
+    out = (bitpix === -64) ? alloc(Float64Array, n, 'the decoded frame')
+                            : alloc(Float32Array, n, 'the decoded frame');
     for (var j2 = 0; j2 < n; j2++) out[j2] = bzero + bscale * src[j2];
   }
 
@@ -858,7 +902,7 @@ function Image(data, w, h, channels){
 // caller still needs afterwards is cloned before the step sees it — see the
 // note in run.js about dec.data, which the FITS export hands back untouched.
 Image.prototype.clone = function(){
-  return new Image(new Float32Array(this.data), this.w, this.h, this.channels);
+  return new Image(allocFrom(Float32Array, this.data, 'a working copy of the frame'), this.w, this.h, this.channels);
 };
 
 // Box average, per channel, in float. Used to build the preview buffer the
@@ -878,7 +922,7 @@ function downscaleFloat(img, maxEdge){
 
   var dw = Math.max(1, Math.floor(img.w / f));
   var dh = Math.max(1, Math.floor(img.h / f));
-  var out = new Float32Array(dw * dh * img.channels);
+  var out = alloc(Float32Array, dw * dh * img.channels, 'the preview buffer');
   var area = f * f, src = img.data;
 
   for (var c = 0; c < img.channels; c++){
@@ -1116,7 +1160,7 @@ function debayer(src, w, h, pattern){
   var code = new Int8Array(4);                       // 0 = R, 1 = G, 2 = B
   for (var k = 0; k < 4; k++) code[k] = pattern[k] === 'R' ? 0 : (pattern[k] === 'B' ? 2 : 1);
 
-  var out = new Float32Array(w * h * 3);
+  var out = alloc(Float32Array, w * h * 3, 'the debayered RGB frame');
   var N = w * h;
 
   function at(x, y){
@@ -1497,7 +1541,7 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
     var gh = Math.ceil((h - 1) / divisor) + 1;
     var grid = [];
     for (c = 0; c < nch; c++){
-      var g = new Float64Array(gw * gh);
+      var g = alloc(Float64Array, gw * gh, 'the background lattice');
       for (var gy = 0; gy < gh; gy++){
         var vv = (gy * divisor) / norm;
         for (var gx = 0; gx < gw; gx++){
@@ -2107,12 +2151,8 @@ function stepStretchMTF(img, params, report){
  * Array still does the clamping, which is what catches the negatives a
  * background-subtraction step is allowed to produce.
  *
- * Module 1 adds one thing here and it is not here yet: +/-0.5 level of
- * deterministic dither, seeded, switchable off. Subtracting a smooth surface
- * from quantised data bands, and this is the only line where the banding can be
- * broken. See modulo-1-spec.md section 2.6 — it lands with the correction step,
- * not before, because until something subtracts a surface there is nothing to
- * band.
+ * The dither that section 2.6 asks for landed with the correction step and is
+ * below.
  * ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ *
@@ -2172,7 +2212,7 @@ function quantise(img, opts, report){
   var amp = QUANTISE_DITHER_LEVELS;
 
   var data = img.data, N = img.N, channels = img.channels;
-  var rgba = new Uint8ClampedArray(N * 4);
+  var rgba = alloc(Uint8ClampedArray, N * 4, 'the 8-bit image');
   var c, i, o, v, out, idx;
   var low = 0, high = 0, nan = 0;
 
@@ -2235,7 +2275,7 @@ function downscale(rgba, w, h){
   if (f <= 1) return { data: rgba, w: w, h: h, factor: 1 };
 
   var dw = Math.max(1, Math.floor(w / f)), dh = Math.max(1, Math.floor(h / f));
-  var out = new Uint8ClampedArray(dw * dh * 4);
+  var out = alloc(Uint8ClampedArray, dw * dh * 4, 'the display copy');
   var area = f * f;
 
   for (var y = 0; y < dh; y++){
@@ -2921,7 +2961,7 @@ function exportFits(kind, post){
   // A copy, never a transfer. When no debayer ran, `source.data` and `decData`
   // are the same buffer, and transferring it would detach the frame every
   // later run depends on.
-  var copy = new Float32Array(SESSION.decData);
+  var copy = allocFrom(Float32Array, SESSION.decData, 'the FITS export buffer');
   post({ type: 'exported', kind: 'fits', fitsMeta: SESSION.fitsMeta, fitsData: copy.buffer },
        [copy.buffer]);
 }
@@ -3001,7 +3041,16 @@ self.onmessage = function(ev){
 
   function post(payload, transfer){ self.postMessage(payload, transfer || []); }
   function fail(e){
-    post({ type: 'error', kind: (e && e.kind) || 'unknown', message: String((e && e.message) || e) });
+    // A RangeError that reached here without a kind is an allocation that
+    // failed somewhere the `alloc` helper does not cover. It is not "something
+    // went wrong", it is a memory limit, and the two send the reader to
+    // completely different places: one asks for a bug report, the other says
+    // close some tabs. The header is validated before anything large is
+    // requested — `truncated` and `baddims` fire first — so by the time a
+    // RangeError can happen, the size being asked for is a size the file
+    // genuinely declares.
+    var kind = (e && e.kind) || ((e instanceof RangeError) ? 'memory' : 'unknown');
+    post({ type: 'error', kind: kind, message: String((e && e.message) || e) });
   }
 
   try {
@@ -3046,8 +3095,6 @@ var state = { log: '', diag: null, full: null, view: null, w: 0, h: 0, name: '' 
 var ERRORS = {
   notfits:    ['This is not a FITS file',
                'The file does not begin with a FITS header. If it came out of a camera or a stacker, make sure you picked the .fit or .fits file and not a preview JPEG.'],
-  compressed: ['This FITS file is compressed',
-               'It uses tile compression (the ZIMAGE convention, usually a .fz file). Unpack it first — funpack, or "Save as" an uncompressed FITS from Siril — and drop it again.'],
   cmptype:    ['This .fz uses a compression this page cannot unpack',
                'Rice compression (RICE_1), which is what Siril and fpack write by default, is supported. This file uses something else. Running funpack on it, or re-saving it uncompressed from Siril, will produce a file that works.'],
   noimage:    ['No image inside this file',
@@ -3058,8 +3105,8 @@ var ERRORS = {
                'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
   baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
   empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
-  memory:     ['Not enough memory for this image',
-               'The file is larger than this browser can hold. A desktop browser with more memory will usually manage it.'],
+  memory:     ['This frame is too large for the browser to hold',
+               'Nothing is wrong with the file — the browser ran out of room. Three things usually fix it, in order of how often they work: close the other tabs and try again; use a 64-bit browser, since a 32-bit one caps out around 2 GB whatever the machine has; or process a smaller frame, for example one that has not been drizzled or upscaled. A stacked 4K frame in 32-bit float is about 100 MB per channel before anything else is allocated, and the chain needs a few copies of it.'],
   unknown:    ['Something went wrong reading this file',
                'The file could not be processed. If it opens correctly in Siril, it is worth reporting.']
 };
@@ -3613,27 +3660,6 @@ window.addEventListener('keydown', function(e){
 });
 if (location.hash === '#debug') toggleDiag(true);
 
-/* Used by automated checks: window.__loadFromURL('/path/to.fit')
-   The second argument goes straight through to runPipeline's opts, which is how
-   a reference capture pins the date: __loadFromURL(url, { now: '2026-09-05' }) */
-window.__loadFromURL = function(url, opts){
-  return fetch(url).then(function(r){
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.arrayBuffer();
-  }).then(function(buf){
-    state.name = decodeURIComponent(url.split('/').pop() || '') || 'remote.fit';
-    open(buf, state.name, buf.byteLength, opts);
-    return new Promise(function(resolve){
-      var iv = setInterval(function(){
-        if (elOut.classList.contains('on') || elErr.classList.contains('on')){
-          clearInterval(iv);
-          resolve(state.diag ? 'ok' : 'error');
-        }
-      }, 250);
-    });
-  });
-};
-window.__state = state;
 </script>
 </body>
 </html>

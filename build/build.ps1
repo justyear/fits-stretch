@@ -28,8 +28,25 @@ $ErrorActionPreference = 'Stop'
 $here     = $PSScriptRoot
 $root     = Split-Path -Parent $here
 $template = Join-Path $here 'template.html'
-$out      = Join-Path $root 'index.html'
 $marker   = '<!--PIPELINE_SRC-->'
+
+# TWO OUTPUTS FROM ONE TEMPLATE.
+#
+#   index.html              the download. No test hooks, and therefore no fetch
+#                           anywhere in the file.
+#   .claude/index-test.html the same page plus window.__loadFromURL and
+#                           window.__state, which is what the golden capture
+#                           opens. Lives under .claude/ with the rest of the
+#                           harness, so nothing about it looks like a deliverable.
+#
+# They are built from the same source and both are byte-checked by -Check. That
+# is the point: two artifacts that could drift are two artifacts that will, so
+# the check has to cover both or it covers neither. If the published file ever
+# stops matching the tested one in anything but the hooks block, -Check fails.
+$outPublish = Join-Path $root 'index.html'
+$outTest    = Join-Path $root '.claude\index-test.html'
+$hooksStart = '/*TEST_HOOKS_START*/'
+$hooksEnd   = '/*TEST_HOOKS_END*/'
 
 # The pipeline, in the order it is emitted.
 #
@@ -79,8 +96,22 @@ $bundle = ($Sources | ForEach-Object { Read-Text $_ }) -join ''
 $needle = $marker
 if ($tpl.Substring($at + $marker.Length, 1) -eq "`n") { $needle = $marker + "`n" }
 
-$html  = $tpl.Substring(0, $at) + $bundle + $tpl.Substring($at + $needle.Length)
-$bytes = $L1.GetBytes($html)
+$withHooks = $tpl.Substring(0, $at) + $bundle + $tpl.Substring($at + $needle.Length)
+
+# The publication build is the test build minus exactly the marked block. Cut by
+# marker rather than rebuilt from a second template, so the two can differ in
+# that block and in nothing else.
+$hs = $withHooks.IndexOf($hooksStart)
+$he = $withHooks.IndexOf($hooksEnd)
+if ($hs -lt 0 -or $he -lt 0) { throw "test-hook markers not found in $template" }
+if ($withHooks.IndexOf($hooksStart, $hs + 1) -ge 0) { throw 'TEST_HOOKS_START appears more than once' }
+if ($he -lt $hs) { throw 'TEST_HOOKS_END appears before TEST_HOOKS_START' }
+$cut = $he + $hooksEnd.Length
+if ($withHooks.Substring($cut, 1) -eq "`n") { $cut += 1 }
+$publish = $withHooks.Substring(0, $hs) + $withHooks.Substring($cut)
+
+$bytesTest    = $L1.GetBytes($withHooks)
+$bytesPublish = $L1.GetBytes($publish)
 
 function Get-Sha256([byte[]]$b) {
     $sha = [System.Security.Cryptography.SHA256]::Create()
@@ -88,18 +119,43 @@ function Get-Sha256([byte[]]$b) {
     finally { $sha.Dispose() }
 }
 
-$hash = Get-Sha256 $bytes
+$hashTest    = Get-Sha256 $bytesTest
+$hashPublish = Get-Sha256 $bytesPublish
+
+# The published file must not contain what the block contained. Checked on the
+# built bytes rather than trusted from the cut, because a second copy of any of
+# these outside the markers would defeat the whole exercise silently.
+$forbidden = @('__loadFromURL', '__state', 'fetch(')
+$leaks = @()
+foreach ($f in $forbidden) { if ($publish.Contains($f)) { $leaks += $f } }
 
 if ($Check) {
-    if (-not (Test-Path -LiteralPath $out)) { Write-Host "CHECK FAIL - no $out to compare against"; exit 1 }
-    $have = [System.IO.File]::ReadAllBytes($out)
-    $haveHash = Get-Sha256 $have
-    Write-Host ("built  {0,7} bytes  sha256 {1}" -f $bytes.Length, $hash)
-    Write-Host ("ondisk {0,7} bytes  sha256 {1}" -f $have.Length, $haveHash)
-    if ($hash -eq $haveHash) { Write-Host 'CHECK PASS - identical'; exit 0 }
-    Write-Host 'CHECK FAIL - differs'; exit 1
+    $fail = 0
+    foreach ($pair in @(@($outPublish, $bytesPublish, $hashPublish, 'publicacao'),
+                        @($outTest,    $bytesTest,    $hashTest,    'com ganchos'))) {
+        $path = $pair[0]; $bytes = $pair[1]; $hash = $pair[2]; $label = $pair[3]
+        if (-not (Test-Path -LiteralPath $path)) {
+            Write-Host ("CHECK FAIL - {0} ausente ({1})" -f $path, $label); $fail++; continue
+        }
+        $have = [System.IO.File]::ReadAllBytes($path)
+        $haveHash = Get-Sha256 $have
+        Write-Host ("{0,-12} built {1,7} bytes {2}" -f $label, $bytes.Length, $hash.Substring(0, 16))
+        Write-Host ("{0,-12} disk  {1,7} bytes {2}" -f '', $have.Length, $haveHash.Substring(0, 16))
+        if ($hash -ne $haveHash) { Write-Host ("CHECK FAIL - {0} difere" -f $label); $fail++ }
+    }
+    if ($leaks.Count) { Write-Host ("CHECK FAIL - vazou para a publicacao: " + ($leaks -join ', ')); $fail++ }
+    else { Write-Host ('publicacao limpa: sem ' + ($forbidden -join ', ')) }
+    if ($fail -gt 0) { exit 1 }
+    Write-Host 'CHECK PASS - os dois identicos'; exit 0
 }
 
-[System.IO.File]::WriteAllBytes($out, $bytes)
-Write-Host ("wrote {0} - {1} bytes - sha256 {2}" -f $out, $bytes.Length, $hash)
+if ($leaks.Count) { throw ('the publication build still contains: ' + ($leaks -join ', ')) }
+
+$testDir = Split-Path -Parent $outTest
+if (-not (Test-Path -LiteralPath $testDir)) { New-Item -ItemType Directory -Path $testDir | Out-Null }
+[System.IO.File]::WriteAllBytes($outPublish, $bytesPublish)
+[System.IO.File]::WriteAllBytes($outTest, $bytesTest)
+Write-Host ("wrote {0} - {1} bytes - sha256 {2}" -f $outPublish, $bytesPublish.Length, $hashPublish)
+Write-Host ("wrote {0} - {1} bytes - sha256 {2}" -f $outTest, $bytesTest.Length, $hashTest)
+Write-Host ('publicacao limpa: sem ' + ($forbidden -join ', '))
 foreach ($s in $Sources) { Write-Host ("  <- {0} ({1} bytes)" -f $s, (Get-Item -LiteralPath $s).Length) }

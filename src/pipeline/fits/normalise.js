@@ -112,7 +112,8 @@ function toNormalisedFloat(buffer, hdu, report){
     // 64-bit source keeps 64-bit intermediates: physical values can be far
     // outside [0,1], and rounding them to float32 before normalising would
     // throw away precision the file actually carries.
-    out = (bitpix === -64) ? new Float64Array(n) : new Float32Array(n);
+    out = (bitpix === -64) ? alloc(Float64Array, n, 'the decoded frame')
+                            : alloc(Float32Array, n, 'the decoded frame');
     for (var j2 = 0; j2 < n; j2++) out[j2] = bzero + bscale * src[j2];
   }
 

@@ -13,6 +13,8 @@
 !test/fixtures/fixture-seestar.fit
 !test/fixtures/fixture-rice.fit.fz
 !test/fixtures/fixture-nonlinear.fit
+!test/fixtures/fixture-gradient.fit
+!test/fixtures/fixture-edge.fit
 
 # Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
 !.claude/notfits.fit

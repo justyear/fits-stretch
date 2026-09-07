@@ -16,12 +16,8 @@
  * Array still does the clamping, which is what catches the negatives a
  * background-subtraction step is allowed to produce.
  *
- * Module 1 adds one thing here and it is not here yet: +/-0.5 level of
- * deterministic dither, seeded, switchable off. Subtracting a smooth surface
- * from quantised data bands, and this is the only line where the banding can be
- * broken. See modulo-1-spec.md section 2.6 — it lands with the correction step,
- * not before, because until something subtracts a surface there is nothing to
- * band.
+ * The dither that section 2.6 asks for landed with the correction step and is
+ * below.
  * ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ *
@@ -81,7 +77,7 @@ function quantise(img, opts, report){
   var amp = QUANTISE_DITHER_LEVELS;
 
   var data = img.data, N = img.N, channels = img.channels;
-  var rgba = new Uint8ClampedArray(N * 4);
+  var rgba = alloc(Uint8ClampedArray, N * 4, 'the 8-bit image');
   var c, i, o, v, out, idx;
   var low = 0, high = 0, nan = 0;
 
@@ -144,7 +140,7 @@ function downscale(rgba, w, h){
   if (f <= 1) return { data: rgba, w: w, h: h, factor: 1 };
 
   var dw = Math.max(1, Math.floor(w / f)), dh = Math.max(1, Math.floor(h / f));
-  var out = new Uint8ClampedArray(dw * dh * 4);
+  var out = alloc(Uint8ClampedArray, dw * dh * 4, 'the display copy');
   var area = f * f;
 
   for (var y = 0; y < dh; y++){

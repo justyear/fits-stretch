@@ -254,8 +254,6 @@ var state = { log: '', diag: null, full: null, view: null, w: 0, h: 0, name: '' 
 var ERRORS = {
   notfits:    ['This is not a FITS file',
                'The file does not begin with a FITS header. If it came out of a camera or a stacker, make sure you picked the .fit or .fits file and not a preview JPEG.'],
-  compressed: ['This FITS file is compressed',
-               'It uses tile compression (the ZIMAGE convention, usually a .fz file). Unpack it first — funpack, or "Save as" an uncompressed FITS from Siril — and drop it again.'],
   cmptype:    ['This .fz uses a compression this page cannot unpack',
                'Rice compression (RICE_1), which is what Siril and fpack write by default, is supported. This file uses something else. Running funpack on it, or re-saving it uncompressed from Siril, will produce a file that works.'],
   noimage:    ['No image inside this file',
@@ -266,8 +264,8 @@ var ERRORS = {
                'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
   baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
   empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
-  memory:     ['Not enough memory for this image',
-               'The file is larger than this browser can hold. A desktop browser with more memory will usually manage it.'],
+  memory:     ['This frame is too large for the browser to hold',
+               'Nothing is wrong with the file — the browser ran out of room. Three things usually fix it, in order of how often they work: close the other tabs and try again; use a 64-bit browser, since a 32-bit one caps out around 2 GB whatever the machine has; or process a smaller frame, for example one that has not been drizzled or upscaled. A stacked 4K frame in 32-bit float is about 100 MB per channel before anything else is allocated, and the chain needs a few copies of it.'],
   unknown:    ['Something went wrong reading this file',
                'The file could not be processed. If it opens correctly in Siril, it is worth reporting.']
 };
@@ -821,9 +819,24 @@ window.addEventListener('keydown', function(e){
 });
 if (location.hash === '#debug') toggleDiag(true);
 
-/* Used by automated checks: window.__loadFromURL('/path/to.fit')
-   The second argument goes straight through to runPipeline's opts, which is how
-   a reference capture pins the date: __loadFromURL(url, { now: '2026-09-05' }) */
+/*TEST_HOOKS_START*/
+/* Test hooks. THESE DO NOT SHIP.
+ *
+ * build.ps1 emits two files from this one template: index.html without this
+ * block, which is the download, and .claude/index-test.html with it, which is
+ * what the golden capture opens. Both are byte-checked by build.ps1 -Check, so
+ * the two cannot drift apart unnoticed.
+ *
+ * Why they are stripped rather than left in. The argument this page makes is
+ * that anyone can open it and read everything it does, and the fetch below is
+ * the only network call in the whole file. It never fires unless something
+ * calls it — but "there is a fetch in here and it is only for tests" is a
+ * sentence the reader has to take on trust, and the point of the page is that
+ * nothing has to be taken on trust. window.__state is the same trade: it hands
+ * out the internals for the convenience of a test nobody downloading will run.
+ *
+ * The second argument goes straight through to runPipeline's opts, which is how
+ * a reference capture pins the date: __loadFromURL(url, { now: '2026-09-05' }) */
 window.__loadFromURL = function(url, opts){
   return fetch(url).then(function(r){
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -842,6 +855,7 @@ window.__loadFromURL = function(url, opts){
   });
 };
 window.__state = state;
+/*TEST_HOOKS_END*/
 </script>
 </body>
 </html>

@@ -1,0 +1,3702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stretch — FITS autostretch in your browser</title>
+<style>
+  :root{
+    --bg:#07090d;
+    --panel:#0c1016;
+    --panel-2:#10151d;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.16);
+    --text:#e7e3da;
+    --muted:#8b929c;
+    --dim:#5f666f;
+    --accent:#9fb8d4;
+    --warn:#d9b382;
+    --bad:#d98a80;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 700px at 78% -10%, rgba(96,132,175,.10), transparent 60%),
+      radial-gradient(900px 600px at 8% 108%, rgba(72,96,130,.08), transparent 60%);
+    background-attachment:fixed;
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    font-weight:500;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+  /* ---------------- drop state ---------------- */
+  #drop{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:32px;text-align:center;transition:background .18s ease;
+  }
+  #drop.hide{display:none}
+  #drop .inner{max-width:560px}
+  #drop h1{
+    font-size:clamp(30px,6vw,46px);font-weight:300;letter-spacing:-.02em;margin:22px 0 0;
+  }
+  #drop h1 em{font-style:normal;color:var(--accent)}
+  #drop .sub{color:var(--muted);margin:14px 0 0;font-size:16px}
+  #drop .zone{
+    margin-top:34px;border:1px dashed var(--line-strong);border-radius:3px;
+    padding:38px 28px;transition:border-color .18s ease,background .18s ease;
+    cursor:pointer;
+  }
+  #drop .zone:hover,body.dragging #drop .zone{
+    border-color:var(--accent);background:rgba(159,184,212,.05);
+  }
+  #drop .zone strong{font-weight:500;display:block;font-size:17px}
+  #drop .zone span{color:var(--dim);font-size:13px;display:block;margin-top:8px}
+  #drop .foot{margin-top:26px;color:var(--dim);font-size:12.5px;line-height:1.7}
+
+  /* ---------------- progress ---------------- */
+  #busy{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:32px}
+  #busy.on{display:flex}
+  #busy .box{width:min(420px,100%);text-align:center}
+  #busy .stage{font-size:15px;color:var(--text);margin-bottom:16px;min-height:1.6em}
+  #busy .bar{height:1px;background:var(--line);position:relative;overflow:hidden}
+  #busy .bar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent);transition:width .25s ease}
+  #busy .note{margin-top:14px;color:var(--dim);font-size:12.5px}
+
+  /* ---------------- result ---------------- */
+  #out{display:none;min-height:100%;padding:28px}
+  #out.on{display:block}
+  .topbar{
+    display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+    padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px;
+  }
+  .topbar .name{font-size:14px;letter-spacing:.01em}
+  .topbar .dims{color:var(--dim);font-size:12.5px;font-family:var(--mono)}
+  .topbar .spacer{flex:1}
+  .topbar .reset{color:var(--muted);font-size:13px;border-bottom:1px solid transparent}
+  .topbar .reset:hover{color:var(--text);border-bottom-color:var(--line-strong)}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.85fr);gap:28px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+  .imgwrap{background:#000;border:1px solid var(--line);border-radius:2px;overflow:hidden;line-height:0}
+  .imgwrap canvas{display:block;width:100%;height:auto}
+
+  .side h2{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);
+    font-weight:500;margin:0 0 12px;
+  }
+  .logbox{
+    background:var(--panel);border:1px solid var(--line);border-radius:2px;
+    padding:18px 18px 20px;max-height:min(62vh,720px);overflow:auto;
+  }
+  .logbox pre{
+    margin:0;font-family:var(--mono);font-size:12px;line-height:1.72;
+    white-space:pre-wrap;word-break:break-word;color:#cfd4da;
+  }
+  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line-strong);border-radius:2px;padding:10px 18px;font-size:13.5px;
+    transition:background .16s ease,border-color .16s ease,color .16s ease;
+  }
+  .btn:hover{border-color:var(--accent);color:#fff;background:rgba(159,184,212,.07)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.primary{border-color:rgba(159,184,212,.55)}
+  .hint{margin-top:14px;color:var(--dim);font-size:12px;line-height:1.65}
+
+  /* ---------------- error ---------------- */
+  #err{display:none;position:fixed;inset:0;align-items:center;justify-content:center;padding:32px;text-align:center}
+  #err.on{display:flex}
+  #err .box{max-width:520px}
+  #err .mark{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--bad)}
+  #err h2{font-weight:400;font-size:22px;margin:16px 0 0;letter-spacing:-.01em}
+  #err p{color:var(--muted);margin:12px 0 0}
+  #err .again{margin-top:26px}
+
+  /* ---------------- diagnostics ---------------- */
+  #diag{
+    display:none;position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);
+    background:var(--panel-2);border-left:1px solid var(--line-strong);
+    padding:22px;overflow:auto;z-index:50;box-shadow:-30px 0 60px rgba(0,0,0,.5);
+  }
+  #diag.on{display:block}
+  #diag h2{margin:0 0 4px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  #diag .close{position:absolute;top:16px;right:18px;color:var(--muted);font-size:20px;line-height:1}
+  #diag pre{
+    font-family:var(--mono);font-size:11px;line-height:1.62;white-space:pre-wrap;
+    word-break:break-word;color:#c3c9d1;margin:14px 0 0;
+  }
+  #diag .sect{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+  #diag .sect:first-of-type{border-top:0;padding-top:0}
+  #diag .sect h3{margin:0;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .diagtip{position:fixed;left:14px;bottom:12px;color:#333940;font-size:11px;font-family:var(--mono);z-index:5;user-select:none}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+    background:var(--panel-2);border:1px solid var(--line-strong);border-radius:2px;
+    padding:10px 18px;font-size:13px;opacity:0;pointer-events:none;transition:all .22s ease;z-index:60;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ============================== drop ============================== -->
+<section id="drop">
+  <div class="inner">
+    <p class="eyebrow">Deep-sky stacks &middot; processed in your browser</p>
+    <h1>Stretch a <em>FITS</em> file.</h1>
+    <p class="sub">Drop a stacked <code>.fit</code> and get the image, plus a log of every step that was applied to it.</p>
+
+    <div class="zone" id="zone">
+      <strong>Drop your file here</strong>
+      <span>or click to choose &middot; .fit / .fits &middot; 16-bit, 32-bit, mono or colour</span>
+    </div>
+
+    <p class="foot">
+      Nothing is uploaded. The file is read, stretched and rendered entirely on this machine.<br>
+      No settings, no sliders &mdash; the numbers come from your data.
+    </p>
+  </div>
+  <input type="file" id="picker" accept=".fit,.fits,.fts,image/fits" hidden>
+</section>
+
+<!-- ============================== busy ============================== -->
+<section id="busy">
+  <div class="box">
+    <div class="stage" id="stage">Reading file</div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="note" id="busynote"></div>
+  </div>
+</section>
+
+<!-- ============================== error ============================== -->
+<section id="err">
+  <div class="box">
+    <p class="mark">Could not open this file</p>
+    <h2 id="errtitle">Something went wrong</h2>
+    <p id="errbody"></p>
+    <div class="again"><button class="btn" id="errback">Try another file</button></div>
+  </div>
+</section>
+
+<!-- ============================== result ============================== -->
+<main id="out">
+  <div class="topbar">
+    <span class="name" id="outname"></span>
+    <span class="dims" id="outdims"></span>
+    <span class="spacer"></span>
+    <button class="reset" id="reset">Open another file</button>
+  </div>
+
+  <div class="grid">
+    <div class="imgwrap"><canvas id="view"></canvas></div>
+    <div class="side">
+      <h2>Processing log</h2>
+      <div class="logbox"><pre id="logtext"></pre></div>
+      <div class="actions">
+        <button class="btn primary" id="dlpng">Download PNG</button>
+        <button class="btn" id="copylog">Copy processing log</button>
+        <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
+      </div>
+      <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
+        unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
+      <p class="hint">Paste the log alongside your image. Every value in it was measured from the file you dropped.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ============================== diagnostics ============================== -->
+<aside id="diag">
+  <button class="close" id="diagclose" title="Close">&times;</button>
+  <h2>Diagnostics</h2>
+  <div id="diagbody"></div>
+</aside>
+<div class="diagtip">press D for diagnostics</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ==================================================================
+     Pipeline source. Runs inside a Web Worker when the browser allows
+     one (blob workers are blocked on file:// in Chrome), otherwise the
+     identical source is evaluated on the main thread through the same
+     message protocol.
+     ================================================================== -->
+<script id="pipeline-src" type="text/worker">
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ * Small helpers
+ * ------------------------------------------------------------------ */
+
+function yieldNow(){ return new Promise(function(r){ setTimeout(r, 0); }); }
+
+function FitsError(kind, message){
+  var e = new Error(message);
+  e.kind = kind;
+  return e;
+}
+
+/* ------------------------------------------------------------------ *
+ * Allocation
+ *
+ * Every large typed array in the chain goes through here, so that running out
+ * of memory reaches the user as "not enough memory" and not as "something went
+ * wrong — if it opens correctly in Siril, it is worth reporting".
+ *
+ * That distinction is the whole reason this exists. A big frame is not an
+ * exceptional case for this audience: a 4K sensor is the ordinary one, and the
+ * ordinary case must not produce a message that asks for a bug report about a
+ * browser limit. The message says what to do instead.
+ *
+ * A RangeError here can only mean allocation: the header is validated before
+ * any of these run — `truncated` fires when the declared data exceeds the file,
+ * `baddims` when a dimension is not positive — so by the time a buffer is
+ * requested, the size asked for is a size the file really claims.
+ *
+ * `what` names the buffer, so the diagnostics say which allocation failed and
+ * at what size rather than just that one did.
+ * ------------------------------------------------------------------ */
+function alloc(ctor, length, what){
+  try {
+    return new ctor(length);
+  } catch (e){
+    throw FitsError('memory',
+      'could not allocate ' + what + ' (' + length + ' values, ' +
+      Math.round(length * ctor.BYTES_PER_ELEMENT / 1048576) + ' MB): ' +
+      String((e && e.message) || e));
+  }
+}
+
+// The copy-constructor form, for cloning an existing buffer.
+function allocFrom(ctor, source, what){
+  try {
+    return new ctor(source);
+  } catch (e){
+    throw FitsError('memory',
+      'could not copy ' + what + ' (' + (source && source.length) + ' values, ' +
+      Math.round((source && source.length || 0) * ctor.BYTES_PER_ELEMENT / 1048576) + ' MB): ' +
+      String((e && e.message) || e));
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * FITS header parsing
+ * ------------------------------------------------------------------ */
+
+var BLOCK = 2880;
+var CARD  = 80;
+
+function decodeAscii(bytes, from, to){
+  var s = '';
+  for (var i = from; i < to; i += 4096){
+    var end = Math.min(i + 4096, to);
+    s += String.fromCharCode.apply(null, bytes.subarray(i, end));
+  }
+  return s;
+}
+
+// Splits one 80-char card into {key, value, comment}. Returns null for blanks.
+function parseCard(card){
+  var key = card.slice(0, 8).trim();
+  if (key === '') return null;
+  if (key === 'END') return { key: 'END' };
+  if (key === 'COMMENT' || key === 'HISTORY') return { key: key, value: card.slice(8).trim() };
+
+  var rest, name = key;
+  if (key === 'HIERARCH'){
+    // HIERARCH SOME LONG NAME = value
+    var eq = card.indexOf('=');
+    if (eq < 0) return null;
+    name = card.slice(9, eq).trim();
+    rest = card.slice(eq + 1);
+  } else if (card.charAt(8) === '='){
+    rest = card.slice(9);
+  } else {
+    return { key: name, value: card.slice(8).trim(), raw: true };
+  }
+
+  rest = rest.replace(/^\s+/, '');
+  var value, comment = '';
+
+  if (rest.charAt(0) === "'"){
+    // Quoted string; '' is an escaped quote.
+    var i = 1, buf = '';
+    while (i < rest.length){
+      if (rest.charAt(i) === "'"){
+        if (rest.charAt(i + 1) === "'"){ buf += "'"; i += 2; continue; }
+        i++; break;
+      }
+      buf += rest.charAt(i); i++;
+    }
+    value = buf.trim();
+    var slash = rest.indexOf('/', i);
+    if (slash >= 0) comment = rest.slice(slash + 1).trim();
+  } else {
+    var cut = rest.indexOf('/');
+    var v = (cut >= 0 ? rest.slice(0, cut) : rest).trim();
+    if (cut >= 0) comment = rest.slice(cut + 1).trim();
+    if (v === 'T') value = true;
+    else if (v === 'F') value = false;
+    else {
+      var n = Number(v.replace(/[dD]/, 'e'));
+      value = (v !== '' && isFinite(n)) ? n : v;
+    }
+  }
+  return { key: name, value: value, comment: comment };
+}
+
+// Reads one header starting at byte `start`. Returns {map, cards, history, end}.
+function readHeader(bytes, start){
+  var map = {}, cards = [], history = [], off = start, done = false;
+
+  while (!done){
+    if (off + BLOCK > bytes.length) throw FitsError('truncated', 'header runs past end of file');
+    var text = decodeAscii(bytes, off, off + BLOCK);
+    for (var c = 0; c < BLOCK; c += CARD){
+      var raw = text.substr(c, CARD);
+      var parsed = parseCard(raw);
+      if (!parsed) continue;
+      cards.push(raw.replace(/\s+$/, ''));
+      if (parsed.key === 'END'){ done = true; break; }
+      if (parsed.key === 'HISTORY' || parsed.key === 'COMMENT'){
+        if (parsed.key === 'HISTORY') history.push(parsed.value);
+        continue;
+      }
+      if (!(parsed.key in map)) map[parsed.key] = parsed.value;
+    }
+    off += BLOCK;
+  }
+  return { map: map, cards: cards, history: history, end: off };
+}
+
+function hduDataBytes(map){
+  var naxis = map.NAXIS | 0;
+  if (!naxis) return 0;
+  var n = 1;
+  for (var i = 1; i <= naxis; i++) n *= (map['NAXIS' + i] | 0);
+  var width = Math.abs(map.BITPIX | 0) / 8;
+  var extra = 0;
+  if (map.PCOUNT) extra = map.PCOUNT | 0;
+  return n * width + extra;
+}
+
+// Walks HDUs until the first one holding a plain image.
+function findImageHDU(buffer){
+  var bytes = new Uint8Array(buffer);
+  if (bytes.length < BLOCK) throw FitsError('notfits', 'file is smaller than a single FITS block');
+
+  var magic = decodeAscii(bytes, 0, 6);
+  if (magic !== 'SIMPLE') throw FitsError('notfits', 'missing SIMPLE keyword');
+
+  var off = 0, index = 0, first = null;
+  while (off + BLOCK <= bytes.length){
+    var h = readHeader(bytes, off);
+    var m = h.map;
+
+    if (index === 0) first = h;
+
+    var compressed = (m.ZIMAGE === true) || (typeof m.ZCMPTYPE === 'string');
+    var naxis = m.NAXIS | 0;
+
+    if (compressed){
+      // The image lives in this table. Present it to the rest of the pipeline
+      // as the image HDU it describes, so nothing downstream has to care: the
+      // Z* geometry takes over BITPIX/NAXIS, and the ordinary keywords
+      // (BAYERPAT, ROWORDER, HISTORY) are already sitting in this same header.
+      var zm = {};
+      for (var key in m) zm[key] = m[key];
+      zm.BITPIX = m.ZBITPIX;
+      zm.NAXIS  = m.ZNAXIS;
+      zm.NAXIS1 = m.ZNAXIS1;
+      zm.NAXIS2 = m.ZNAXIS2;
+      zm.NAXIS3 = m.ZNAXIS3;
+      return {
+        map: zm, table: m, cards: h.cards, history: h.history,
+        dataStart: h.end, index: index, compressed: true
+      };
+    }
+
+    if (naxis >= 2 && (m.XTENSION === undefined || m.XTENSION === 'IMAGE')){
+      var need = hduDataBytes(m);
+      if (h.end + need > bytes.length){
+        throw FitsError('truncated', 'declared image data (' + need + ' bytes) exceeds the file');
+      }
+      return { map: m, cards: h.cards, history: h.history, dataStart: h.end, index: index };
+    }
+
+    var pad = Math.ceil(hduDataBytes(m) / BLOCK) * BLOCK;
+    off = h.end + pad;
+    index++;
+    if (index > 64) break;
+  }
+  throw FitsError('noimage', 'no image HDU found in this file');
+}
+
+/* ------------------------------------------------------------------ *
+ * Byte order + scaling to normalised float
+ * ------------------------------------------------------------------ */
+
+function swap16(buffer, start, n){
+  var u = new Uint16Array(buffer, start, n);
+  for (var i = 0; i < n; i++){ var v = u[i]; u[i] = ((v >>> 8) | (v << 8)) & 0xFFFF; }
+}
+function swap32(buffer, start, n){
+  var u = new Uint32Array(buffer, start, n);
+  for (var i = 0; i < n; i++){
+    var v = u[i];
+    u[i] = ((v >>> 24) | ((v >>> 8) & 0xFF00) | ((v & 0xFF00) << 8) | (v << 24)) >>> 0;
+  }
+}
+function swap64(buffer, start, n){
+  var u = new Uint32Array(buffer, start, n * 2);
+  for (var i = 0; i < n * 2; i += 2){
+    var a = u[i], b = u[i + 1];
+    var ra = ((b >>> 24) | ((b >>> 8) & 0xFF00) | ((b & 0xFF00) << 8) | (b << 24)) >>> 0;
+    var rb = ((a >>> 24) | ((a >>> 8) & 0xFF00) | ((a & 0xFF00) << 8) | (a << 24)) >>> 0;
+    u[i] = ra; u[i + 1] = rb;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Rice tile decompression (.fz)
+ *
+ * A tile-compressed FITS keeps its image in a BINTABLE: one row per tile,
+ * holding a descriptor into the heap plus, for quantised float data, the
+ * ZSCALE / ZZERO that turn the stored integers back into floating point.
+ * This is a direct port of cfitsio's fits_rdecomp and unquantize_i4r4.
+ * ------------------------------------------------------------------ */
+
+// Bytes one table row spends on a column. Variable-length array columns
+// ('P' / 'Q') store only a descriptor, whatever the array length.
+function tformBytes(form){
+  var mm = /^\s*(\d*)\s*([A-Z])/.exec(form);
+  if (!mm) return 0;
+  var rep = mm[1] === '' ? 1 : parseInt(mm[1], 10);
+  var t = mm[2];
+  if (t === 'P') return 8;
+  if (t === 'Q') return 16;
+  var size = { L: 1, X: 1, B: 1, I: 2, J: 4, K: 8, A: 1, E: 4, D: 8, C: 8, M: 16 }[t];
+  return rep * (size || 1);
+}
+
+// Position of the most significant set bit, 1-based; 0 for 0.
+var NONZERO_COUNT = (function(){
+  var t = new Uint8Array(256);
+  for (var i = 1; i < 256; i++){ var k = 0, v = i; while (v){ k++; v >>= 1; } t[i] = k; }
+  return t;
+})();
+
+// cfitsio's fixed table of 10000 pseudo-random values, from a Park-Miller
+// generator seeded at 1. Generated rather than embedded.
+var N_RANDOM = 10000, randomValues = null;
+function initRandoms(){
+  if (randomValues) return randomValues;
+  var a = 16807.0, m = 2147483647.0, seed = 1.0;
+  var r = new Float64Array(N_RANDOM);
+  for (var i = 0; i < N_RANDOM; i++){
+    var temp = a * seed;
+    seed = temp - m * Math.floor(temp / m);
+    r[i] = seed / m;
+  }
+  randomValues = r;
+  return r;
+}
+
+// Port of cfitsio fits_rdecomp / _short / _byte. Values come back in `out` as
+// signed 32-bit; for bytepix 1 and 2 they are masked to the stored width.
+function riceDecompress(src, cstart, clen, out, nx, nblock, bytepix){
+  var fsbits, fsmax, bbits, mask;
+  if (bytepix === 1){ fsbits = 3; fsmax = 6;  bbits = 8;  mask = 0xFF; }
+  else if (bytepix === 2){ fsbits = 4; fsmax = 14; bbits = 16; mask = 0xFFFF; }
+  else { fsbits = 5; fsmax = 25; bbits = 32; mask = 0; }   // 0 = full 32-bit
+
+  var cend = cstart + clen;
+  var c = cstart, i = 0, imax, fs, nzero, diff, k, b, nbits, q;
+
+  var lastpix = 0;
+  for (q = 0; q < bytepix; q++) lastpix = (lastpix << 8) | src[c++];
+  if (bytepix === 4) lastpix = lastpix | 0;                // reinterpret as signed
+
+  b = src[c++];
+  nbits = 8;
+
+  while (i < nx){
+    nbits -= fsbits;
+    while (nbits < 0){ b = ((b << 8) | src[c++]) >>> 0; nbits += 8; }
+    fs = (b >>> nbits) - 1;
+    b &= (1 << nbits) - 1;
+
+    imax = i + nblock;
+    if (imax > nx) imax = nx;
+
+    if (fs < 0){
+      // Whole block identical to the previous pixel.
+      for (; i < imax; i++) out[i] = lastpix;
+    } else if (fs === fsmax){
+      // High entropy: differences written out in full.
+      for (; i < imax; i++){
+        k = bbits - nbits;
+        diff = (b << k) >>> 0;
+        for (k -= 8; k >= 0; k -= 8){
+          b = src[c++];
+          diff = (diff | (b << k)) >>> 0;
+        }
+        if (nbits > 0){
+          b = src[c++];
+          diff = (diff | (b >>> (-k))) >>> 0;
+          b &= (1 << nbits) - 1;
+        } else b = 0;
+
+        if ((diff & 1) === 0) diff = diff >>> 1; else diff = ~(diff >>> 1);
+        lastpix = mask ? ((diff + lastpix) & mask) : ((diff + lastpix) | 0);
+        out[i] = lastpix;
+      }
+    } else {
+      // Normal case: unary high part, then fs low bits.
+      for (; i < imax; i++){
+        while (b === 0){ nbits += 8; b = src[c++]; }
+        nzero = nbits - NONZERO_COUNT[b];
+        nbits -= nzero + 1;
+        b ^= 1 << nbits;                                   // clear the leading one
+        nbits -= fs;
+        while (nbits < 0){ b = ((b << 8) | src[c++]) >>> 0; nbits += 8; }
+        diff = (((nzero << fs) >>> 0) | (b >>> nbits)) >>> 0;
+        b &= (1 << nbits) - 1;
+
+        if ((diff & 1) === 0) diff = diff >>> 1; else diff = ~(diff >>> 1);
+        lastpix = mask ? ((diff + lastpix) & mask) : ((diff + lastpix) | 0);
+        out[i] = lastpix;
+      }
+    }
+    if (c > cend + 4) throw FitsError('cmptype', 'Rice stream ran past the end of its tile');
+  }
+}
+
+var DITHER_ZERO = -2147483647;   // cfitsio sentinel: the pixel was exactly 0.0
+
+function decodeTileCompressed(buffer, hdu, report, stage){
+  var m = hdu.map, tbl = hdu.table;
+  var bytes = new Uint8Array(buffer);
+  var dv = new DataView(buffer);
+
+  var cmp = String(m.ZCMPTYPE || '').trim().toUpperCase();
+  if (cmp !== 'RICE_1') throw FitsError('cmptype', cmp || '(no ZCMPTYPE)');
+
+  var w = m.NAXIS1 | 0, h = m.NAXIS2 | 0;
+  var planes = (m.NAXIS | 0) >= 3 ? (m.NAXIS3 | 0) : 1;
+  if (planes < 1) planes = 1;
+  if (!(w > 0 && h > 0)) throw FitsError('baddims', 'compressed image is ' + w + ' x ' + h);
+
+  var zbitpix = m.BITPIX | 0;
+  var bzero  = (typeof m.BZERO  === 'number') ? m.BZERO  : 0;
+  var bscale = (typeof m.BSCALE === 'number') ? m.BSCALE : 1;
+  if (bscale === 0) bscale = 1;
+
+  var t1 = (m.ZTILE1 | 0) || w, t2 = (m.ZTILE2 | 0) || 1, t3 = (m.ZTILE3 | 0) || 1;
+
+  var blocksize = 32, bytepix = Math.abs(zbitpix) / 8;
+  for (var zi = 1; zi <= 16; zi++){
+    var nm = m['ZNAME' + zi];
+    if (typeof nm !== 'string') continue;
+    nm = nm.trim().toUpperCase();
+    if (nm === 'BLOCKSIZE') blocksize = m['ZVAL' + zi] | 0;
+    else if (nm === 'BYTEPIX') bytepix = m['ZVAL' + zi] | 0;
+  }
+  if (blocksize < 1) blocksize = 32;
+  if (bytepix !== 1 && bytepix !== 2 && bytepix !== 4){
+    throw FitsError('cmptype', 'RICE_1 with BYTEPIX ' + bytepix);
+  }
+
+  // --- binary table layout -----------------------------------------
+  var rowBytes = tbl.NAXIS1 | 0, rows = tbl.NAXIS2 | 0, tfields = tbl.TFIELDS | 0;
+  var col = {}, coff = 0;
+  for (var ci = 1; ci <= tfields; ci++){
+    var cname = String(tbl['TTYPE' + ci] || '').trim().toUpperCase();
+    var cform = String(tbl['TFORM' + ci] || '').trim().toUpperCase();
+    col[cname] = { offset: coff, form: cform, wide: /^\s*\d*\s*Q/.test(cform) };
+    coff += tformBytes(cform);
+  }
+  var cData = col['COMPRESSED_DATA'];
+  var cScale = col['ZSCALE'], cZero = col['ZZERO'];
+  if (!cData) throw FitsError('cmptype', 'the table has no COMPRESSED_DATA column');
+
+  var heap = hdu.dataStart + ((typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows);
+
+  // --- quantisation -------------------------------------------------
+  var quant = String(m.ZQUANTIZ || '').trim().toUpperCase();
+  var ditherMethod = (quant === 'SUBTRACTIVE_DITHER_2') ? 2
+                   : (quant === 'SUBTRACTIVE_DITHER_1') ? 1 : 0;
+  var dither0 = (typeof m.ZDITHER0 === 'number') ? (m.ZDITHER0 | 0) : 0;
+  var quantised = !!(cScale && cZero);
+  var rnd = (quantised && ditherMethod) ? initRandoms() : null;
+
+  // --- tile geometry ------------------------------------------------
+  var tilesX = Math.ceil(w / t1), tilesY = Math.ceil(h / t2), tilesZ = Math.ceil(planes / t3);
+  var expected = tilesX * tilesY * tilesZ;
+  if (rows !== expected){
+    throw FitsError('cmptype', 'table holds ' + rows + ' tiles but the geometry needs ' + expected);
+  }
+
+  var out = alloc(Float32Array, w * h * planes, 'the decompressed frame');
+  var idata = new Int32Array(t1 * t2 * t3);
+  var plane = w * h;
+  var scaleIdentity = (bzero === 0 && bscale === 1);
+  var everyN = Math.max(1, Math.floor(rows / 20));
+
+  for (var t = 0; t < rows; t++){
+    if (stage && (t % everyN) === 0) stage('Unpacking Rice tiles', 12 + Math.round(10 * t / rows));
+
+    var rowBase = hdu.dataStart + t * rowBytes;
+    var dp = rowBase + cData.offset;
+    var nelem, hoff;
+    if (cData.wide){
+      nelem = Number(dv.getBigInt64(dp, false));
+      hoff  = Number(dv.getBigInt64(dp + 8, false));
+    } else {
+      nelem = dv.getInt32(dp, false);
+      hoff  = dv.getInt32(dp + 4, false);
+    }
+    if (nelem <= 0){
+      throw FitsError('cmptype', 'tile ' + (t + 1) + ' is not Rice-coded (this .fz mixes in gzip or raw tiles)');
+    }
+
+    var tx = t % tilesX, ty = Math.floor(t / tilesX) % tilesY, tz = Math.floor(t / (tilesX * tilesY));
+    var x0 = tx * t1, y0 = ty * t2, z0 = tz * t3;
+    var nx = Math.min(t1, w - x0), ny = Math.min(t2, h - y0), nz = Math.min(t3, planes - z0);
+    var tileLen = nx * ny * nz;
+
+    riceDecompress(bytes, heap + hoff, nelem, idata, tileLen, blocksize, bytepix);
+
+    var zs = 1, zz = 0, iseed = 0, nextrand = 0;
+    if (quantised){
+      zs = dv.getFloat64(rowBase + cScale.offset, false);
+      zz = dv.getFloat64(rowBase + cZero.offset, false);
+      if (ditherMethod){
+        iseed = (t + dither0 - 1) % N_RANDOM;
+        if (iseed < 0) iseed += N_RANDOM;
+        nextrand = (rnd[iseed] * 500) | 0;
+      }
+    }
+
+    var k = 0;
+    for (var pz = 0; pz < nz; pz++){
+      for (var py = 0; py < ny; py++){
+        var dst = (z0 + pz) * plane + (y0 + py) * w + x0;
+        for (var px = 0; px < nx; px++, k++, dst++){
+          var iv = idata[k], val;
+          if (!quantised){
+            val = iv;
+          } else if (ditherMethod){
+            // Kept in double: ZZERO can be many orders of magnitude larger
+            // than the value it reconstructs, so this subtraction is where
+            // the precision would be lost.
+            val = (ditherMethod === 2 && iv === DITHER_ZERO)
+                ? 0.0
+                : (iv - rnd[nextrand] + 0.5) * zs + zz;
+            nextrand++;
+            if (nextrand === N_RANDOM){
+              iseed++;
+              if (iseed === N_RANDOM) iseed = 0;
+              nextrand = (rnd[iseed] * 500) | 0;
+            }
+          } else {
+            val = iv * zs + zz;
+          }
+          out[dst] = scaleIdentity ? val : (bzero + bscale * val);
+        }
+      }
+    }
+  }
+
+  var kind = (zbitpix > 0 ? zbitpix + '-bit integer' : Math.abs(zbitpix) + '-bit IEEE float') +
+             ', Rice-compressed';
+  var meta = {
+    w: w, h: h, planes: planes, bitpix: zbitpix, bzero: bzero, bscale: bscale, kind: kind,
+    compression: {
+      type: 'RICE_1', tiles: rows, tileDims: [t1, t2, t3], blocksize: blocksize, bytepix: bytepix,
+      quantise: quant || 'none', ditherSeed: dither0, heapStart: heap, tableRowBytes: rowBytes
+    }
+  };
+  normalisePhysical(out, w * h * planes, meta, report);
+  return { data: out, w: w, h: h, planes: planes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Shared tail: measure the physical values, decide the [0,1] mapping,
+ * apply it in place. Both the plain and the compressed reader end here so
+ * that they can never disagree about what the numbers mean.
+ * ------------------------------------------------------------------ */
+function normalisePhysical(phys, n, meta, report){
+  var bitpix = meta.bitpix, bzero = meta.bzero, bscale = meta.bscale;
+  var mn = Infinity, mx = -Infinity, bad = 0, i, v;
+
+  for (i = 0; i < n; i++){
+    v = phys[i];
+    if (!isFinite(v)){ bad++; continue; }
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  if (!isFinite(mn)) throw FitsError('empty', 'the image contains no usable pixel values');
+
+  var lo = 0, hi = 0, div, basis, mode;
+  if (bitpix > 0){
+    // Integers keep their container scale: rescaling by the observed maximum
+    // would be an undeclared stretch.
+    var bot = (bitpix === 8) ? 0 : -Math.pow(2, bitpix - 1);
+    var top = (bitpix === 8) ? 255 : (Math.pow(2, bitpix - 1) - 1);
+    lo = bzero + bscale * bot; hi = bzero + bscale * top;
+    div = (hi - lo) || 1;
+    mode = 'int';
+    basis = 'container range [' + lo + ', ' + hi + ']';
+  } else if (mx <= 1.5){
+    div = 1; lo = 0; mode = 'unit';
+    basis = 'float already normalised to [0,1]';
+  } else if (mx <= 70000){
+    div = 65535; lo = 0; mode = 'float16';
+    basis = 'float on a 16-bit scale (max ' + mx.toFixed(1) + ')';
+  } else {
+    div = mx; lo = 0; mode = 'floatmax';
+    basis = 'float divided by observed maximum ' + mx.toExponential(3);
+  }
+
+  if (!(lo === 0 && div === 1 && bad === 0)){
+    for (i = 0; i < n; i++){
+      v = phys[i];
+      phys[i] = isFinite(v) ? (v - lo) / div : NaN;
+    }
+  }
+
+  var summary = {
+    bitpix: bitpix, kind: meta.kind, bzero: bzero, bscale: bscale,
+    width: meta.w, height: meta.h, planes: meta.planes,
+    rawMin: mn, rawMax: mx, nonFinite: bad,
+    normMin: (mn - lo) / div, normMax: (mx - lo) / div,
+    scaleBasis: basis, scaleMode: mode, scaleLo: lo, scaleHi: hi, scaleDiv: div
+  };
+  if (meta.compression) summary.compression = meta.compression;
+  report(summary);
+  return summary;
+}
+
+// Produces a Float32Array of physical values normalised to roughly [0,1].
+// Reuses the source buffer in place when the data is already 32-bit float.
+function toNormalisedFloat(buffer, hdu, report){
+  var m = hdu.map;
+  var bitpix = m.BITPIX | 0;
+  var bzero  = (typeof m.BZERO  === 'number') ? m.BZERO  : 0;
+  var bscale = (typeof m.BSCALE === 'number') ? m.BSCALE : 1;
+  if (bscale === 0) bscale = 1;
+
+  var w = m.NAXIS1 | 0, h = m.NAXIS2 | 0;
+  var planes = (m.NAXIS | 0) >= 3 ? (m.NAXIS3 | 0) : 1;
+  if (planes < 1) planes = 1;
+  var n = w * h * planes;
+  var start = hdu.dataStart;
+
+  if (!(w > 0 && h > 0)) throw FitsError('baddims', 'image dimensions are not usable (' + w + ' x ' + h + ')');
+
+  var src, kind;
+  if (bitpix === 8){
+    src = new Uint8Array(buffer, start, n);
+    kind = '8-bit unsigned integer';
+  } else if (bitpix === 16){
+    swap16(buffer, start, n);
+    src = new Int16Array(buffer, start, n);
+    kind = (bzero === 32768)
+      ? '16-bit unsigned integer (BZERO 32768)'
+      : (bzero === 0 ? '16-bit signed integer' : '16-bit integer (BZERO ' + bzero + ')');
+  } else if (bitpix === 32){
+    swap32(buffer, start, n);
+    src = new Int32Array(buffer, start, n);
+    kind = '32-bit integer';
+  } else if (bitpix === -32){
+    swap32(buffer, start, n);
+    src = new Float32Array(buffer, start, n);
+    kind = '32-bit IEEE float';
+  } else if (bitpix === -64){
+    swap64(buffer, start, n);
+    src = new Float64Array(buffer, start, n);
+    kind = '64-bit IEEE float';
+  } else {
+    throw FitsError('bitpix', 'unsupported BITPIX value ' + bitpix);
+  }
+
+  // Bring everything onto one physical-value array, then hand it to the same
+  // tail the compressed reader uses. 32-bit float with an identity BZERO/BSCALE
+  // is already that array, so it stays in place — that matters when the file is
+  // hundreds of megabytes.
+  var out;
+  if (bitpix === -32){
+    out = src;
+    if (bzero !== 0 || bscale !== 1){
+      for (var j = 0; j < n; j++) out[j] = bzero + bscale * src[j];
+    }
+  } else {
+    // 64-bit source keeps 64-bit intermediates: physical values can be far
+    // outside [0,1], and rounding them to float32 before normalising would
+    // throw away precision the file actually carries.
+    out = (bitpix === -64) ? alloc(Float64Array, n, 'the decoded frame')
+                            : alloc(Float32Array, n, 'the decoded frame');
+    for (var j2 = 0; j2 < n; j2++) out[j2] = bzero + bscale * src[j2];
+  }
+
+  normalisePhysical(out, n, {
+    w: w, h: h, planes: planes, bitpix: bitpix, bzero: bzero, bscale: bscale, kind: kind
+  }, report);
+
+  // Kept separate: the summary is structure-cloned into the diagnostics, and
+  // the pixel array must never ride along with it.
+  return { data: out, w: w, h: h, planes: planes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Row order
+ * ------------------------------------------------------------------ */
+
+function flipRows(data, w, h, planes){
+  var row = new data.constructor(w);
+  for (var p = 0; p < planes; p++){
+    var base = p * w * h;
+    for (var y = 0; y < (h >> 1); y++){
+      var a = base + y * w, b = base + (h - 1 - y) * w;
+      row.set(data.subarray(a, a + w));
+      data.copyWithin(a, b, b + w);
+      data.set(row, b);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Image — the structure every processing step takes and returns
+ *
+ * Planar Float32: channel c starts at c * N. That is already the layout
+ * toNormalisedFloat and debayer produce, so nothing is rearranged here.
+ *
+ * Values sit around [0,1] and are deliberately NOT clamped. Background
+ * subtraction produces negatives and they have to survive intact until the
+ * final quantise — a step that silently clipped its own output could not be
+ * audited afterwards, and auditability is the product.
+ *
+ * On the name: this shadows the DOM's Image constructor, which is safe here
+ * and only here. A Worker global scope has no Image, and the main-thread
+ * fallback evaluates this source inside `new Function('self', src)`, so the
+ * declaration stays local to that call and never reaches window.
+ * ------------------------------------------------------------------ */
+
+function Image(data, w, h, channels){
+  this.data = data;          // Float32Array, planar, length w*h*channels
+  this.w = w;
+  this.h = h;
+  this.channels = channels;  // 1 or 3
+  this.N = w * h;            // channel c starts at c * N
+}
+
+// Deep copy. A step is allowed to mutate its input in place, so anything the
+// caller still needs afterwards is cloned before the step sees it — see the
+// note in run.js about dec.data, which the FITS export hands back untouched.
+Image.prototype.clone = function(){
+  return new Image(allocFrom(Float32Array, this.data, 'a working copy of the frame'), this.w, this.h, this.channels);
+};
+
+// Box average, per channel, in float. Used to build the preview buffer the
+// chain runs on when the host asks for a fast answer.
+//
+// Not the same thing as downscale() in render.js, which averages 8-bit RGBA for
+// the screen. This one runs before any transfer function, so it has to stay in
+// float: averaging after quantisation would mean the preview measures a
+// different frame than the full run does, and the two would disagree about the
+// numbers the log prints.
+//
+// Always returns a new Image, even when nothing is resampled, so the caller can
+// treat the result as its own.
+function downscaleFloat(img, maxEdge){
+  var f = Math.ceil(Math.max(img.w, img.h) / maxEdge);
+  if (f <= 1) return img.clone();
+
+  var dw = Math.max(1, Math.floor(img.w / f));
+  var dh = Math.max(1, Math.floor(img.h / f));
+  var out = alloc(Float32Array, dw * dh * img.channels, 'the preview buffer');
+  var area = f * f, src = img.data;
+
+  for (var c = 0; c < img.channels; c++){
+    var sBase = c * img.N, dBase = c * dw * dh;
+    for (var y = 0; y < dh; y++){
+      for (var x = 0; x < dw; x++){
+        var acc = 0;
+        for (var yy = 0; yy < f; yy++){
+          var row = sBase + (y * f + yy) * img.w + x * f;
+          for (var xx = 0; xx < f; xx++) acc += src[row + xx];
+        }
+        out[dBase + y * dw + x] = acc / area;
+      }
+    }
+  }
+  return new Image(out, dw, dh, img.channels);
+}
+/* ------------------------------------------------------------------ *
+ * Statistics: median and normalised MAD, from histograms
+ * ------------------------------------------------------------------ */
+
+var BINS = 65536;
+
+function cumulativeAt(hist, total, frac){
+  var target = frac * total, acc = 0;
+  for (var i = 0; i < BINS; i++){
+    acc += hist[i];
+    if (acc >= target) return i;
+  }
+  return BINS - 1;
+}
+
+// `stride` subsamples very large planes; median and MAD from several million
+// samples are indistinguishable from the full-frame values, and the sample size
+// is recorded in the diagnostics.
+function analysePlane(data, off, n, stride){
+  stride = stride || 1;
+  var hist = new Uint32Array(BINS), count = 0, nan = 0;
+  var i, v, b;
+
+  for (i = 0; i < n; i += stride){
+    v = data[off + i];
+    if (v !== v){ nan++; continue; }
+    if (v <= 0) b = 0;
+    else if (v >= 1) b = BINS - 1;
+    else b = (v * (BINS - 1)) | 0;
+    hist[b]++; count++;
+  }
+  if (!count) return null;
+
+  var median = cumulativeAt(hist, count, 0.5) / (BINS - 1);
+  var q1 = cumulativeAt(hist, count, 0.25) / (BINS - 1);
+  var q3 = cumulativeAt(hist, count, 0.75) / (BINS - 1);
+
+  // Second pass over deviations, on a range derived from the IQR so the
+  // resolution stays useful even when the MAD is tiny.
+  var span = 3 * (q3 - q1);
+  if (!(span > 0)) span = 1 / (BINS - 1);
+  var dev = new Uint32Array(BINS), dcount = 0;
+  for (i = 0; i < n; i += stride){
+    v = data[off + i];
+    if (v !== v) continue;
+    if (v < 0) v = 0; else if (v > 1) v = 1;
+    var d = Math.abs(v - median);
+    b = d >= span ? BINS - 1 : ((d / span) * (BINS - 1)) | 0;
+    dev[b]++; dcount++;
+  }
+  var mad = cumulativeAt(dev, dcount, 0.5) / (BINS - 1) * span;
+
+  return {
+    median: median, madn: 1.4826 * mad, mad: mad,
+    // `span` is the width of the second histogram, and therefore the resolution
+    // of mad and madn: their bin is span/(BINS-1), not 1/(BINS-1). Reported so
+    // a comparison against another implementation can size its tolerance to the
+    // instrument instead of to the [0,1] axis, where it would be 500x too loose.
+    span: span,
+    q1: q1, q3: q3, sampled: count, stride: stride, nan: nan,
+    percentile: function(frac){ return cumulativeAt(hist, count, frac) / (BINS - 1); }
+  };
+}
+
+// The per-channel measurement a step records before and after itself.
+//
+// The entries are the analysePlane results themselves, not a reduced copy of
+// them, for two reasons.
+//
+// A step needs percentiles the record format does not carry: the autostretch
+// black point is the 0.05% percentile, which is neither p001 nor p999. Handing
+// the live object over means the step asks for what it needs instead of the
+// record growing a field per caller.
+//
+// And there must be exactly one measurement object per channel per point in
+// the chain. Two objects describing the same pixels are two things that can
+// disagree, which is the failure that already cost a day once — see NOTAS,
+// "Quantil de dois estágios que conta duas vezes".
+function measure(img, stride){
+  stride = stride || 1;
+  var out = [];
+  for (var c = 0; c < img.channels; c++){
+    var s = analysePlane(img.data, c * img.N, img.N, stride);
+    if (!s) throw FitsError('empty', 'channel ' + c + ' has no usable pixels');
+    s.p001 = s.percentile(0.001);
+    s.p999 = s.percentile(0.999);
+    s.totalPixels = img.N;
+    out.push(s);
+  }
+  return { perChannel: out };
+}
+
+/* ------------------------------------------------------------------ *
+ * Colour filter array detection
+ * ------------------------------------------------------------------ */
+
+var PATTERNS = ['RGGB', 'BGGR', 'GRBG', 'GBRG'];
+
+function vflipPattern(p){ return p[2] + p[3] + p[0] + p[1]; }
+function hflipPattern(p){ return p[1] + p[0] + p[3] + p[2]; }
+
+// Median of one 2x2 sub-lattice, via a coarse histogram.
+function latticeMedian(data, w, h, py, px, stride){
+  var hist = new Uint32Array(4096), count = 0;
+  for (var y = py; y < h; y += stride){
+    var row = y * w;
+    for (var x = px; x < w; x += stride){
+      var v = data[row + x];
+      if (v !== v) continue;
+      var b = v <= 0 ? 0 : (v >= 1 ? 4095 : (v * 4095) | 0);
+      hist[b]++; count++;
+    }
+  }
+  if (!count) return 0;
+  var target = count / 2, acc = 0;
+  for (var i = 0; i < 4096; i++){ acc += hist[i]; if (acc >= target) return i / 4095; }
+  return 1;
+}
+
+function detectCFA(data, w, h){
+  var out = {
+    isMosaic: false, evenDims: (w % 2 === 0 && h % 2 === 0),
+    ratioH: 0, ratioV: 0, lattice: [0, 0, 0, 0], greenAxis: null, contrast: 0
+  };
+  if (!out.evenDims) return out;
+
+  // Neighbour-1 vs neighbour-2 absolute differences. On a continuous image the
+  // 2px difference is the larger of the two; on a mosaic it is the smaller.
+  var step = Math.max(2, 2 * Math.floor(Math.sqrt((w * h) / 400000) / 2 + 0.5) || 2);
+  var d1h = 0, d2h = 0, d1v = 0, d2v = 0, nh = 0, nv = 0;
+  var x, y, i, a, b, c;
+
+  for (y = 2; y < h - 2; y += step){
+    for (x = 2; x < w - 4; x += step){
+      i = y * w + x;
+      a = data[i]; b = data[i + 1]; c = data[i + 2];
+      if (a !== a || b !== b || c !== c) continue;
+      d1h += Math.abs(b - a); d2h += Math.abs(c - a); nh++;
+    }
+  }
+  for (y = 2; y < h - 4; y += step){
+    for (x = 2; x < w - 2; x += step){
+      i = y * w + x;
+      a = data[i]; b = data[i + w]; c = data[i + 2 * w];
+      if (a !== a || b !== b || c !== c) continue;
+      d1v += Math.abs(b - a); d2v += Math.abs(c - a); nv++;
+    }
+  }
+  if (!nh || !nv) return out;
+
+  out.ratioH = (d2h > 0) ? (d1h / d2h) : 0;
+  out.ratioV = (d2v > 0) ? (d1v / d2v) : 0;
+
+  var lstride = Math.max(2, 2 * Math.round(Math.sqrt((w * h) / 1000000) / 2) || 2);
+  var m00 = latticeMedian(data, w, h, 0, 0, lstride);
+  var m01 = latticeMedian(data, w, h, 0, 1, lstride);
+  var m10 = latticeMedian(data, w, h, 1, 0, lstride);
+  var m11 = latticeMedian(data, w, h, 1, 1, lstride);
+  out.lattice = [m00, m01, m10, m11];
+
+  var mx = Math.max(m00, m01, m10, m11), mn = Math.min(m00, m01, m10, m11);
+  out.contrast = (mx + mn > 0) ? (mx - mn) / (mx + mn) : 0;
+
+  // The two greens always sit on one of the diagonals; it is the pair whose
+  // medians agree most closely.
+  out.greenAxis = Math.abs(m00 - m11) <= Math.abs(m01 - m10) ? 'main' : 'anti';
+
+  out.isMosaic = (out.ratioH > 1.15 && out.ratioV > 1.15);
+  return out;
+}
+
+function greenAxisOf(pat){
+  return (pat[0] === 'G' && pat[3] === 'G') ? 'main' : 'anti';
+}
+
+// Reconciles the header pattern with what the pixels actually show.
+//
+// Producers disagree about whether BAYERPAT describes the array as stored or
+// the image as displayed, so a row-order flip is deliberately NOT applied to
+// the pattern here. Instead the measured green positions settle it: a vertical
+// mirror is the only transform that moves the greens between the two
+// diagonals, so one comparison absorbs the whole ambiguity. What measurement
+// cannot settle is which of the two non-green sites is red — that distinction
+// only ever comes from the header.
+function resolvePattern(headerPattern, cfa, xoff, yoff){
+  var notes = [];
+  var p = headerPattern;
+
+  if (p){
+    if (xoff % 2){ p = hflipPattern(p); notes.push('XBAYROFF ' + xoff + ' is odd: pattern shifted one column to ' + p); }
+    if (yoff % 2){ p = vflipPattern(p); notes.push('YBAYROFF ' + yoff + ' is odd: pattern shifted one row to ' + p); }
+  }
+
+  var source, corrected = false;
+  if (p && PATTERNS.indexOf(p) >= 0){
+    source = 'header';
+    if (greenAxisOf(p) !== cfa.greenAxis){
+      p = vflipPattern(p);
+      corrected = true;
+      notes.push('green sites measured on the ' + cfa.greenAxis +
+                 ' diagonal; pattern mirrored to ' + p + ' to match');
+    }
+  } else {
+    // No usable BAYERPAT: keep the green positions the pixels actually show
+    // and take the red/blue assignment from the Seestar layout.
+    source = 'inferred';
+    p = (cfa.greenAxis === 'main') ? 'GRBG' : 'RGGB';
+    notes.push('no BAYERPAT keyword; Seestar layout assumed on the measured green axis');
+  }
+  return { pattern: p, source: source, corrected: corrected, notes: notes };
+}
+
+/* ------------------------------------------------------------------ *
+ * Bilinear demosaic
+ * ------------------------------------------------------------------ */
+
+function debayer(src, w, h, pattern){
+  var code = new Int8Array(4);                       // 0 = R, 1 = G, 2 = B
+  for (var k = 0; k < 4; k++) code[k] = pattern[k] === 'R' ? 0 : (pattern[k] === 'B' ? 2 : 1);
+
+  var out = alloc(Float32Array, w * h * 3, 'the debayered RGB frame');
+  var N = w * h;
+
+  function at(x, y){
+    if (x < 0) x = -x; else if (x >= w) x = 2 * w - 2 - x;
+    if (y < 0) y = -y; else if (y >= h) y = 2 * h - 2 - y;
+    var v = src[y * w + x];
+    return v === v ? v : 0;
+  }
+
+  for (var y2 = 0; y2 < h; y2++){
+    var yp = y2 & 1;
+    for (var x2 = 0; x2 < w; x2++){
+      var xp = x2 & 1;
+      var i = y2 * w + x2;
+      var v = src[i]; if (v !== v) v = 0;
+      var c = code[yp * 2 + xp];
+      var r, g, b;
+
+      if (c === 1){
+        g = v;
+        var hAvg = (at(x2 - 1, y2) + at(x2 + 1, y2)) * 0.5;
+        var vAvg = (at(x2, y2 - 1) + at(x2, y2 + 1)) * 0.5;
+        var hColour = code[yp * 2 + (xp ^ 1)];
+        if (hColour === 0){ r = hAvg; b = vAvg; } else { r = vAvg; b = hAvg; }
+      } else {
+        var cross = (at(x2 - 1, y2) + at(x2 + 1, y2) + at(x2, y2 - 1) + at(x2, y2 + 1)) * 0.25;
+        var diag  = (at(x2 - 1, y2 - 1) + at(x2 + 1, y2 - 1) + at(x2 - 1, y2 + 1) + at(x2 + 1, y2 + 1)) * 0.25;
+        g = cross;
+        if (c === 0){ r = v; b = diag; } else { b = v; r = diag; }
+      }
+      out[i] = r; out[N + i] = g; out[2 * N + i] = b;
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Registry — the catalogue of processing this log can speak about
+ *
+ * The "Not applied" line used to be a string literal, which made it a promise
+ * nobody was keeping: the day background extraction lands, the sentence turns
+ * into a false statement and nothing in the code notices. It is generated now,
+ * as the complement between this catalogue and the steps that actually ran, so
+ * adding a step to the chain retracts its denial automatically.
+ *
+ * That sentence is the trust mechanism of the product. Treat edits here as
+ * edits to a public claim, not to a data structure.
+ * ------------------------------------------------------------------ */
+
+var CATALOGUE = [
+  // The order below is the order the sentence reads. It is not alphabetical
+  // and not pipeline order — it is the order the sentence has always had, and
+  // people have already pasted it in public.
+  { id: 'denoise',       label: 'noise reduction' },
+  { id: 'sharpen',       label: 'sharpening',                neverImplemented: true },
+  { id: 'saturation',    label: 'saturation' },
+  { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
+  { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
+  { id: 'background',    label: 'background extraction' },
+  { id: 'colour-cal',    label: 'colour grading' },        // MIS-PAIRED, see below
+  { id: 'ai',            label: 'any AI or generative step', neverImplemented: true },
+
+  // Declared so a step can claim the id, but not enumerated in the sentence.
+  // `announce: false` is the exception and has to be argued for one entry at a
+  // time; leaving the field off means the reader gets told, which is the safe
+  // default and the one the goldens catch.
+  //
+  // The stretch family: the log gives the stretch that ran a section of its
+  // own, with the measured numbers. Denying the other one there would read as
+  // a warning about something the reader can already see was handled.
+  { id: 'stretch-mtf',   label: 'autostretch',               announce: false },
+  { id: 'stretch-asinh', label: 'asinh stretch',             announce: false },
+
+  // Not in the sentence today, and not implemented. Whoever writes the step
+  // decides whether it announces — flipping this changes a sentence people
+  // have already pasted, so it is a decision, not a detail.
+  { id: 'multiscale',    label: 'multiscale enhancement',    announce: false }
+];
+
+/* TWO ENTRIES ARE MIS-PAIRED AND HAVE TO BE SPLIT BEFORE THEIR STEP LANDS.
+ *
+ * The label names what the reader is worried about; the id names what we would
+ * actually build. For these two those are not the same thing, and the sentence
+ * comes out wrong in opposite directions.
+ *
+ *   colour-cal -> "colour grading"   (split in Module 2)
+ *
+ * Colour calibration is measurement — stellar flux ratios decide the gains.
+ * Grading is taste. As wired, calibrating retracts the promise about grading,
+ * so the tool would stop claiming something that stayed true the whole time.
+ * "We did not colour grade" is the sentence that separates this tool from the
+ * manufacturer's app; giving it away for free, in exchange for nothing, is the
+ * worst trade in the catalogue.
+ *
+ *   star-split -> "star removal"     (split in Module 4)
+ *
+ * Same fault, worse consequence, because this one misleads instead of merely
+ * conceding. "Star removal" is what a neural network does. If the Module 4 step
+ * is morphological opening and the log denies star removal, a technical reader
+ * concludes the stars were never separated — when they were. The sentence would
+ * be literally true and would still leave the reader with a false belief, which
+ * is the one failure mode this whole line exists to prevent.
+ *
+ * The fix in both cases is two entries, not a reworded one: the step keeps its
+ * id and gets an honest label of its own, and the thing being denied stays a
+ * separate entry that nothing retracts. Both edits change the sentence on
+ * purpose, so both require re-capturing the goldens.
+ */
+
+// The labels the log denies: everything the catalogue announces that no record
+// claims. Order follows CATALOGUE.
+function notAppliedLabels(records){
+  var applied = {}, i;
+  for (i = 0; i < records.length; i++){
+    if (records[i] && records[i].applied) applied[records[i].id] = true;
+  }
+
+  var out = [];
+  for (i = 0; i < CATALOGUE.length; i++){
+    var entry = CATALOGUE[i];
+    if (applied[entry.id]){
+      // A step the catalogue declares as never implemented reporting that it
+      // ran means the two disagree. Refuse to produce a log at all rather than
+      // produce one that denies something that just happened.
+      if (entry.neverImplemented){
+        throw FitsError('unknown',
+          'step "' + entry.id + '" reported as applied, but the catalogue declares it never implemented');
+      }
+      continue;
+    }
+    if (entry.announce === false) continue;
+    out.push(entry.label);
+  }
+  return out;
+}
+/* ------------------------------------------------------------------ *
+ * Background extraction — sampling and rejection
+ *
+ * Module 1, step 4 of section 6. This build measures and reports; it fits no
+ * surface and changes no pixel. The image comes back the way it went in.
+ *
+ * That is not an unfinished state left lying around, it is the deliverable of
+ * this step: sampling and rejection are the part that can be wrong in ways a
+ * picture does not show, so they get to be tested on their own, against a
+ * fixture whose background is known, before anything is subtracted from
+ * anything. The surface lands in step 5 and the correction in step 6.
+ *
+ * The record therefore reports `applied: false`, which keeps "background
+ * extraction" in the log's "Not applied" sentence. That sentence is a claim
+ * made to whoever reads the log, and it stays true until a pixel actually
+ * moves. steps/registry.js flips it in step 7, and it flips because the step
+ * starts reporting applied, not because a string was edited.
+ * ------------------------------------------------------------------ */
+
+// Fewer accepted samples than this and the step refuses. A surface fitted to a
+// handful of points is not a background model, it is an interpolation of noise
+// with the shape of the object it failed to reject — which is precisely how a
+// background extraction eats a galaxy arm. Section 2.2.
+var BG_MIN_SAMPLES = 8;
+
+// "At the top of the range". The chain is not clamped, so a saturated pixel
+// arrives as whatever the decode produced; what matters is that it sits at the
+// ceiling of the scale the frame was normalised onto.
+var BG_CLIP_LEVEL = 1 - 1e-6;
+var BG_CLIP_FRACTION = 0.05;
+
+// The surface is evaluated on a lattice of every Nth pixel and interpolated
+// between, because evaluating a thin-plate spline at every pixel of an 8 Mpx
+// frame with 100 centres is 800 million kernel evaluations and the lattice is
+// 12 million. The divisor halves until the interpolation error measured against
+// direct evaluation is under the limit — it is not assumed to be negligible,
+// it is measured, every run, and recorded.
+var BG_GRID_DIVISOR = 8;
+var BG_INTERP_LIMIT_LEVELS = 0.5;
+var BG_INTERP_PROBES = 1000;
+
+// A prime stride over the pixel index, so the probes scatter deterministically
+// instead of landing on a pattern. 104729 is odd and coprime with every power
+// of two, so consecutive probes fall at different phases within a lattice cell
+// — which is where the interpolation error actually lives. A stride sharing a
+// factor with the divisor would sample the cell corners and report zero.
+var BG_PROBE_STRIDE = 104729;
+
+/**
+ * Collects one box for one channel: median, plus the two counts that can
+ * disqualify it. One pass, because the box is read once and asked three
+ * questions.
+ *
+ * `scratch` is a Float64Array of exactly box*box, reused across every box and
+ * every channel. It is filled completely each time, so sorting the whole array
+ * is sorting exactly this box and nothing stale survives.
+ */
+function bgCollectBox(data, base, w, cx, cy, half, scratch){
+  var n = 0, nonFinite = 0, clipped = 0;
+  for (var y = cy - half; y <= cy + half; y++){
+    var row = base + y * w;
+    for (var x = cx - half; x <= cx + half; x++){
+      var v = data[row + x];
+      if (!isFinite(v)){ nonFinite++; v = 0; }
+      else if (v >= BG_CLIP_LEVEL) clipped++;
+      scratch[n++] = v;
+    }
+  }
+  // TypedArray sort is numeric by default — no comparator, and no risk of the
+  // lexicographic sort that bites Array.prototype.sort on numbers.
+  scratch.sort();
+  return { median: scratch[n >> 1], nonFinite: nonFinite, clipped: clipped, count: n };
+}
+
+/* ------------------------------------------------------------------ *
+ * Thin-plate spline
+ *
+ * phi(r) = r^2 * ln(r), phi(0) = 0. Written as 0.5 * r2 * ln(r2) so the square
+ * root never happens: r^2 ln r = r^2 * (1/2) ln(r^2), exactly, and the kernel
+ * is called a few million times.
+ * ------------------------------------------------------------------ */
+function bgPhi(r2){
+  if (r2 <= 0) return 0;
+  return 0.5 * r2 * Math.log(r2);
+}
+
+/**
+ * Gauss elimination with partial pivoting, several right-hand sides at once.
+ *
+ * The three channels share the same points, so they share the same matrix and
+ * differ only in what is being interpolated. Eliminating once and carrying
+ * three vectors through is the same arithmetic as one solve plus two extra
+ * back-substitutions, instead of three full eliminations.
+ *
+ * The system is symmetric but indefinite — the polynomial block makes it a
+ * saddle point, not a positive definite one — so Cholesky is not available and
+ * pivoting is not optional.
+ *
+ * Returns null on a singular matrix rather than dividing by zero and returning
+ * a surface made of Infinity. Duplicate sample positions are the way that
+ * happens, and a caller that gets null reports no surface.
+ */
+function bgSolve(M, rhs, n, nrhs){
+  var i, j, k, r;
+  for (k = 0; k < n; k++){
+    var piv = k, best = Math.abs(M[k][k]);
+    for (i = k + 1; i < n; i++){
+      var av = Math.abs(M[i][k]);
+      if (av > best){ best = av; piv = i; }
+    }
+    if (!(best > 0)) return null;
+    if (piv !== k){
+      var tm = M[k]; M[k] = M[piv]; M[piv] = tm;
+      for (r = 0; r < nrhs; r++){ var tv = rhs[r][k]; rhs[r][k] = rhs[r][piv]; rhs[r][piv] = tv; }
+    }
+    var d = M[k][k];
+    for (i = k + 1; i < n; i++){
+      var f = M[i][k] / d;
+      if (f === 0) continue;
+      var Mi = M[i], Mk = M[k];
+      for (j = k; j < n; j++) Mi[j] -= f * Mk[j];
+      for (r = 0; r < nrhs; r++) rhs[r][i] -= f * rhs[r][k];
+    }
+  }
+  var out = [];
+  for (r = 0; r < nrhs; r++){
+    var x = new Float64Array(n);
+    for (k = n - 1; k >= 0; k--){
+      var acc = rhs[r][k];
+      var Mk2 = M[k];
+      for (j = k + 1; j < n; j++) acc -= Mk2[j] * x[j];
+      x[k] = acc / Mk2[k];
+    }
+    out.push(x);
+  }
+  return out;
+}
+
+// The model at one normalised coordinate, evaluated directly from the centres.
+function bgEvalTPS(fit, c, uu, vv){
+  var n = fit.n, u = fit.u, v = fit.v, wts = fit.weights[c];
+  var sum = wts[n] + wts[n + 1] * uu + wts[n + 2] * vv;
+  for (var i = 0; i < n; i++){
+    var du = uu - u[i], dv = vv - v[i];
+    sum += wts[i] * bgPhi(du * du + dv * dv);
+  }
+  return sum;
+}
+
+// The model at one pixel, read off the lattice by bilinear interpolation. This
+// is what the correction will actually use; bgEvalTPS is what it is checked
+// against.
+function bgSampleGrid(surface, c, x, y){
+  var d = surface.divisor, gw = surface.gw, g = surface.grid[c];
+  var fx = x / d, fy = y / d;
+  var gx = fx | 0, gy = fy | 0;
+  var tx = fx - gx, ty = fy - gy;
+  var i00 = gy * gw + gx;
+  var a = g[i00] + (g[i00 + 1] - g[i00]) * tx;
+  var b = g[i00 + gw] + (g[i00 + gw + 1] - g[i00 + gw]) * tx;
+  return a + (b - a) * ty;
+}
+
+/**
+ * Fits a thin-plate spline to the accepted samples, one surface per channel,
+ * and evaluates it onto a lattice.
+ *
+ * COORDINATES ARE NORMALISED, and isotropically. Section 2.3 asks for [0,1] and
+ * the reason it gives is conditioning: at pixel scale the kernel argument runs
+ * to millions and the matrix is ill-conditioned on a large frame. Dividing x
+ * and y by their own extents would put both exactly in [0,1] but would squash
+ * the frame to a square — a 4:3 image would become 33% stiffer along one axis
+ * than the other, for no reason anyone chose. The kernel is radial and assumes
+ * distance means the same thing in both directions, so both axes are divided by
+ * the SAME number, the longer extent. The long axis lands on [0,1], the short
+ * one on [0, h/w], and the conditioning point of the section is satisfied.
+ *
+ * THE REGULARISATION SCALE IS NOT THE DIAGONAL OF A. Section 2.3 says to scale
+ * lambda by "the mean of the diagonal of A". For a thin-plate spline that mean
+ * is exactly zero: A[i][i] = phi(0) = 0, by definition, for every i. Taken
+ * literally the rule sets lambda to 0 and smoothing does nothing. The intent —
+ * a lambda that means the same thing whatever the image scale — is kept by
+ * scaling with the mean of |A[i][j]| over the off-diagonal entries, which is
+ * the magnitude the kernel actually has here. The spec is wrong on the letter
+ * and right on the purpose; this follows the purpose and says so.
+ */
+function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
+  var i, j, c, k;
+
+  var acc = [];
+  for (i = 0; i < points.length; i++) if (points[i].state === 'accepted') acc.push(points[i]);
+  var n = acc.length;
+  if (n < BG_MIN_SAMPLES) return null;
+
+  var norm = Math.max(w - 1, h - 1);
+  var u = new Float64Array(n), v = new Float64Array(n);
+  for (i = 0; i < n; i++){ u[i] = acc[i].x / norm; v[i] = acc[i].y / norm; }
+
+  var m = n + 3;
+  var M = [];
+  for (i = 0; i < m; i++) M.push(new Float64Array(m));
+
+  var sumAbs = 0, cnt = 0;
+  for (i = 0; i < n; i++){
+    for (j = i + 1; j < n; j++){
+      var du = u[i] - u[j], dv = v[i] - v[j];
+      var p = bgPhi(du * du + dv * dv);
+      M[i][j] = p; M[j][i] = p;
+      sumAbs += Math.abs(p); cnt++;
+    }
+  }
+  var scaleA = cnt > 0 ? sumAbs / cnt : 1;
+  var lambda = smoothing * scaleA;
+  for (i = 0; i < n; i++) M[i][i] = lambda;      // phi(0) is 0, so this IS the ridge
+
+  // Degree-1 polynomial block: the affine part the spline does not have to bend
+  // to produce. Without it a tilted background is paid for in bending energy
+  // and the fit sags between points.
+  for (i = 0; i < n; i++){
+    M[i][n] = 1;     M[n][i] = 1;
+    M[i][n + 1] = u[i]; M[n + 1][i] = u[i];
+    M[i][n + 2] = v[i]; M[n + 2][i] = v[i];
+  }
+
+  var rhs = [];
+  for (c = 0; c < nch; c++){
+    var z = new Float64Array(m);
+    for (i = 0; i < n; i++) z[i] = acc[i].median[c];
+    rhs.push(z);
+  }
+
+  var weights = bgSolve(M, rhs, m, nch);
+  if (!weights) return null;
+
+  var fit = { n: n, u: u, v: v, weights: weights, norm: norm };
+
+  // --- lattice, refined until the interpolation error is under the limit ---
+  var N = w * h;
+  var divisor = startDivisor, surface = null, maxErr = 0;
+
+  for (;;){
+    var gw = Math.ceil((w - 1) / divisor) + 1;
+    var gh = Math.ceil((h - 1) / divisor) + 1;
+    var grid = [];
+    for (c = 0; c < nch; c++){
+      var g = alloc(Float64Array, gw * gh, 'the background lattice');
+      for (var gy = 0; gy < gh; gy++){
+        var vv = (gy * divisor) / norm;
+        for (var gx = 0; gx < gw; gx++){
+          g[gy * gw + gx] = bgEvalTPS(fit, c, (gx * divisor) / norm, vv);
+        }
+      }
+      grid.push(g);
+    }
+    surface = { grid: grid, gw: gw, gh: gh, divisor: divisor };
+
+    maxErr = 0;
+    for (k = 0; k < BG_INTERP_PROBES; k++){
+      var idx = (k * BG_PROBE_STRIDE) % N;
+      var px = idx % w, py = (idx / w) | 0;
+      for (c = 0; c < nch; c++){
+        var e = Math.abs(bgEvalTPS(fit, c, px / norm, py / norm) - bgSampleGrid(surface, c, px, py));
+        if (e > maxErr) maxErr = e;
+      }
+    }
+
+    if (maxErr * 255 <= BG_INTERP_LIMIT_LEVELS || divisor <= 1) break;
+    divisor = divisor >> 1;
+  }
+
+  // --- per-channel statistics of the model itself ---
+  //
+  // Taken over the lattice, not over every pixel. The lattice is a uniform
+  // sample of a surface that is smooth by construction, so its median is the
+  // spatial median to within the interpolation error just measured — and
+  // materialising the full-resolution model here, only to measure it, would
+  // cost the memory the lattice exists to avoid.
+  var perChannel = [];
+  for (c = 0; c < nch; c++){
+    var gg = surface.grid[c];
+    var lo = Infinity, hi = -Infinity;
+    for (i = 0; i < gg.length; i++){
+      if (gg[i] < lo) lo = gg[i];
+      if (gg[i] > hi) hi = gg[i];
+    }
+    var sorted = Float64Array.from(gg);
+    sorted.sort();
+    var med = sorted[sorted.length >> 1];
+    perChannel.push({
+      modelMin: lo, modelMax: hi, modelMedian: med,
+      // 'model-median' pedestal, section 2.4: give back the model's own median,
+      // per channel, so the level survives and only the variation is removed.
+      // Recorded here because it is a property of the surface; it is not
+      // applied to anything until the correction lands.
+      pedestal: med
+    });
+  }
+
+  return {
+    fit: fit,
+    grid: surface.grid, gw: surface.gw, gh: surface.gh, divisor: surface.divisor,
+    lambda: lambda, scaleA: scaleA,
+    maxInterpErrorLevels: maxErr * 255,
+    perChannel: perChannel
+  };
+}
+
+/**
+ * Applies the correction, in place. Returns the per-channel counts of what it
+ * produced, which the record reports.
+ *
+ *   subtract:  out = in - model + pedestal
+ *   divide:    out = in / model * pedestal
+ *
+ * THE PEDESTAL IS NOT OPTIONAL, and it is per channel. Subtracting the model
+ * and giving nothing back drops the background to around zero, which is not a
+ * dark sky, it is a clipped shadow — the faint end of the nebula goes with it.
+ * Giving back the model's own median per channel preserves the level and
+ * removes only the VARIATION, which is what the word gradient means.
+ *
+ * PER CHANNEL is the part that matters for colour. Returning the same pedestal
+ * to all three channels would move R, G and B by different relative amounts and
+ * change the ratio between them — the tool would have colour-graded the frame
+ * without saying so. Per channel, the ratio survives, and the log gets to say
+ * the colour balance was not touched. That claim is measured, not asserted:
+ * see the R/G and B/G figures in test/golden/MANIFEST.md.
+ *
+ * NOTHING IS CLAMPED. Pixels of noise that sat below the model come out
+ * negative and they are supposed to. Clamping here would fold the bottom half
+ * of the noise distribution onto zero, which biases the median upward — the
+ * measurement would then report a background that the file does not contain.
+ * The Image contract says not clamped, and quantise is where the range is
+ * finally decided.
+ */
+function bgApplyCorrection(data, surface, w, h, N, nch, mode){
+  var divisor = surface.divisor, gw = surface.gw;
+  var rowbuf = new Float64Array(gw);
+
+  // gx and tx depend only on x, so they are computed once for the whole frame
+  // instead of once per pixel per channel.
+  var gxA = new Int32Array(w), txA = new Float64Array(w);
+  for (var x = 0; x < w; x++){
+    var fx = x / divisor, gx = fx | 0;
+    gxA[x] = gx; txA[x] = fx - gx;
+  }
+
+  var stats = [];
+  var divide = (mode === 'divide');
+  // A divisor that reaches zero would send a pixel to infinity. The spline can
+  // undershoot below the data, so this is reachable, and a guard that silently
+  // did nothing would be an operation with no record. Counted and reported.
+  var GUARD = 1e-6;
+
+  for (var c = 0; c < nch; c++){
+    var g = surface.grid[c], base = c * N;
+    var ped = surface.perChannel[c].pedestal;
+    var negatives = 0, guarded = 0;
+
+    for (var y = 0; y < h; y++){
+      var fy = y / divisor, gy = fy | 0, ty = fy - gy;
+      var r0 = gy * gw, r1 = r0 + gw;
+      for (var k = 0; k < gw; k++) rowbuf[k] = g[r0 + k] + (g[r1 + k] - g[r0 + k]) * ty;
+
+      var o = base + y * w;
+      for (x = 0; x < w; x++){
+        var gx2 = gxA[x], tx = txA[x];
+        var model = rowbuf[gx2] + (rowbuf[gx2 + 1] - rowbuf[gx2]) * tx;
+        var vin = data[o + x], vout;
+        if (divide){
+          if (model > GUARD || model < -GUARD) vout = vin / model * ped;
+          else { vout = vin; guarded++; }
+        } else {
+          vout = vin - model + ped;
+        }
+        if (vout < 0) negatives++;
+        data[o + x] = vout;
+      }
+    }
+    stats.push({ pedestal: ped, negatives: negatives, guarded: guarded,
+                 negativePct: 100 * negatives / N });
+  }
+  return stats;
+}
+
+// Five decimals for a value on the [0,1] axis, one for a percentage. These end
+// up in a tooltip a person reads while deciding whether the tool was right to
+// throw a point away, so the precision is the precision that helps them.
+function bgFixed(v){ return (Math.round(v * 100000) / 100000).toFixed(5); }
+function bgPct(v){ return (Math.round(v * 10) / 10).toFixed(1); }
+
+/**
+ * Background sampling.
+ *
+ * @param {Image}    img     returned untouched; nothing here writes a pixel
+ * @param {Object}   params  { samplesPerRow, boxSize, tolerance, edgeMargin,
+ *                             scale, before, stride }
+ * @param {Function} report  report(record)
+ * @returns {Image}          the same img
+ *
+ * `params.scale` is the width of this buffer over the width of the frame the
+ * user is actually working on — 1 for a full run, about 0.5 for the preview.
+ * It is decided by the orchestrator and handed in, the same way `nonLinear` is,
+ * rather than sniffed here: which buffer this is, is not a fact the step can
+ * see, and a step that guessed would be right until the day it was not.
+ *
+ * `params.before` is a measurement of these exact pixels the caller already
+ * holds. It is the global background estimate the rejection threshold is built
+ * on, and it is not a knob, so it does not appear in record.params.
+ */
+function stepBackground(img, params, report){
+  var w = img.w, h = img.h, N = img.N, nch = img.channels;
+  var data = img.data;
+  var chNames = (nch === 1) ? ['L'] : ['R', 'G', 'B'];
+  var c, i, j;
+
+  var before = params.before || measure(img, params.stride);
+
+  // --- geometry -----------------------------------------------------
+  //
+  // boxSize is stated in pixels of the full-resolution frame and scaled to
+  // whatever buffer this is. Without that, a 25 px box on the preview would
+  // cover four times the sky a 25 px box on the full frame covers, the two runs
+  // would sample different things, and the preview would stop being a preview.
+  //
+  // Forced odd so the box has a centre pixel and spans the same distance either
+  // side of it. An even box is off-centre by half a pixel, in a fixed direction,
+  // everywhere at once — a bias, not noise.
+  var scale = (params.scale > 0) ? params.scale : 1;
+  var boxEff = Math.round(params.boxSize * scale);
+  if (boxEff % 2 === 0) boxEff += 1;
+  if (boxEff < 3) boxEff = 3;
+  var half = (boxEff - 1) / 2;
+
+  var margin = Math.round(params.edgeMargin * Math.min(w, h));
+  var cols = Math.max(2, params.samplesPerRow | 0);
+  var rows = Math.max(2, Math.round(cols * h / w));
+
+  // THE GRID COVERS THE WHOLE FRAME. The margin is a rejection criterion and
+  // nothing else.
+  //
+  // It used to inset the grid as well — centres at `margin + (i+0.5)*(w-2m)/n`
+  // — which applied the margin twice and made section 2.2's `rejected-edge`
+  // unreachable by construction: no box could cross a margin the grid had
+  // already been shrunk inside. All four fixtures reported zero edge
+  // rejections, and that read as normal rather than as the symptom it was.
+  //
+  // Measured cost of the inset, on fixture-gradient: 31.4% of the clean field
+  // fell outside the convex hull of the accepted samples, where a thin-plate
+  // spline extrapolates — the classic RBF failure. Clean-field max error was
+  // 0.169 of a level against 0.094 inside the hull.
+  //
+  // And the argument for the inset does not survive contact with the rule this
+  // project runs on: a sample near the edge may catch vignetting or a stacking
+  // artefact, and the answer to that is to REJECT it, visibly, with a reason in
+  // the record and the tooltip. Not generating it is silent, and silence is
+  // what confusion 21 forbids.
+  var dx = w / cols, dy = h / rows;
+
+  var counts = { bright: 0, edge: 0, clipped: 0, nan: 0 };
+  var points = [];
+  var accepted = 0;
+
+  // A frame too small to hold one box inside its own margin cannot be sampled
+  // at all: every box would cross the margin and every sample would be an edge
+  // rejection. Saying so is cheaper than producing a full grid of rejections
+  // and letting the minimum-sample guard explain it as if it were a threshold
+  // problem.
+  if (w - 2 * margin < boxEff || h - 2 * margin < boxEff){
+    report({
+      id: 'background', name: 'Background extraction',
+      applied: false,
+      skipReason: 'the frame is ' + w + ' x ' + h + ' and the ' + margin +
+                  ' px edge margin leaves no room for a ' + boxEff + ' px sample box',
+      params: { samplesPerRow: cols, boxSize: params.boxSize,
+                tolerance: params.tolerance, edgeMargin: params.edgeMargin },
+      samples: { generated: 0, accepted: 0, rejected: counts, forced: 0, moved: 0,
+                 boxSizeEffective: boxEff, minimum: BG_MIN_SAMPLES,
+                 grid: { cols: cols, rows: rows, marginPx: margin, spacingX: 0, spacingY: 0 },
+                 points: [] },
+      surface: null, before: before, after: null,
+      notes: ['No samples were placed: the frame is too small for the box and margin in use.']
+    });
+    return img;
+  }
+
+  // --- the global estimate the rejection is measured against --------
+  var threshold = [];
+  for (c = 0; c < nch; c++){
+    var st = before.perChannel[c];
+    threshold.push(st.median + params.tolerance * st.madn);
+  }
+
+  var scratch = new Float64Array(boxEff * boxEff);
+  var boxPixels = boxEff * boxEff;
+  var clipLimit = BG_CLIP_FRACTION * boxPixels;
+
+  for (j = 0; j < rows; j++){
+    for (i = 0; i < cols; i++){
+      var cx = Math.round((i + 0.5) * dx);
+      var cy = Math.round((j + 0.5) * dy);
+
+      var pt = { x: cx, y: cy, state: 'accepted', reason: null, median: [] };
+
+      // Order of judgement, and it is deliberate: geometry, then whether the
+      // pixels are readable at all, then whether they are usable, then the
+      // statistical call. Each test is cheaper and more certain than the next,
+      // and a point rejected for a hard reason should never be reported under a
+      // soft one.
+      if (cx - half < margin || cx + half >= w - margin ||
+          cy - half < margin || cy + half >= h - margin){
+        pt.state = 'rejected-edge';
+        pt.reason = 'the ' + boxEff + ' px box crosses the ' + margin + ' px edge margin';
+        counts.edge++;
+        points.push(pt);
+        continue;
+      }
+
+      // Every count is per channel and the worst channel is the one named. A
+      // total across channels would read as a pixel count and be wrong by a
+      // factor of three; "in any channel" is the rule, so the reason has to say
+      // which channel tripped it.
+      var worstNonFinite = 0, nanCh = -1;
+      var worstClipped = 0, clipCh = -1;
+      var bright = -1, brightMedian = 0;
+
+      for (c = 0; c < nch; c++){
+        var box = bgCollectBox(data, c * N, w, cx, cy, half, scratch);
+        pt.median.push(box.median);
+        if (box.nonFinite > worstNonFinite){ worstNonFinite = box.nonFinite; nanCh = c; }
+        if (box.clipped > worstClipped){ worstClipped = box.clipped; clipCh = c; }
+        // "in any channel" — the first channel that trips it names the reason.
+        if (bright < 0 && box.median > threshold[c]){ bright = c; brightMedian = box.median; }
+      }
+
+      if (worstNonFinite > 0){
+        pt.state = 'rejected-nan';
+        pt.reason = 'the box has ' + worstNonFinite + ' non-finite pixel' +
+                    (worstNonFinite === 1 ? '' : 's') + ' in ' + chNames[nanCh];
+        counts.nan++;
+      } else if (worstClipped > clipLimit){
+        pt.state = 'rejected-clipped';
+        pt.reason = bgPct(100 * worstClipped / boxPixels) +
+                    '% of the box is at the top of the range in ' + chNames[clipCh] +
+                    ', over the ' + (100 * BG_CLIP_FRACTION) + '% limit';
+        counts.clipped++;
+      } else if (bright >= 0){
+        pt.state = 'rejected-bright';
+        pt.reason = chNames[bright] + ' median ' + bgFixed(brightMedian) +
+                    ' is above the background estimate ' + bgFixed(before.perChannel[bright].median) +
+                    ' + ' + params.tolerance + ' x MADN ' + bgFixed(before.perChannel[bright].madn) +
+                    ' = ' + bgFixed(threshold[bright]);
+        counts.bright++;
+      } else {
+        accepted++;
+      }
+
+      points.push(pt);
+    }
+  }
+
+  var generated = cols * rows;
+  var rejected = counts.bright + counts.edge + counts.clipped + counts.nan;
+
+  // --- the surface -------------------------------------------------
+  //
+  // Fitted, measured and reported. Not applied: the correction and the pedestal
+  // land in step 6, and until they do no pixel moves. Fitting it now is what
+  // makes it testable now — the fixture carries the true gradient in its HISTORY
+  // cards, so the model can be checked against the answer instead of against
+  // yesterday, before anything depends on it being right.
+  var surface = bgFitSurface(points, w, h, nch, params.smoothing, BG_GRID_DIVISOR);
+  var surfaceRecord = null;
+  var correction = null;
+  var after = null;
+
+  if (surface){
+    // The pixels move here, and from this line on the step is applied. That is
+    // why `applied` is computed from whether this ran rather than set by hand:
+    // the log's "Not applied" sentence is generated from it, and a sentence
+    // that has to be maintained by hand is a sentence that eventually lies.
+    correction = bgApplyCorrection(data, surface, w, h, N, nch, params.correction);
+    after = measure(img, params.stride);
+
+    surfaceRecord = {
+      method: 'thin-plate-spline',
+      // One lambda, not three: A is built from the sample POSITIONS, which the
+      // channels share. Only the right-hand side differs.
+      lambda: surface.lambda,
+      kernelScale: surface.scaleA,
+      gridDivisor: surface.divisor,
+      gridSize: [surface.gw, surface.gh],
+      maxInterpErrorLevels: surface.maxInterpErrorLevels,
+      interpProbes: BG_INTERP_PROBES,
+      interpLimitLevels: BG_INTERP_LIMIT_LEVELS,
+      correction: params.correction,
+      perChannel: surface.perChannel
+    };
+  }
+
+  // --- what the record says, and why it says applied: false ---------
+  //
+  // Two different falsehoods would be available here and neither is taken. The
+  // step does not claim to have run, because no pixel moved. And it does not
+  // stay silent, because it did do something and the points are the something.
+  var applied = !!surfaceRecord;
+  var skipReason = null;
+  if (accepted < BG_MIN_SAMPLES){
+    skipReason = 'only ' + accepted + ' of ' + generated + ' samples survived rejection, ' +
+                 'and a surface is never fitted to fewer than ' + BG_MIN_SAMPLES + ' points';
+  } else if (!surfaceRecord){
+    skipReason = 'the ' + accepted + ' accepted samples do not define a surface: the linear ' +
+                 'system is singular, which means two samples share a position';
+  }
+
+  var notes = [
+    'Placed ' + generated + ' samples on a ' + cols + ' x ' + rows + ' grid, ' +
+      boxEff + ' px boxes, ' + accepted + ' accepted and ' + rejected + ' rejected.',
+    'Rejected: ' + counts.bright + ' brighter than the background estimate, ' +
+      counts.edge + ' on the edge margin, ' + counts.clipped + ' clipped, ' +
+      counts.nan + ' non-finite.',
+    'Every rejected sample is still in the record, with the reason it was rejected.'
+  ];
+  if (accepted < BG_MIN_SAMPLES){
+    notes.push('Not enough samples survived to fit a background, so none will be fitted. ' +
+               'Lower the density, raise the tolerance, or accept points by hand.');
+  }
+  if (boxEff !== params.boxSize){
+    notes.push('Box size ' + params.boxSize + ' px scaled to ' + boxEff +
+               ' px for this ' + w + ' x ' + h + ' buffer, so a sample covers the same sky ' +
+               'here as it does at full resolution.');
+  }
+  if (surfaceRecord){
+    notes.push('Thin-plate spline through the ' + accepted + ' accepted samples, smoothing ' +
+               params.smoothing + ', per channel and unlinked.');
+    notes.push('Evaluated on every ' + surfaceRecord.gridDivisor + 'th pixel and interpolated ' +
+               'between; measured against direct evaluation at ' + BG_INTERP_PROBES +
+               ' pixels, worst case ' + bgFixed(surfaceRecord.maxInterpErrorLevels) +
+               ' of one 8-bit level.');
+    var peds = [];
+    for (c = 0; c < nch; c++) peds.push(chNames[c] + ' ' + bgFixed(surface.perChannel[c].pedestal));
+    notes.push('Corrected by ' + (params.correction === 'divide' ? 'division' : 'subtraction') +
+               ', returning each channel its own model median as the pedestal (' +
+               peds.join(', ') + '). The background LEVEL is preserved and only the ' +
+               'variation is removed, so the ratio between channels is unchanged and no ' +
+               'colour grading happened.');
+    var negTotal = 0;
+    for (c = 0; c < nch; c++) negTotal += correction[c].negatives;
+    notes.push(negTotal + ' pixels came out below zero, which is expected: noise that sat ' +
+               'under the model stays under it, and nothing is clamped until the 8-bit step.');
+  }
+
+  report({
+    id: 'background',
+    name: 'Background extraction',
+    applied: applied,
+    skipReason: skipReason,
+    // Only the knobs this build actually reads. `smoothing`, `correction` and
+    // `pedestal` belong to the surface and the correction; listing them now
+    // would be the record claiming a behaviour that does not exist yet.
+    params: {
+      samplesPerRow: cols,
+      boxSize: params.boxSize,
+      tolerance: params.tolerance,
+      edgeMargin: params.edgeMargin,
+      smoothing: params.smoothing,
+      correction: params.correction,
+      pedestal: params.pedestal
+    },
+    samples: {
+      generated: generated,
+      accepted: accepted,
+      rejected: counts,
+      forced: 0,
+      moved: 0,
+      boxSizeEffective: boxEff,
+      minimum: BG_MIN_SAMPLES,
+      // The grid, in eight numbers, pins every sample position exactly. The
+      // points below carry the same information point by point; this is what a
+      // reader checks first when the counts look wrong.
+      grid: { cols: cols, rows: rows, marginPx: margin, spacingX: dx, spacingY: dy },
+      points: points
+    },
+    surface: surfaceRecord,
+    // What the correction produced, per channel. `negatives` is the count that
+    // has to be non-zero on real data: a background subtraction that produces
+    // no negative pixel has clamped somewhere it should not have, and the
+    // symmetry of the noise is gone.
+    correction: correction,
+    before: before,
+    // Measured when the pixels moved, null when they did not. A copy of
+    // `before` under a name that says "after" would be a measurement that was
+    // never taken.
+    after: after,
+    notes: notes
+  });
+
+  return img;
+}
+/* ------------------------------------------------------------------ *
+ * Midtones transfer function (PixInsight STF / Siril autostretch)
+ * ------------------------------------------------------------------ */
+
+function MTF(x, m){
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  if (m === 0.5) return x;
+  return ((m - 1) * x) / (((2 * m - 1) * x) - m);
+}
+
+/**
+ * Autostretch — midtones transfer, per channel, unlinked.
+ *
+ * @param {Image}    img     mutated in place; clone first if you still need it
+ * @param {Object}   params  { shadowSigma, target, blackPct, nonLinear, stride,
+ *                             before }
+ * @param {Function} report  report(record)
+ * @returns {Image}
+ *
+ * `params.before` is an optional measurement of `img` the caller already holds.
+ * It is not a knob and does not appear in record.params: the orchestrator has
+ * to measure the frame anyway to decide `nonLinear`, and measuring the same
+ * pixels twice would burn a histogram pass and put two objects in play where
+ * the log and the diagnostics have to agree on one.
+ *
+ * The output is full-precision float. Until Module 1 it was float carrying
+ * 8-bit levels — every pixel came back as k/255 for the k a 2^20-entry LUT
+ * produced — because while this was the whole chain the LUT could be the
+ * authority on what a pixel becomes, and byte-identity of the PNG depended on
+ * it staying that way.
+ *
+ * The second step ends that, which is why it was ended here, one step early and
+ * on its own: 256 levels handed from one step to the next throws away the
+ * shadows, which is where the faint nebula lives and exactly where background
+ * extraction works. The LUT is gone rather than converted to float, because a
+ * table indexed by `(u * LMAX) | 0` quantises the input too, and the whole
+ * point of this change is that nothing between the decode and the final
+ * quantise rounds anything.
+ *
+ * `quantise` in render.js is now the only place a level is decided, and it runs
+ * once, at the end of the chain. The byte-identity criterion died with this
+ * commit, deliberately and on schedule — modulo-1-spec.md section 0, and the
+ * decision block in modulo-0-spec.md section 4.
+ *
+ * What did NOT change, and is worth knowing before reading a diff of the
+ * goldens: `outLow` and `outHigh` still count the same two branches on the same
+ * `u`, so the clip counts, the log and the diagnostics are unmoved. Only
+ * `record.after` and the PNG can differ, because only they are downstream of
+ * the rounding that went away.
+ */
+function stepStretchMTF(img, params, report){
+  var before = params.before || measure(img, params.stride);
+  var ch = before.perChannel;
+  var data = img.data, N = img.N;
+  var c, i;
+
+  for (c = 0; c < ch.length; c++){
+    var st = ch[c];
+    var shadows, target;
+
+    if (params.nonLinear){
+      shadows = st.percentile(params.blackPct);
+      target = Math.min(0.6, Math.max(0.02, st.median));
+    } else {
+      shadows = st.median + params.shadowSigma * st.madn;
+      target = params.target;
+    }
+    if (!(shadows >= 0)) shadows = 0;
+    if (shadows >= st.median) shadows = Math.max(0, st.median * 0.5);
+    if (shadows >= 1) shadows = 0;
+
+    var x = (st.median - shadows) / (1 - shadows);
+    var midtones = (st.madn > 0 && x > 0 && x < 1) ? MTF(x, target) : 0.5;
+    if (!(midtones > 0 && midtones < 1)) midtones = 0.5;
+
+    st.shadows = shadows;
+    st.midtones = midtones;
+    st.target = target;
+    st.scale = 1 / (1 - shadows);
+    st.outLow = 0; st.outHigh = 0;
+  }
+
+  for (c = 0; c < ch.length; c++){
+    var stc = ch[c];
+    var sh = stc.shadows, sc = stc.scale, mid = stc.midtones, base = c * N;
+    var low = 0, high = 0;
+    for (i = 0; i < N; i++){
+      var v = data[base + i];
+      if (v !== v) v = 0;
+      var u = (v - sh) * sc;
+      var out;
+      // The two clip branches are kept rather than left to MTF's own guards,
+      // because they are what outLow and outHigh count. MTF would return the
+      // same 0 and 1 silently, and the record would lose the two numbers the
+      // log prints.
+      if (u <= 0){ out = 0; low++; }
+      else if (u >= 1){ out = 1; high++; }
+      else out = MTF(u, mid);
+      data[base + i] = out;
+    }
+    stc.outLow = low; stc.outHigh = high;
+  }
+
+  var after = measure(img, params.stride);
+  for (c = 0; c < ch.length; c++){
+    // The same two counts under two names. `outLow`/`outHigh` is the dialect
+    // the log and the diagnostics already speak; `clipLow`/`clipHigh`/`clipPct`
+    // is the record contract. They collapse into one once the log is built
+    // from records instead of from ctx.channels.
+    var a = after.perChannel[c];
+    a.clipLow = ch[c].outLow;
+    a.clipHigh = ch[c].outHigh;
+    a.clipPct = 100 * (a.clipLow + a.clipHigh) / N;
+  }
+
+  report({
+    id: 'stretch-mtf',
+    name: 'Autostretch',
+    applied: true,
+    skipReason: null,
+    params: {
+      shadowSigma: params.shadowSigma,
+      target: params.target,
+      blackPct: params.blackPct,
+      nonLinear: params.nonLinear
+    },
+    before: before,
+    after: after,
+    // Empty on purpose. buildLog still writes its own sentences, and the log
+    // has to stay byte-identical this module; duplicating those strings here
+    // would create two places to edit and one of them would drift. They move
+    // in when the log is generated from records.
+    notes: []
+  });
+
+  return img;
+}
+
+/* ------------------------------------------------------------------ *
+ * Quantise: float Image -> 8-bit RGBA. Mono is replicated across R, G and B.
+ *
+ * This is the only place in the pipeline where a level is decided, and it runs
+ * once, at the end of the chain.
+ *
+ * Until Module 1 it was not: the stretch step resolved every pixel through a
+ * 2^20-entry LUT, so the values arriving here were 8-bit levels carried as
+ * floats and fl32(k/255) * 255 rounded back to k for all 256 of them. The
+ * multiply was a lossless unpacking, and the PNG was byte-reproducible because
+ * of it. The chain now carries full float from the decode to this line, so the
+ * rounding here is real quantisation and the goldens stopped being
+ * byte-comparable — deliberately, on schedule, modulo-1-spec.md section 0.
+ *
+ * Not one character of this function changed when that happened. Uint8Clamped-
+ * Array still does the clamping, which is what catches the negatives a
+ * background-subtraction step is allowed to produce.
+ *
+ * The dither that section 2.6 asks for landed with the correction step and is
+ * below.
+ * ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ *
+ * Dither
+ *
+ * Subtracting a smooth surface from quantised data produces banding: a whole
+ * region of the frame lands on the same side of the same rounding boundary and
+ * the boundary becomes a visible contour. The chain is float, so the banding
+ * can only appear here, at the one place a level is decided — and it can only
+ * be broken here.
+ *
+ * Plus or minus half a level of noise, added before rounding, turns the hard
+ * threshold into a probabilistic one. A value sitting exactly on k stays on k;
+ * a value on k+0.5 goes either way with equal chance, so the contour becomes
+ * noise and the eye stops seeing an edge that is not in the sky.
+ *
+ * DETERMINISTIC, and that is not a convenience. Two reasons, and the second is
+ * the product:
+ *   - a golden that moved every capture would not be a golden;
+ *   - the whole argument of this tool is that nothing happens to the pixels
+ *     that is not written down. "Random noise was added" is not something the
+ *     log can honestly claim to have measured. A seed makes it reproducible by
+ *     anyone holding the same file, which is the difference between a stated
+ *     process and a black box.
+ *
+ * The value is a hash of the planar index rather than a running generator, so
+ * it does not depend on iteration order and the three channels decorrelate for
+ * free — index c*N+i already differs per channel, so the dither does not paint
+ * coloured speckle.
+ * ------------------------------------------------------------------ */
+
+var QUANTISE_DITHER_SEED = 20260906;
+var QUANTISE_DITHER_LEVELS = 0.5;
+
+function ditherAt(seed, idx){
+  var x = (idx + seed) | 0;
+  x = Math.imul(x ^ (x >>> 16), 2246822507);
+  x = Math.imul(x ^ (x >>> 13), 3266489909);
+  x = (x ^ (x >>> 16)) >>> 0;
+  return x / 4294967296;           // [0, 1)
+}
+
+/**
+ * Float Image -> 8-bit RGBA.
+ *
+ * @param {Image}    img
+ * @param {Object}   opts    { dither: bool, ditherSeed: int }
+ * @param {Function} report  optional report(record)
+ *
+ * `dither: false` exists because a non-regression comparison may want the
+ * transfer without it. It is not a quality setting and the default is on.
+ */
+function quantise(img, opts, report){
+  opts = opts || {};
+  var useDither = (opts.dither !== false);
+  var seed = (opts.ditherSeed === undefined) ? QUANTISE_DITHER_SEED : (opts.ditherSeed | 0);
+  var amp = QUANTISE_DITHER_LEVELS;
+
+  var data = img.data, N = img.N, channels = img.channels;
+  var rgba = alloc(Uint8ClampedArray, N * 4, 'the 8-bit image');
+  var c, i, o, v, out, idx;
+  var low = 0, high = 0, nan = 0;
+
+  for (c = 0; c < channels; c++){
+    var base = c * N;
+    for (i = 0; i < N; i++){
+      idx = base + i;
+      v = data[idx];
+      if (v !== v){ v = 0; nan++; }
+      var scaled = v * 255;
+      if (useDither) scaled += (ditherAt(seed, idx) - 0.5) * 2 * amp;
+      out = Math.round(scaled);
+      // Counted before Uint8ClampedArray does the clamping, because after it
+      // the information is gone. These are the negatives a background
+      // subtraction is allowed to produce and the highlights a stretch is
+      // allowed to blow: the chain does not clamp, so this is where they land,
+      // and the record says how many.
+      if (out < 0){ low++; }
+      else if (out > 255){ high++; }
+      o = i * 4 + c;
+      rgba[o] = out;
+      if (channels === 1){ rgba[o + 1] = out; rgba[o + 2] = out; }
+    }
+  }
+  for (i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+
+  if (report){
+    var total = N * channels;
+    report({
+      id: 'quantise',
+      name: 'Quantise to 8-bit',
+      applied: true,
+      skipReason: null,
+      params: { dither: useDither, ditherSeed: useDither ? seed : null,
+                ditherAmplitudeLevels: useDither ? amp : 0 },
+      clamped: { low: low, high: high, nonFinite: nan, samples: total,
+                 lowPct: 100 * low / total, highPct: 100 * high / total },
+      before: null, after: null,
+      notes: [
+        useDither
+          ? ('Dithered by plus or minus ' + amp + ' of one level before rounding, from a fixed seed (' +
+             seed + '), so the result is reproducible from the same file.')
+          : 'Dither off: rounding only.',
+        low + ' value' + (low === 1 ? '' : 's') + ' below black and ' + high +
+          ' above white were clamped here, out of ' + total + '.'
+      ]
+    });
+  }
+  return rgba;
+}
+
+/* ------------------------------------------------------------------ *
+ * Display downscale (box average)
+ * ------------------------------------------------------------------ */
+
+var MAX_VIEW = 2560;
+
+function downscale(rgba, w, h){
+  var f = Math.ceil(Math.max(w, h) / MAX_VIEW);
+  if (f <= 1) return { data: rgba, w: w, h: h, factor: 1 };
+
+  var dw = Math.max(1, Math.floor(w / f)), dh = Math.max(1, Math.floor(h / f));
+  var out = alloc(Uint8ClampedArray, dw * dh * 4, 'the display copy');
+  var area = f * f;
+
+  for (var y = 0; y < dh; y++){
+    for (var x = 0; x < dw; x++){
+      var r = 0, g = 0, b = 0;
+      for (var yy = 0; yy < f; yy++){
+        var row = ((y * f + yy) * w + x * f) * 4;
+        for (var xx = 0; xx < f; xx++){
+          r += rgba[row]; g += rgba[row + 1]; b += rgba[row + 2];
+          row += 4;
+        }
+      }
+      var o = (y * dw + x) * 4;
+      out[o] = r / area; out[o + 1] = g / area; out[o + 2] = b / area; out[o + 3] = 255;
+    }
+  }
+  return { data: out, w: dw, h: dh, factor: f };
+}
+
+/* ------------------------------------------------------------------ *
+ * Log text — the deliverable
+ * ------------------------------------------------------------------ */
+
+// Shown on the first line of every log people paste in public. Set TOOL_URL
+// once the page has a home; while it is empty the line simply names the tool,
+// because a dead link in someone's post is worse than no link at all.
+var TOOL_NAME = 'Stretch';
+var TOOL_URL  = '';
+
+function fx(v, n){
+  if (!isFinite(v)) return 'n/a';
+  return v.toFixed(n === undefined ? 4 : n);
+}
+function pad(s, n){ s = String(s); while (s.length < n) s += ' '; return s; }
+
+function buildLog(ctx){
+  var L = [];
+  var d = ctx.decoded, cfa = ctx.cfa, st = ctx.stretch, ch = ctx.channels;
+
+  L.push('Processed with ' + TOOL_NAME + ', a one-page FITS autostretch that runs in the browser' +
+         (TOOL_URL ? ': ' + TOOL_URL : '.'));
+  L.push('Nothing was uploaded. The file never left this machine.');
+  L.push('');
+  L.push('Processing log — ' + ctx.fileName);
+  L.push(d.width + ' × ' + d.height + ' · ' +
+         (d.bitpix > 0 ? d.bitpix + '-bit integer' : Math.abs(d.bitpix) + '-bit float') + ' · ' +
+         (ctx.outChannels === 3 ? '3 channels' : 'monochrome') + ' · ' + ctx.date);
+  L.push('');
+
+  // --- read -------------------------------------------------------
+  var rowNote;
+  if (ctx.rowOrder === 'TOP-DOWN') rowNote = 'rows stored top-down';
+  else if (ctx.rowOrder === 'BOTTOM-UP') rowNote = 'rows stored bottom-up and flipped back the right way up';
+  else rowNote = 'no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up';
+
+  var span = fx(d.normMin, 5) + ' to ' + fx(d.normMax, 5);
+  var valueNote;
+  if (d.scaleMode === 'unit'){
+    valueNote = 'Pixel values were already on a 0–1 scale, and the data spans ' + span + '.';
+  } else if (d.scaleMode === 'int'){
+    valueNote = 'Pixel values rescaled onto 0–1 from the ' + d.scaleLo + ' to ' + d.scaleHi +
+                ' range they were stored in, where the data spans ' + span + '.';
+  } else if (d.scaleMode === 'float16'){
+    valueNote = 'Pixel values divided down onto 0–1 from the 16-bit scale they were written on, ' +
+                'where the data spans ' + span + '.';
+  } else {
+    valueNote = 'Pixel values divided onto 0–1 by the largest value in the frame, ' +
+                d.scaleDiv.toExponential(3) + ', where the data spans ' + span + '.';
+  }
+
+  L.push('• Read the FITS: ' + d.kind + ', ' +
+         (d.planes === 1 ? 'one image plane' : d.planes + ' image planes') + ', ' + rowNote + '. ' + valueNote +
+         (d.nonFinite ? ' ' + d.nonFinite.toLocaleString('en-US') +
+            ' non-finite pixels were left out of every measurement.' : ''));
+
+  if (d.compression){
+    var cz = d.compression;
+    L.push('• The file arrived Rice-compressed (.fz): unpacked ' + cz.tiles.toLocaleString('en-US') +
+           ' tiles of ' + cz.tileDims.join(' × ') + ', block size ' + cz.blocksize + ', ' +
+           cz.bytepix + ' bytes per stored value' +
+           (cz.quantise && cz.quantise !== 'none'
+              ? ', then reversed the ' + cz.quantise + ' quantisation (dither seed ' + cz.ditherSeed +
+                ') back to floating point. That quantisation was applied when the .fz was packed, not here.'
+              : '.'));
+  }
+
+  // --- CFA --------------------------------------------------------
+  if (d.planes >= 3){
+    L.push('• No colour filter array: the file carries ' + d.planes +
+           ' separate colour planes (NAXIS3 = ' + d.planes + ') and is already demosaiced. No debayer applied.');
+  } else if (!cfa || !cfa.isMosaic){
+    var why;
+    if (cfa && !cfa.evenDims) why = 'odd frame dimensions rule out a 2×2 mosaic';
+    else if (cfa && cfa.stackedHistory) why = 'the header records stacking or registration, which leaves no mosaic to recover, and no BAYERPAT is present';
+    else why = 'the 2×2 lattice test found no mosaic (neighbour ratio ' +
+               fx(cfa ? cfa.ratioH : 0, 2) + ' H / ' + fx(cfa ? cfa.ratioV : 0, 2) +
+               ' V, where a mosaic reads above 1.15)';
+    L.push('• No colour filter array detected: ' + why + '. Treated as monochrome, no debayer applied.');
+  } else {
+    var head;
+    if (ctx.pattern.source === 'header'){
+      head = 'Colour filter array: BAYERPAT = ' + ctx.headerPattern + ' read from the header';
+      head += ctx.pattern.corrected
+        ? ', mirrored to ' + ctx.pattern.pattern + ' so the green sites line up with the ' +
+          cfa.greenAxis + ' diagonal the pixels actually show'
+        : ', and its green sites already match the ' + cfa.greenAxis +
+          ' diagonal the pixels show';
+    } else {
+      head = 'Colour filter array found by the 2×2 lattice test, but the file carries no BAYERPAT keyword. Pattern inferred as ' +
+             ctx.pattern.pattern + ' (Seestar S30/S50 layout) from the measured green positions — inferred, not read from the header';
+    }
+    L.push('• ' + head + '. Measured lattice contrast ' + fx(cfa.contrast * 100, 1) +
+           '%, neighbour ratio ' + fx(cfa.ratioH, 2) + ' H / ' + fx(cfa.ratioV, 2) + ' V.');
+    L.push('• Debayered with bilinear interpolation to full-resolution RGB.');
+  }
+
+  // --- linearity --------------------------------------------------
+  if (st.nonLinear){
+    var reasons = [];
+    if (st.historyHits.length) reasons.push('the header records ' + st.historyHits.join(' and '));
+    reasons.push('the measured median sits at ' + fx(st.globalMedian, 4));
+    L.push('• Data is already non-linear: ' + reasons.join(', ') +
+           '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
+           '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.');
+  } else {
+    L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
+           ', no stretch recorded in the header. Full autostretch applied.');
+  }
+
+  // --- background -------------------------------------------------
+  //
+  // Flipping a step to applied has two effects and only one of them is
+  // automatic. The "Not applied" sentence retracts its denial on its own, which
+  // is what steps/registry.js was built for. Nothing, however, makes the log
+  // SAY what happened — and a log that stopped denying an operation without
+  // describing it is the same silent operation, entered from the other side.
+  // The numbers below all come from the record; none is recomputed here.
+  var bg = null;
+  for (var bi = 0; bi < ctx.records.length; bi++){
+    if (ctx.records[bi].id === 'background' && ctx.records[bi].applied) bg = ctx.records[bi];
+  }
+  if (bg){
+    var s = bg.samples, sf = bg.surface, rj = s.rejected;
+    var why = [];
+    if (rj.bright) why.push(rj.bright + ' brighter than the background');
+    if (rj.edge) why.push(rj.edge + ' on the frame edge');
+    if (rj.clipped) why.push(rj.clipped + ' saturated');
+    if (rj.nan) why.push(rj.nan + ' with unusable pixels');
+
+    L.push('• Background extraction: measured the sky in ' + s.generated + ' boxes of ' +
+           s.boxSizeEffective + ' pixels on a ' + s.grid.cols + ' × ' + s.grid.rows +
+           ' grid and used ' + s.accepted + ' of them' +
+           (why.length ? ' (' + why.join(', ') + ' were left out)' : '') +
+           '. A thin-plate spline through those points is the model that was removed.');
+    L.push('    Each channel got its own model median back as a pedestal (' +
+           (ctx.outChannels === 3 ? 'R ' + fx(sf.perChannel[0].pedestal, 5) +
+                                    ', G ' + fx(sf.perChannel[1].pedestal, 5) +
+                                    ', B ' + fx(sf.perChannel[2].pedestal, 5)
+                                  : fx(sf.perChannel[0].pedestal, 5)) +
+           '), so the background level is preserved and only its variation was removed.');
+    L.push('    The ratio between channels is therefore unchanged: no colour grading, ' +
+           'no white balance, nothing was decided about the colour of the sky.');
+  }
+
+  // --- stretch ----------------------------------------------------
+  L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
+         (st.nonLinear
+            ? 'target background held at each channel’s own median'
+            : 'shadow clip ' + fx(st.shadowSigma, 2) + 'σ, target background ' + fx(st.target, 2)) +
+         ', applied per channel (unlinked). Highlights untouched at 1.000.');
+
+  var names = ctx.outChannels === 3 ? ['R', 'G', 'B'] : ['L'];
+  for (var i = 0; i < ch.length; i++){
+    var c = ch[i];
+    L.push('    ' + names[i] +
+           '  median ' + pad(fx(c.median, 5), 9) +
+           'MADN ' + pad(fx(c.madn, 5), 9) +
+           '→  shadows ' + pad(fx(c.shadows, 5), 9) +
+           'midtones ' + fx(c.midtones, 5));
+  }
+
+  var clipped = 0, total = 0;
+  for (i = 0; i < ch.length; i++){
+    clipped += ch[i].outLow + ch[i].outHigh;
+    total += ch[i].totalPixels;
+  }
+  if (total > 0){
+    L.push('    ' + fx(100 * clipped / total, 3) + '% of pixels land on pure black or pure white after the transfer.');
+  }
+
+  // --- output -----------------------------------------------------
+  var qz = null;
+  for (var qi = 0; qi < ctx.records.length; qi++){
+    if (ctx.records[qi].id === 'quantise') qz = ctx.records[qi];
+  }
+  L.push('• Output: 8-bit sRGB' + (ctx.exportScaled
+      ? ', downscaled to ' + ctx.exportW + ' × ' + ctx.exportH + ' (this browser cannot allocate a canvas at full size)'
+      : ', full resolution, no resampling') + '.' +
+      (qz && qz.params.dither
+        ? ' Rounded with ±' + qz.params.ditherAmplitudeLevels +
+          ' of a level of dither, from the fixed seed ' + qz.params.ditherSeed +
+          ', which breaks the banding a subtracted surface would otherwise leave. ' +
+          'The seed is fixed, so the same file always produces the same image.'
+        : ''));
+  // Generated, not written: the complement between the catalogue in
+  // steps/registry.js and the steps that reported themselves applied. A step
+  // added to the chain drops out of this sentence on its own, which is the
+  // whole point — the line is a claim, and a claim that has to be maintained
+  // by hand is a claim that eventually stops being true.
+  var denied = notAppliedLabels(ctx.records);
+  if (denied.length > 1){
+    L.push('• Not applied: ' + denied.slice(0, -1).join(', ') +
+           ', or ' + denied[denied.length - 1] + '.');
+  } else if (denied.length === 1){
+    L.push('• Not applied: ' + denied[0] + '.');
+  }
+  L.push('');
+  L.push('Every number above was measured from the file itself.');
+
+  return L.join('\n');
+}
+
+/* ------------------------------------------------------------------ *
+ * Pipeline — open / run / export
+ *
+ * The decoded frame is read once and kept here, so re-running the chain with
+ * different parameters costs a stretch instead of a decode. `source` and
+ * `preview` are immutable from the moment open() finishes: every run works on
+ * a clone.
+ * ------------------------------------------------------------------ */
+
+var STRETCH_HISTORY = [
+  [/autostretch/i,            'Autostretch'],
+  [/histogram\s*transf/i,     'Histogram Transf.'],
+  [/asinh/i,                  'Asinh stretch'],
+  [/generalised hyperbolic|generalized hyperbolic|\bGHS\b/i, 'GHS'],
+  [/midtone/i,                'Midtones transfer'],
+  [/\bcurves?\b/i,            'Curves'],
+  [/modasinh|autostretch/i,   'Autostretch']
+];
+
+var PREVIEW_EDGE = 1024;
+
+// Everything open() decoded. Null until a file has been opened.
+var SESSION = null;
+
+/* ------------------------------------------------------------------ *
+ * Message-safe copies
+ *
+ * A measurement carries a `percentile` closure over its histogram, which a
+ * step needs and structured clone refuses. Stripping functions costs nothing
+ * and keeps the two execution paths honest: the main-thread fallback hands the
+ * object straight over and would have carried the closure across happily, so
+ * without this the worker path and the file:// path would disagree about what
+ * a record is.
+ * ------------------------------------------------------------------ */
+
+function plainValues(o){
+  var out = {}, k;
+  for (k in o) if (typeof o[k] !== 'function') out[k] = o[k];
+  return out;
+}
+
+function plainMeasurement(m){
+  if (!m) return null;
+  var out = [];
+  for (var i = 0; i < m.perChannel.length; i++) out.push(plainValues(m.perChannel[i]));
+  return { perChannel: out };
+}
+
+function plainRecords(records){
+  var out = [];
+  for (var i = 0; i < records.length; i++){
+    var r = records[i];
+    out.push({
+      id: r.id, name: r.name, applied: r.applied, skipReason: r.skipReason,
+      params: r.params, notes: r.notes,
+      // `samples` and `surface` are plain data — numbers, strings and nulls —
+      // so they cross the worker boundary as they are. They are carried rather
+      // than dropped because they are the audit trail: the point that was
+      // rejected, and the sentence saying why, are the whole argument that this
+      // step is not doing something silently.
+      samples: r.samples || null,
+      surface: r.surface || null,
+      correction: r.correction || null,
+      clamped: r.clamped || null,
+      before: plainMeasurement(r.before),
+      after: plainMeasurement(r.after)
+    });
+  }
+  return out;
+}
+
+// A run must not inherit the fields a previous run's step wrote onto the shared
+// source measurement. The percentile closure is copied by reference on purpose:
+// it reads a histogram that is finished and never changes.
+function copyMeasurement(m){
+  var out = [];
+  for (var i = 0; i < m.perChannel.length; i++){
+    var s = m.perChannel[i], o = {}, k;
+    for (k in s) o[k] = s[k];
+    out.push(o);
+  }
+  return { perChannel: out };
+}
+
+/* ------------------------------------------------------------------ *
+ * open — decode once, measure once, then render with the defaults
+ * ------------------------------------------------------------------ */
+
+async function openFile(buffer, fileName, opts, post){
+  opts = opts || {};
+
+  // `opts.now` is the only reading of the wall clock the log depends on. It is
+  // a parameter so a reference capture can pin it: read inline, the log carried
+  // the day it was produced and no golden could stay byte-exact past midnight.
+  var now = opts.now ? new Date(opts.now) : new Date();
+
+  var t0 = Date.now(), timings = {};
+  function mark(name, from){ timings[name] = Date.now() - from; }
+  function stage(label, pct){ post({ type: 'progress', stage: label, pct: pct }); }
+
+  var step = Date.now();
+  stage('Reading FITS header', 4);
+  var hdu = findImageHDU(buffer);
+  mark('header', step);
+
+  await yieldNow();
+  step = Date.now();
+  var decodedInfo = null;
+  var keep = function(info){ decodedInfo = info; };
+  var dec;
+  if (hdu.compressed){
+    stage('Unpacking Rice tiles', 12);
+    dec = decodeTileCompressed(buffer, hdu, keep, stage);
+  } else {
+    stage('Decoding pixel data', 12);
+    dec = toNormalisedFloat(buffer, hdu, keep);
+  }
+  mark('decode', step);
+
+  var w = dec.w, h = dec.h, planes = dec.planes;
+  var m = hdu.map;
+
+  // Row order --------------------------------------------------------
+  var rowOrder = (typeof m.ROWORDER === 'string') ? m.ROWORDER.trim().toUpperCase() : null;
+  var flipped = (rowOrder !== 'TOP-DOWN');   // absent means the FITS default, BOTTOM-UP
+  if (flipped){
+    await yieldNow();
+    step = Date.now();
+    stage('Correcting row order', 22);
+    flipRows(dec.data, w, h, planes);
+    mark('roworder', step);
+  }
+
+  // Colour filter array ----------------------------------------------
+  var data = dec.data;
+  var outChannels = 1, cfa = null, patternInfo = null, headerPattern = null;
+
+  if (planes >= 3){
+    outChannels = 3;
+  } else {
+    await yieldNow();
+    step = Date.now();
+    stage('Testing for a Bayer mosaic', 32);
+
+    var stackedBefore = hdu.history.some(function(l){
+      return /debayer|demosaic|stack|drizzle|registration|register/i.test(l);
+    });
+
+    var bp = (typeof m.BAYERPAT === 'string') ? m.BAYERPAT.trim().toUpperCase() : null;
+    headerPattern = (bp && PATTERNS.indexOf(bp) >= 0) ? bp : null;
+
+    cfa = detectCFA(data, w, h);
+    cfa.stackedHistory = stackedBefore;
+    cfa.headerDeclared = !!headerPattern;
+    cfa.trustedHeader = false;
+
+    // BAYERPAT is the strong evidence and is not overruled by statistics. The
+    // lattice tests exist to catch a mosaic whose keyword was stripped, and to
+    // settle which diagonal the greens sit on once row order has been applied.
+    // A real 10-second sub-frame carries only a couple of percent of lattice
+    // contrast beneath a per-pixel noise floor several times larger, so the
+    // neighbour-ratio test cannot see it — vetoing the header on that basis
+    // renders colour frames as grey mosaics.
+    if (headerPattern && cfa.evenDims && !stackedBefore){
+      cfa.isMosaic = true;
+      cfa.trustedHeader = true;
+    }
+    mark('cfa', step);
+
+    if (cfa.isMosaic){
+      patternInfo = resolvePattern(headerPattern, cfa, (m.XBAYROFF | 0), (m.YBAYROFF | 0));
+
+      await yieldNow();
+      step = Date.now();
+      stage('Debayering', 42);
+      data = debayer(data, w, h, patternInfo.pattern);
+      outChannels = 3;
+      mark('debayer', step);
+    }
+  }
+
+  var N = w * h;
+
+  // The linear frame, as read. Immutable from here: every run clones it.
+  //
+  // When no debayer ran, `data` IS `dec.data` — the buffer the FITS export
+  // hands back. That aliasing is why nothing downstream is allowed to write
+  // through `source`, and why export copies instead of transferring.
+  var source = new Image(data, w, h, outChannels);
+
+  await yieldNow();
+  step = Date.now();
+  stage('Building preview', 50);
+  var preview = downscaleFloat(source, PREVIEW_EDGE);
+  mark('preview', step);
+
+  // Statistics --------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  stage('Measuring median and MAD', 56);
+  var statStride = Math.max(1, Math.ceil(N / 8000000));
+  var sourceStats = measure(source, statStride);
+  mark('stats', step);
+
+  // Linearity — an orchestration decision, so it is decided here and handed
+  // to the step as a parameter rather than sniffed inside it.
+  var channels = sourceStats.perChannel;
+  var globalMedian = 0, c;
+  for (c = 0; c < channels.length; c++) globalMedian += channels[c].median;
+  globalMedian /= channels.length;
+
+  var historyHits = [];
+  for (var hi = 0; hi < STRETCH_HISTORY.length; hi++){
+    var rule = STRETCH_HISTORY[hi];
+    if (historyHits.indexOf(rule[1]) >= 0) continue;
+    for (var li = 0; li < hdu.history.length; li++){
+      if (rule[0].test(hdu.history[li])){ historyHits.push(rule[1]); break; }
+    }
+  }
+  var nonLinear = (globalMedian >= 0.05) || (historyHits.length > 0 && globalMedian >= 0.02);
+
+  // A tile-compressed file can be handed back as a plain FITS. What goes out is
+  // the linear, pre-stretch, pre-debayer data — the thing the .fz actually
+  // holds — so Siril receives the file it would have had if the frame had never
+  // been packed. Any row flip is undone at write time.
+  var fitsMeta = null;
+  if (hdu.compressed){
+    fitsMeta = {
+      cards: hdu.cards,
+      bitpix: decodedInfo.bitpix, bzero: decodedInfo.bzero, bscale: decodedInfo.bscale,
+      width: w, height: h, planes: planes,
+      flipApplied: flipped,
+      scaleLo: decodedInfo.scaleLo, scaleDiv: decodedInfo.scaleDiv,
+      cmptype: (decodedInfo.compression && decodedInfo.compression.type) || 'tile'
+    };
+  }
+
+  // One flat bag for the whole chain, so the host has one object to edit and
+  // one object to send back. The background knobs carry a bg prefix here and
+  // lose it on the way into the step: `tolerance` and `target` are meaningful
+  // names inside a step and ambiguous the moment two steps share a namespace.
+  var defaults = {
+    shadowSigma: -2.80,
+    target: 0.25,
+    blackPct: 0.0005,
+    nonLinear: nonLinear,
+    bgSamplesPerRow: 12,
+    bgBoxSize: 25,
+    bgTolerance: 1.0,
+    bgEdgeMargin: 0.02,
+    bgSmoothing: 0.10,
+    bgCorrection: 'subtract',
+    bgPedestal: 'model-median',
+    dither: true
+  };
+
+  SESSION = {
+    fileName: fileName,
+    now: now,
+    hdu: hdu, map: m,
+    decData: dec.data,
+    decodedInfo: decodedInfo,
+    rowOrder: rowOrder, flipped: flipped,
+    cfa: cfa, patternInfo: patternInfo, headerPattern: headerPattern,
+    planes: planes, outChannels: outChannels,
+    source: source, preview: preview,
+    sourceStats: sourceStats, statStride: statStride,
+    globalMedian: globalMedian, historyHits: historyHits,
+    defaults: defaults,
+    fitsMeta: fitsMeta,
+    openTimings: timings, openMs: Date.now() - t0,
+    autoRunDone: false
+  };
+
+  post({
+    type: 'opened',
+    fileName: fileName,
+    width: w, height: h, channels: outChannels,
+    // The preview buffer stays here — it is float, and nothing on the host can
+    // draw float. What the host gets is its shape, so it can size a control.
+    preview: { w: preview.w, h: preview.h, factor: Math.ceil(Math.max(w, h) / PREVIEW_EDGE) },
+    header: headerSummary(hdu, m),
+    cfa: cfaSummary(cfa, planes),
+    records: [],                 // step records; nothing has run yet
+    defaults: defaults,
+    canExportFits: !!fitsMeta
+  });
+
+  // Dropping a file still produces an image and a log without the host asking
+  // for anything. The protocol got a shape; the behaviour did not change.
+  await runChain(defaults, 'full', post);
+}
+
+/* ------------------------------------------------------------------ *
+ * run — the chain, on a clone, at preview or full resolution
+ * ------------------------------------------------------------------ */
+
+async function runChain(params, mode, post){
+  if (!SESSION) throw FitsError('unknown', 'run before open');
+  mode = (mode === 'preview') ? 'preview' : 'full';
+  params = params || SESSION.defaults;
+
+  var runStart = Date.now();
+  var timings = {}, k;
+  for (k in SESSION.openTimings) timings[k] = SESSION.openTimings[k];
+  function mark(name, from){ timings[name] = Date.now() - from; }
+  function stage(label, pct){ post({ type: 'progress', stage: label, pct: pct }); }
+
+  var full = (mode === 'full');
+  var base = full ? SESSION.source : SESSION.preview;
+
+  await yieldNow();
+  var step = Date.now();
+
+  var work = base.clone();
+  // Full mode reuses the measurement open() already took of these exact pixels.
+  // Preview is a different frame and has to be measured on its own — reusing
+  // the full-frame numbers would stretch the preview by parameters derived
+  // from an image it is not.
+  var measured = full ? SESSION.sourceStats : measure(work, 1);
+
+  var records = [];
+  function report(record){ records.push(record); }
+
+  // The measurement is copied rather than shared: stepStretchMTF writes
+  // shadows, midtones, target and scale onto the channels of its own `before`,
+  // and the background record would otherwise carry stretch parameters inside a
+  // measurement taken before the stretch existed.
+  stage('Sampling the background', 60);
+  work = stepBackground(work, {
+    samplesPerRow: params.bgSamplesPerRow,
+    boxSize: params.bgBoxSize,
+    tolerance: params.bgTolerance,
+    edgeMargin: params.bgEdgeMargin,
+    smoothing: params.bgSmoothing,
+    correction: params.bgCorrection,
+    pedestal: params.bgPedestal,
+    // Which buffer this is, expressed as a fraction of the frame the user is
+    // working on. The step scales its sample box by it. Full runs are 1 by
+    // definition; the preview is whatever downscaleFloat produced.
+    scale: full ? 1 : (work.w / SESSION.source.w),
+    stride: full ? SESSION.statStride : 1,
+    before: copyMeasurement(measured)
+  }, report);
+  mark('background', step);
+
+  await yieldNow();
+  step = Date.now();
+  stage('Applying autostretch', 68);
+
+  // THE STRETCH MUST MEASURE THE FRAME IT IS ABOUT TO TRANSFORM, not the frame
+  // that arrived. Background extraction removes the gradient, and the gradient
+  // was part of the spread the MADN measured: reusing the earlier measurement
+  // sets the black point at `median - 2.8 x MADN` on a MADN inflated by
+  // variation that is no longer there, and the stretch comes out weaker than it
+  // should be, everywhere, quietly.
+  //
+  // This was harmless while the background step only sampled — the two
+  // measurements described the same pixels — and became wrong the moment a
+  // pixel moved. The background step already measured the corrected frame as
+  // its own `after`, so the right number is free; what is not free is
+  // remembering to use it.
+  var bgRecord = records[records.length - 1];
+  var stretchBefore = bgRecord.after ? copyMeasurement(bgRecord.after)
+                                     : copyMeasurement(measured);
+
+  work = stepStretchMTF(work, {
+    shadowSigma: params.shadowSigma,
+    target: params.target,
+    blackPct: params.blackPct,
+    nonLinear: params.nonLinear,
+    stride: full ? SESSION.statStride : 1,
+    before: stretchBefore
+  }, report);
+  mark('transfer', step);
+
+  // Quantise ----------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  var rgba = quantise(work, { dither: params.dither }, report);
+  mark('quantise', step);
+
+  // Display copy ------------------------------------------------------
+  await yieldNow();
+  step = Date.now();
+  stage('Rendering', 88);
+  var view = downscale(rgba, work.w, work.h);
+  mark('downscale', step);
+
+  // By id, not by position. The log and the diagnostics print the numbers the
+  // autostretch derived — shadows, midtones, the clip counts — and those live
+  // on the channels of the stretch step's own `before`. Reading records[0]
+  // worked only while the stretch was the whole chain, and would have silently
+  // started reporting another step's measurement the moment one landed in
+  // front of it.
+  var stretchRecord = null;
+  for (var ri = 0; ri < records.length; ri++){
+    if (records[ri].id === 'stretch-mtf') stretchRecord = records[ri];
+  }
+  if (!stretchRecord) throw FitsError('unknown', 'the chain produced no stretch record');
+
+  var channels = stretchRecord.before.perChannel;
+  var log = null, diag = null;
+
+  if (full){
+    var ctx = {
+      fileName: SESSION.fileName,
+      date: SESSION.now.toISOString().slice(0, 10),
+      decoded: SESSION.decodedInfo,
+      rowOrder: SESSION.rowOrder,
+      cfa: SESSION.cfa,
+      headerPattern: SESSION.headerPattern,
+      pattern: SESSION.patternInfo || { pattern: null, source: null, corrected: false, notes: [] },
+      outChannels: SESSION.outChannels,
+      channels: channels,
+      records: records,
+      exportScaled: false, exportW: work.w, exportH: work.h,
+      stretch: {
+        nonLinear: params.nonLinear, globalMedian: SESSION.globalMedian,
+        historyHits: SESSION.historyHits,
+        shadowSigma: params.shadowSigma, target: params.target,
+        blackPercentile: params.blackPct
+      }
+    };
+    log = buildLog(ctx);
+
+    timings.total = (SESSION.autoRunDone ? 0 : SESSION.openMs) + (Date.now() - runStart);
+    diag = buildDiag(channels, view, timings, params);
+  }
+  SESSION.autoRunDone = true;
+
+  var transfer = (view.factor === 1) ? [view.data.buffer] : [view.data.buffer, rgba.buffer];
+
+  post({
+    type: 'rendered',
+    mode: mode,
+    width: work.w, height: work.h,
+    view: { w: view.w, h: view.h, factor: view.factor },
+    viewData: view.data.buffer,
+    rgba: (view.factor === 1) ? null : rgba.buffer,
+    log: log,
+    // Preview measures a smaller frame, so its numbers describe that frame and
+    // not the one the log is about. Handing back a diagnostics panel built from
+    // them would invite reading preview statistics as frame statistics.
+    diag: diag,
+    records: plainRecords(records)
+  }, transfer);
+}
+
+/* ------------------------------------------------------------------ *
+ * export — the linear frame, back out as a plain FITS
+ * ------------------------------------------------------------------ */
+
+function exportFits(kind, post){
+  if (!SESSION) throw FitsError('unknown', 'export before open');
+  if (kind && kind !== 'fits') throw FitsError('unknown', 'unknown export kind: ' + kind);
+  if (!SESSION.fitsMeta){
+    throw FitsError('unknown', 'this file did not arrive compressed, so there is nothing to unpack');
+  }
+
+  // A copy, never a transfer. When no debayer ran, `source.data` and `decData`
+  // are the same buffer, and transferring it would detach the frame every
+  // later run depends on.
+  var copy = allocFrom(Float32Array, SESSION.decData, 'the FITS export buffer');
+  post({ type: 'exported', kind: 'fits', fitsMeta: SESSION.fitsMeta, fitsData: copy.buffer },
+       [copy.buffer]);
+}
+
+/* ------------------------------------------------------------------ *
+ * Diagnostics
+ * ------------------------------------------------------------------ */
+
+function headerSummary(hdu, m){
+  return {
+    BITPIX: m.BITPIX, NAXIS: m.NAXIS, NAXIS1: m.NAXIS1, NAXIS2: m.NAXIS2, NAXIS3: m.NAXIS3,
+    BZERO: m.BZERO, BSCALE: m.BSCALE, ROWORDER: m.ROWORDER, BAYERPAT: m.BAYERPAT,
+    XBAYROFF: m.XBAYROFF, YBAYROFF: m.YBAYROFF, PROGRAM: m.PROGRAM, INSTRUME: m.INSTRUME,
+    CREATOR: m.CREATOR, TELESCOP: m.TELESCOP,
+    OBJECT: m.OBJECT, STACKCNT: m.STACKCNT, EXPTIME: m.EXPTIME,
+    compressedHDU: !!hdu.compressed,
+    ZCMPTYPE: m.ZCMPTYPE, ZQUANTIZ: m.ZQUANTIZ, ZDITHER0: m.ZDITHER0,
+    ZBITPIX: m.ZBITPIX, ZTILE: hdu.compressed ? [m.ZTILE1, m.ZTILE2, m.ZTILE3] : undefined,
+    tableNAXIS1: hdu.table ? hdu.table.NAXIS1 : undefined,
+    tableNAXIS2: hdu.table ? hdu.table.NAXIS2 : undefined,
+    tablePCOUNT: hdu.table ? hdu.table.PCOUNT : undefined
+  };
+}
+
+function cfaSummary(cfa, planes){
+  if (!cfa) return 'skipped — file already has ' + planes + ' planes';
+  return {
+    evenDims: cfa.evenDims, isMosaic: cfa.isMosaic,
+    headerDeclared: cfa.headerDeclared, trustedHeader: cfa.trustedHeader,
+    decidedBy: cfa.trustedHeader ? 'BAYERPAT keyword (statistics used only for the green axis)'
+                                 : 'lattice statistics (no usable BAYERPAT)',
+    ratioH: cfa.ratioH, ratioV: cfa.ratioV, threshold: 1.15,
+    latticeMedians: { r0c0: cfa.lattice[0], r0c1: cfa.lattice[1], r1c0: cfa.lattice[2], r1c1: cfa.lattice[3] },
+    latticeContrast: cfa.contrast, greenAxis: cfa.greenAxis,
+    stackedHistory: cfa.stackedHistory
+  };
+}
+
+function buildDiag(channels, view, timings, params){
+  var S = SESSION;
+  return {
+    file: S.fileName,
+    hduIndex: S.hdu.index,
+    dataStart: S.hdu.dataStart,
+    header: headerSummary(S.hdu, S.map),
+    decoded: S.decodedInfo,
+    rowOrder: { keyword: S.rowOrder, flipApplied: S.flipped },
+    cfa: cfaSummary(S.cfa, S.planes),
+    pattern: S.patternInfo || 'no debayer',
+    linearity: {
+      globalMedian: S.globalMedian, historyHits: S.historyHits,
+      rule: 'nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)',
+      verdict: params.nonLinear ? 'NON-LINEAR — reduced stretch' : 'LINEAR — full autostretch'
+    },
+    channels: channels.map(function(s, idx){
+      return {
+        channel: S.outChannels === 1 ? 'L' : ['R', 'G', 'B'][idx],
+        median: s.median, madn: s.madn, q1: s.q1, q3: s.q3,
+        shadows: s.shadows, midtones: s.midtones, target: s.target,
+        pixelsBlack: s.outLow, pixelsWhite: s.outHigh,
+        totalPixels: s.totalPixels, statSamples: s.sampled, statStride: s.stride, nonFinite: s.nan
+      };
+    }),
+    view: { width: view.w, height: view.h, downscaleFactor: view.factor },
+    timingsMs: timings,
+    historyCards: S.hdu.history,
+    allCards: S.hdu.cards
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Message protocol — identical in worker and main-thread fallback
+ * ------------------------------------------------------------------ */
+
+self.onmessage = function(ev){
+  var msg = ev.data || {};
+
+  function post(payload, transfer){ self.postMessage(payload, transfer || []); }
+  function fail(e){
+    // A RangeError that reached here without a kind is an allocation that
+    // failed somewhere the `alloc` helper does not cover. It is not "something
+    // went wrong", it is a memory limit, and the two send the reader to
+    // completely different places: one asks for a bug report, the other says
+    // close some tabs. The header is validated before anything large is
+    // requested — `truncated` and `baddims` fire first — so by the time a
+    // RangeError can happen, the size being asked for is a size the file
+    // genuinely declares.
+    var kind = (e && e.kind) || ((e instanceof RangeError) ? 'memory' : 'unknown');
+    post({ type: 'error', kind: kind, message: String((e && e.message) || e) });
+  }
+
+  try {
+    if (msg.cmd === 'open'){
+      openFile(msg.buffer, msg.fileName, msg.opts, post).catch(fail);
+    } else if (msg.cmd === 'run'){
+      runChain(msg.params, msg.mode, post).catch(fail);
+    } else if (msg.cmd === 'export'){
+      exportFits(msg.kind, post);
+    } else {
+      throw FitsError('unknown', 'unknown command: ' + msg.cmd);
+    }
+  } catch (e){
+    fail(e);
+  }
+};
+
+// Handshake: the host waits for this before handing over the file buffer, so a
+// worker that cannot start never costs us the (already transferred) data.
+self.postMessage({ type: 'ready' });
+</script>
+
+<script>
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ * Elements
+ * ------------------------------------------------------------------ */
+var $ = function(id){ return document.getElementById(id); };
+var elDrop = $('drop'), elZone = $('zone'), elPicker = $('picker');
+var elBusy = $('busy'), elStage = $('stage'), elBar = $('barfill'), elNote = $('busynote');
+var elOut = $('out'), elView = $('view'), elLog = $('logtext');
+var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
+var elDiag = $('diag'), elDiagBody = $('diagbody');
+var elToast = $('toast');
+
+var state = { log: '', diag: null, full: null, view: null, w: 0, h: 0, name: '' };
+
+/* ------------------------------------------------------------------ *
+ * Friendly errors
+ * ------------------------------------------------------------------ */
+var ERRORS = {
+  notfits:    ['This is not a FITS file',
+               'The file does not begin with a FITS header. If it came out of a camera or a stacker, make sure you picked the .fit or .fits file and not a preview JPEG.'],
+  cmptype:    ['This .fz uses a compression this page cannot unpack',
+               'Rice compression (RICE_1), which is what Siril and fpack write by default, is supported. This file uses something else. Running funpack on it, or re-saving it uncompressed from Siril, will produce a file that works.'],
+  noimage:    ['No image inside this file',
+               'The FITS is valid but every part of it is a table or an empty placeholder. There is no picture to stretch.'],
+  truncated:  ['This file looks incomplete',
+               'The header promises more pixel data than the file actually contains. It was probably cut short while being copied or downloaded.'],
+  bitpix:     ['Unusual pixel format',
+               'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
+  baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
+  empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
+  memory:     ['This frame is too large for the browser to hold',
+               'Nothing is wrong with the file — the browser ran out of room. Three things usually fix it, in order of how often they work: close the other tabs and try again; use a 64-bit browser, since a 32-bit one caps out around 2 GB whatever the machine has; or process a smaller frame, for example one that has not been drizzled or upscaled. A stacked 4K frame in 32-bit float is about 100 MB per channel before anything else is allocated, and the chain needs a few copies of it.'],
+  unknown:    ['Something went wrong reading this file',
+               'The file could not be processed. If it opens correctly in Siril, it is worth reporting.']
+};
+
+function showError(kind, detail){
+  var e = ERRORS[kind] || ERRORS.unknown;
+  elErrTitle.textContent = e[0];
+  elErrBody.textContent = e[1] + (detail ? '  (' + detail + ')' : '');
+  elBusy.classList.remove('on');
+  elDrop.classList.add('hide');
+  elOut.classList.remove('on');
+  elErr.classList.add('on');
+}
+
+function toast(text){
+  elToast.textContent = text;
+  elToast.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ elToast.classList.remove('on'); }, 1900);
+}
+
+/* ------------------------------------------------------------------ *
+ * Runner — worker when possible, same source inline when not
+ * ------------------------------------------------------------------ */
+var pipelineSrc = $('pipeline-src').textContent;
+
+function startWorker(){
+  try {
+    var url = URL.createObjectURL(new Blob([pipelineSrc], { type: 'text/javascript' }));
+    var w = new Worker(url);
+    URL.revokeObjectURL(url);
+    return w;
+  } catch (e){
+    return null;
+  }
+}
+
+// Main-thread stand-in exposing the same surface the pipeline expects.
+function startInline(onMessage){
+  var shim = { onmessage: null, postMessage: function(p){ onMessage({ data: p }); } };
+  try {
+    new Function('self', pipelineSrc)(shim);
+  } catch (e){
+    return null;
+  }
+  return {
+    postMessage: function(msg){
+      setTimeout(function(){ shim.onmessage({ data: msg }); }, 0);
+    },
+    terminate: function(){}
+  };
+}
+
+var runner = null, runnerIsWorker = false;
+
+// Set while a Download-FITS click is waiting on the worker, so an error that
+// arrives during an export is reported as a failed export instead of tearing
+// down the result screen the user is looking at.
+var pendingExport = null;
+
+function onMessage(ev){
+  var m = ev.data;
+  if (!m || m.type === 'ready') return;
+  if (m.type === 'progress'){
+    elStage.textContent = m.stage;
+    elBar.style.width = m.pct + '%';
+  } else if (m.type === 'error'){
+    if (pendingExport){
+      var btn = pendingExport; pendingExport = null;
+      btn.disabled = false;
+      btn.textContent = 'Download uncompressed FITS';
+      toast('Could not write the FITS' + (runnerIsWorker ? '' : ' — ' + m.message));
+      return;
+    }
+    showError(m.kind, runnerIsWorker ? '' : m.message);
+  } else if (m.type === 'opened'){
+    opened(m);
+  } else if (m.type === 'rendered'){
+    elBar.style.width = '100%';
+    finish(m);
+  } else if (m.type === 'exported'){
+    exported(m);
+  }
+}
+
+// Ask the worker to run the chain again with different parameters. Nothing in
+// the UI calls this yet — open() already fires a full run of its own — but it
+// is the whole reason the decoded frame is now kept on the other side.
+function requestRun(params, mode){
+  if (!runner) return;
+  runner.postMessage({ cmd: 'run', params: params || null, mode: mode || 'full' });
+}
+
+function open(buffer, fileName, byteSize, opts){
+  elErr.classList.remove('on');
+  elOut.classList.remove('on');
+  elDrop.classList.add('hide');
+  elBusy.classList.add('on');
+  elStage.textContent = 'Reading file';
+  elBar.style.width = '2%';
+  elNote.textContent = byteSize > 60 * 1024 * 1024
+    ? (byteSize / 1048576).toFixed(0) + ' MB — large frames take a few seconds'
+    : '';
+
+  // A second file must not inherit the first one's export.
+  state.fitsMeta = null;
+  state.fitsData = null;
+  pendingExport = null;
+
+  if (runner) { try { runner.terminate(); } catch (e){} runner = null; }
+
+  var settled = false;
+
+  function send(){
+    try {
+      // The buffer is handed over only once the executor has proved it is
+      // alive; transferring it earlier would leave nothing to retry with.
+      runner.postMessage({ cmd: 'open', buffer: buffer, fileName: fileName, opts: opts || null },
+                         runnerIsWorker ? [buffer] : undefined);
+    } catch (e){
+      showError('memory', String(e && e.message || e));
+    }
+  }
+
+  function goInline(){
+    runnerIsWorker = false;
+    runner = startInline(onMessage);
+    if (!runner) { showError('unknown', 'no execution context available'); return; }
+    send();
+  }
+
+  var w = startWorker();
+  if (!w){ goInline(); return; }
+
+  runner = w;
+  runnerIsWorker = true;
+
+  w.onmessage = function(ev){
+    if (ev.data && ev.data.type === 'ready'){
+      if (settled) return;
+      settled = true;
+      send();
+      return;
+    }
+    onMessage(ev);
+  };
+  w.onerror = function(){
+    if (settled){ showError('unknown', 'the worker stopped unexpectedly'); return; }
+    settled = true;
+    try { w.terminate(); } catch (e){}
+    goInline();                       // blob workers are blocked on file://
+  };
+  setTimeout(function(){
+    if (settled) return;
+    settled = true;
+    try { w.terminate(); } catch (e){}
+    goInline();
+  }, 2000);
+}
+
+// The worker finished decoding. Everything here describes the frame; the
+// picture arrives with the render that follows.
+function opened(m){
+  state.opened = m;
+  state.defaults = m.defaults;
+  state.canExportFits = !!m.canExportFits;
+  $('dlfits').hidden = !state.canExportFits;
+  $('fitshint').hidden = !state.canExportFits;
+}
+
+function finish(m){
+  state.records = m.records;
+  state.w = m.width;
+  state.h = m.height;
+  state.view = { data: new Uint8ClampedArray(m.viewData), w: m.view.w, h: m.view.h };
+  state.full = m.rgba ? new Uint8ClampedArray(m.rgba) : null;
+
+  // A preview render carries no log and no diagnostics, because it measured a
+  // smaller frame than the one they would claim to describe. It repaints the
+  // canvas and leaves the text alone.
+  if (m.log !== null){
+    state.log = m.log;
+    state.diag = m.diag;
+  }
+
+  elView.width = state.view.w;
+  elView.height = state.view.h;
+  elView.getContext('2d').putImageData(new ImageData(state.view.data, state.view.w, state.view.h), 0, 0);
+
+  $('outname').textContent = state.name;
+  $('outdims').textContent = m.width + ' × ' + m.height +
+    (m.view.factor > 1 ? '  (shown at 1/' + m.view.factor + ')' : '');
+  elLog.textContent = state.log;
+
+  elBusy.classList.remove('on');
+  elOut.classList.add('on');
+  renderDiag();
+}
+
+/* ------------------------------------------------------------------ *
+ * Input
+ * ------------------------------------------------------------------ */
+function handleFile(file){
+  var name = file.name || 'image.fit';
+  state.name = name;
+  file.arrayBuffer().then(function(buf){
+    open(buf, name, file.size);
+  }).catch(function(e){
+    showError('memory', String(e && e.message || e));
+  });
+}
+
+elZone.addEventListener('click', function(){ elPicker.click(); });
+elPicker.addEventListener('change', function(){
+  if (elPicker.files && elPicker.files[0]) handleFile(elPicker.files[0]);
+});
+
+['dragenter', 'dragover'].forEach(function(t){
+  window.addEventListener(t, function(e){ e.preventDefault(); document.body.classList.add('dragging'); });
+});
+['dragleave', 'drop'].forEach(function(t){
+  window.addEventListener(t, function(e){
+    e.preventDefault();
+    if (t === 'dragleave' && e.relatedTarget) return;
+    document.body.classList.remove('dragging');
+  });
+});
+window.addEventListener('drop', function(e){
+  e.preventDefault();
+  var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+function reset(){
+  elOut.classList.remove('on');
+  elErr.classList.remove('on');
+  elBusy.classList.remove('on');
+  elDrop.classList.remove('hide');
+  elPicker.value = '';
+}
+$('reset').addEventListener('click', reset);
+$('errback').addEventListener('click', reset);
+
+/* ------------------------------------------------------------------ *
+ * Outputs
+ * ------------------------------------------------------------------ */
+$('copylog').addEventListener('click', function(){
+  var text = state.log;
+  if (!text) return;
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Processing log copied'); }
+    catch (e){ toast('Could not copy — select the text instead'); }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast('Processing log copied'); }, fallback);
+  } else fallback();
+});
+
+$('dlpng').addEventListener('click', function(){
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Preparing PNG…';
+
+  setTimeout(function(){
+    var data, w, h, scaled = false;
+    if (state.full){ data = state.full; w = state.w; h = state.h; }
+    else { data = state.view.data; w = state.view.w; h = state.view.h; scaled = (w !== state.w); }
+
+    var canvas, ctx;
+    try {
+      canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      ctx = canvas.getContext('2d');
+      ctx.putImageData(new ImageData(data, w, h), 0, 0);
+    } catch (e){
+      // Canvas too large for this browser — fall back to the display copy.
+      data = state.view.data; w = state.view.w; h = state.view.h; scaled = true;
+      canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      ctx = canvas.getContext('2d');
+      ctx.putImageData(new ImageData(data, w, h), 0, 0);
+    }
+
+    canvas.toBlob(function(blob){
+      if (!blob){
+        toast('This browser could not encode a PNG that large');
+        btn.disabled = false; btn.textContent = 'Download PNG';
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = state.name.replace(/\.(fits?|fts)$/i, '') + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      btn.disabled = false;
+      btn.textContent = 'Download PNG';
+      if (scaled) toast('Exported at ' + w + ' × ' + h + ' — full size exceeded this browser');
+    }, 'image/png');
+  }, 30);
+});
+
+// The linear frame no longer rides along with the render — it is asked for.
+// The answer is cached, because the worker sends a copy of a frame that can be
+// a hundred megabytes and a second click should not pay for it again.
+$('dlfits').addEventListener('click', function(){
+  if (!state.canExportFits) return;
+  var btn = this;
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Writing FITS…';
+
+  if (state.fitsMeta && state.fitsData){ writeFits(btn); return; }
+
+  pendingExport = btn;
+  try {
+    runner.postMessage({ cmd: 'export', kind: 'fits' });
+  } catch (e){
+    pendingExport = null;
+    btn.disabled = false; btn.textContent = 'Download uncompressed FITS';
+    toast('Could not ask for the FITS — ' + String(e && e.message || e));
+  }
+});
+
+function exported(m){
+  state.fitsMeta = m.fitsMeta;
+  state.fitsData = new Float32Array(m.fitsData);
+  var btn = pendingExport;
+  pendingExport = null;
+  if (btn) writeFits(btn);
+}
+
+function writeFits(btn){
+  setTimeout(function(){
+    var blob;
+    try {
+      blob = buildFitsBlob(state.fitsMeta, state.fitsData);
+    } catch (e){
+      toast('Could not write the FITS — the image is too large for this browser');
+      btn.disabled = false; btn.textContent = 'Download uncompressed FITS';
+      return;
+    }
+    // r_stack.fit.fz -> r_stack.fit ; anything else gains a .fit
+    var name = state.name.replace(/\.(fz|gz)$/i, '');
+    if (!/\.(fits?|fts)$/i.test(name)) name += '.fit';
+
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 8000);
+    btn.disabled = false;
+    btn.textContent = 'Download uncompressed FITS';
+    toast('Wrote ' + name + ' — ' + (blob.size / 1048576).toFixed(0) + ' MB');
+  }, 30);
+}
+
+/* ------------------------------------------------------------------ *
+ * Writing an uncompressed FITS back out
+ *
+ * Everything describing the container or the compression is rebuilt; every
+ * keyword describing the observation is carried across untouched, because
+ * that is what Siril reads to know the scope, the sensor and the CFA.
+ * ------------------------------------------------------------------ */
+
+function isStructuralKey(key){
+  if (/^(SIMPLE|XTENSION|BITPIX|EXTEND|PCOUNT|GCOUNT|TFIELDS|THEAP|BZERO|BSCALE|END|CHECKSUM|DATASUM)$/.test(key)) return true;
+  if (/^NAXIS\d*$/.test(key)) return true;
+  if (/^(TTYPE|TFORM|TDIM|TUNIT|TSCAL|TZERO|TNULL|TDISP)\d+$/.test(key)) return true;
+  if (/^(ZIMAGE|ZSIMPLE|ZBITPIX|ZEXTEND|ZPCOUNT|ZGCOUNT|ZTENSION|ZCMPTYPE|ZQUANTIZ|ZDITHER0|ZMASKCMP|ZBLANK|ZHECKSUM|ZDATASUM|ZTHEAP)$/.test(key)) return true;
+  if (/^(ZNAXIS|ZTILE|ZNAME|ZVAL)\d*$/.test(key)) return true;
+  return false;
+}
+
+function fitsCard(key, value, comment){
+  var body;
+  if (typeof value === 'string'){
+    var s = value.length < 8 ? (value + '        ').slice(0, 8) : value;
+    body = "'" + s + "'";
+    while (body.length < 20) body += ' ';
+  } else {
+    body = (value === true) ? 'T' : (value === false) ? 'F' : String(value);
+    while (body.length < 20) body = ' ' + body;
+  }
+  var card = (key + '        ').slice(0, 8) + '= ' + body;
+  if (comment) card += ' / ' + comment;
+  return (card + '                                                                                ').slice(0, 80);
+}
+
+function padCard(text){
+  return (text + '                                                                                ').slice(0, 80);
+}
+
+// A card is 80 bytes and "HISTORY " eats 8 of them, so long text is wrapped on
+// word boundaries rather than silently cut mid-word.
+function historyCards(text){
+  var out = [], words = text.split(' '), line = '';
+  for (var i = 0; i < words.length; i++){
+    var next = line ? line + ' ' + words[i] : words[i];
+    if (next.length > 72){ out.push(padCard('HISTORY ' + line)); line = words[i]; }
+    else line = next;
+  }
+  if (line) out.push(padCard('HISTORY ' + line));
+  return out;
+}
+
+function buildFitsBlob(meta, values){
+  var w = meta.width, h = meta.height, planes = meta.planes;
+  var n = w * h * planes;
+  var bitpix = meta.bitpix;
+  var bytesPer = Math.abs(bitpix) / 8;
+
+  var cards = [];
+  cards.push(fitsCard('SIMPLE', true, 'conforms to FITS standard'));
+  cards.push(fitsCard('BITPIX', bitpix));
+  cards.push(fitsCard('NAXIS', planes > 1 ? 3 : 2));
+  cards.push(fitsCard('NAXIS1', w));
+  cards.push(fitsCard('NAXIS2', h));
+  if (planes > 1) cards.push(fitsCard('NAXIS3', planes));
+  cards.push(fitsCard('EXTEND', true));
+  cards.push(fitsCard('BZERO', meta.bzero));
+  cards.push(fitsCard('BSCALE', meta.bscale));
+
+  for (var i = 0; i < meta.cards.length; i++){
+    var raw = meta.cards[i];
+    var key = raw.slice(0, 8).trim();
+    if (key === 'END') continue;
+    if (key !== 'COMMENT' && key !== 'HISTORY' && isStructuralKey(key)) continue;
+    cards.push(padCard(raw));
+  }
+
+  historyCards('Unpacked from ' + meta.cmptype + ' tile compression by Stretch. ' +
+               'Pixel values, row order and observation keywords are unchanged.')
+    .forEach(function(c){ cards.push(c); });
+  cards.push(padCard('END'));
+
+  var headerText = cards.join('');
+  var headerPad = (2880 - (headerText.length % 2880)) % 2880;
+  while (headerPad-- > 0) headerText += ' ';
+  var headerBytes = headerText.length;
+
+  var dataBytes = n * bytesPer;
+  var totalPad = (2880 - (dataBytes % 2880)) % 2880;
+  var buf = new ArrayBuffer(headerBytes + dataBytes + totalPad);
+  var u8 = new Uint8Array(buf);
+  for (i = 0; i < headerBytes; i++) u8[i] = headerText.charCodeAt(i) & 0xFF;
+
+  // Undo the [0,1] normalisation, and undo the row flip so the file comes out
+  // in the same row order it arrived in.
+  var lo = meta.scaleLo, div = meta.scaleDiv, bz = meta.bzero, bs = meta.bscale || 1;
+  var plane = w * h, flip = meta.flipApplied;
+
+  function readSource(p, y, x){
+    var sy = flip ? (h - 1 - y) : y;
+    return values[p * plane + sy * w + x];
+  }
+
+  var out, k = 0, p, y, x, phys;
+  if (bitpix === -32 || bitpix === -64){
+    out = (bitpix === -32) ? new Float32Array(buf, headerBytes, n) : new Float64Array(buf, headerBytes, n);
+    for (p = 0; p < planes; p++) for (y = 0; y < h; y++) for (x = 0; x < w; x++){
+      phys = readSource(p, y, x) * div + lo;
+      out[k++] = (phys - bz) / bs;
+    }
+  } else {
+    out = (bitpix === 8) ? new Uint8Array(buf, headerBytes, n)
+        : (bitpix === 16) ? new Int16Array(buf, headerBytes, n)
+        : new Int32Array(buf, headerBytes, n);
+    for (p = 0; p < planes; p++) for (y = 0; y < h; y++) for (x = 0; x < w; x++){
+      phys = readSource(p, y, x) * div + lo;
+      out[k++] = Math.round((phys - bz) / bs);
+    }
+  }
+
+  // FITS is big-endian.
+  if (bytesPer === 2){
+    var u16 = new Uint16Array(buf, headerBytes, n);
+    for (i = 0; i < n; i++){ var v16 = u16[i]; u16[i] = ((v16 >>> 8) | (v16 << 8)) & 0xFFFF; }
+  } else if (bytesPer === 4){
+    var u32 = new Uint32Array(buf, headerBytes, n);
+    for (i = 0; i < n; i++){
+      var v = u32[i];
+      u32[i] = ((v >>> 24) | ((v >>> 8) & 0xFF00) | ((v & 0xFF00) << 8) | (v << 24)) >>> 0;
+    }
+  } else if (bytesPer === 8){
+    var w32 = new Uint32Array(buf, headerBytes, n * 2);
+    for (i = 0; i < n * 2; i += 2){
+      var a = w32[i], b = w32[i + 1];
+      w32[i]     = ((b >>> 24) | ((b >>> 8) & 0xFF00) | ((b & 0xFF00) << 8) | (b << 24)) >>> 0;
+      w32[i + 1] = ((a >>> 24) | ((a >>> 8) & 0xFF00) | ((a & 0xFF00) << 8) | (a << 24)) >>> 0;
+    }
+  }
+
+  return new Blob([buf], { type: 'application/fits' });
+}
+
+/* ------------------------------------------------------------------ *
+ * Diagnostics — press D, or add #debug
+ * ------------------------------------------------------------------ */
+function section(title, body){
+  var d = document.createElement('div');
+  d.className = 'sect';
+  var h = document.createElement('h3'); h.textContent = title;
+  var p = document.createElement('pre'); p.textContent = body;
+  d.appendChild(h); d.appendChild(p);
+  return d;
+}
+function dump(o){
+  return JSON.stringify(o, function(k, v){
+    return (typeof v === 'number' && !Number.isInteger(v)) ? Number(v.toPrecision(8)) : v;
+  }, 2);
+}
+
+function renderDiag(){
+  var d = state.diag;
+  elDiagBody.innerHTML = '';
+  if (!d){
+    elDiagBody.appendChild(section('Nothing loaded', 'Drop a FITS file to populate this panel.'));
+    return;
+  }
+  elDiagBody.appendChild(section('Decisions', dump({
+    rowOrder: d.rowOrder,
+    cfa: d.cfa,
+    pattern: d.pattern,
+    linearity: d.linearity
+  })));
+  elDiagBody.appendChild(section('Per channel', dump(d.channels)));
+  elDiagBody.appendChild(section('Decoding', dump({ hduIndex: d.hduIndex, dataStart: d.dataStart, decoded: d.decoded, view: d.view })));
+  elDiagBody.appendChild(section('Timings (ms)', dump(d.timingsMs)));
+  elDiagBody.appendChild(section('Key header values', dump(d.header)));
+  elDiagBody.appendChild(section('HISTORY cards (' + d.historyCards.length + ')', d.historyCards.join('\n') || '(none)'));
+  elDiagBody.appendChild(section('Full header (' + d.allCards.length + ' cards)', d.allCards.join('\n')));
+}
+
+function toggleDiag(force){
+  var on = (force === undefined) ? !elDiag.classList.contains('on') : force;
+  elDiag.classList.toggle('on', on);
+  if (on) renderDiag();
+}
+$('diagclose').addEventListener('click', function(){ toggleDiag(false); });
+window.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { toggleDiag(false); return; }
+  if ((e.key === 'd' || e.key === 'D') && !e.metaKey && !e.ctrlKey && !e.altKey){
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    toggleDiag();
+  }
+});
+if (location.hash === '#debug') toggleDiag(true);
+
+/*TEST_HOOKS_START*/
+/* Test hooks. THESE DO NOT SHIP.
+ *
+ * build.ps1 emits two files from this one template: index.html without this
+ * block, which is the download, and .claude/index-test.html with it, which is
+ * what the golden capture opens. Both are byte-checked by build.ps1 -Check, so
+ * the two cannot drift apart unnoticed.
+ *
+ * Why they are stripped rather than left in. The argument this page makes is
+ * that anyone can open it and read everything it does, and the fetch below is
+ * the only network call in the whole file. It never fires unless something
+ * calls it — but "there is a fetch in here and it is only for tests" is a
+ * sentence the reader has to take on trust, and the point of the page is that
+ * nothing has to be taken on trust. window.__state is the same trade: it hands
+ * out the internals for the convenience of a test nobody downloading will run.
+ *
+ * The second argument goes straight through to runPipeline's opts, which is how
+ * a reference capture pins the date: __loadFromURL(url, { now: '2026-09-05' }) */
+window.__loadFromURL = function(url, opts){
+  return fetch(url).then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.arrayBuffer();
+  }).then(function(buf){
+    state.name = decodeURIComponent(url.split('/').pop() || '') || 'remote.fit';
+    open(buf, state.name, buf.byteLength, opts);
+    return new Promise(function(resolve){
+      var iv = setInterval(function(){
+        if (elOut.classList.contains('on') || elErr.classList.contains('on')){
+          clearInterval(iv);
+          resolve(state.diag ? 'ok' : 'error');
+        }
+      }, 250);
+    });
+  });
+};
+window.__state = state;
+/*TEST_HOOKS_END*/
+</script>
+</body>
+</html>
