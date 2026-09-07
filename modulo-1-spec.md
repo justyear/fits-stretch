@@ -157,10 +157,25 @@ propriedade dos fixtures e não do código. Demonstrado, e não argumentado:
 | `seestar` 1920×1080 | 22 px | 65 px | `0,06` | 12 |
 | `rice` 2600×1000 | 20 px | 88 px | `0,09` | 24 |
 
-**Pendência menor:** nenhum fixture exercita `rejected-edge` com os parâmetros
-padrão, então o estado é alcançável mas não coberto pela suíte de goldens. Fecha
-com um fixture de quadro pequeno, ou com um golden capturado com `edgeMargin`
-acima do limiar — decisão de quem escrever o próximo fixture.
+**FECHADO — `fixture-edge.fit`.** 400×300×3, 1,44 MB, o fixture mais barato da
+suíte. A condição acima resolve para "quadro abaixo de ~554 px" com
+`samplesPerRow` 12 e `boxSize` 25, então um quadro pequeno exercita o estado
+sem mexer em nenhum parâmetro: margem 6 px, primeira amostra em x=17, caixa
+alcança 5 < 6, dispara.
+
+Com os parâmetros padrão: **38 de 108 rejeitadas por borda**, 6 por brilho, 64
+aceitas — bem acima da salvaguarda de 8. E a frase aparece na entrega:
+
+```
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a
+  12 × 9 grid and used 64 of them (6 brighter than the background, 38 on the
+  frame edge were left out).
+```
+
+Escolhido em vez de um golden do `gradient` com `edgeMargin` 0,05 por dois
+motivos: o fluxo de captura não passa parâmetros, então o segundo exigiria mexer
+no harness; e 1,44 MB cobre de graça uma segunda lacuna que também não tinha
+nada — **quadro pequeno**, onde a grade e a margem interagem.
 
 ### 2.2 Rejeição — por ponto, com motivo
 

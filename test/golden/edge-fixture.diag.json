@@ -1,0 +1,135 @@
+{
+  "file": "fixture-edge.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 400,
+    "NAXIS2": 300,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Edge probe",
+    "EXPTIME": 120,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 400,
+    "height": 300,
+    "planes": 3,
+    "rawMin": 0.010414721444249153,
+    "rawMax": 1,
+    "nonFinite": 0,
+    "normMin": 0.010414721444249153,
+    "normMax": 1,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.015676101828539457,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.01701380941481651,
+      "madn": 0.0006735644780028837,
+      "q1": 0.016556038757915618,
+      "q3": 0.017471580071717403,
+      "shadows": 0.015127828876408435,
+      "midtones": 0.005722930456919257,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 6,
+      "totalPixels": 120000,
+      "statSamples": 120000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.015472648203250172,
+      "madn": 0.0006755362903739118,
+      "q1": 0.01501487754634928,
+      "q3": 0.015915159838254367,
+      "shadows": 0.013581146590203218,
+      "midtones": 0.005730654614625154,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 120000,
+      "statSamples": 120000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.014251926451514458,
+      "madn": 0.0006764849143927486,
+      "q1": 0.013794155794613565,
+      "q3": 0.01470969710841535,
+      "shadows": 0.012357768691214762,
+      "midtones": 0.005731589871899501,
+      "target": 0.25,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 120000,
+      "statSamples": 120000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "view": {
+    "width": 400,
+    "height": 300,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 11,
+    "preview": 0,
+    "stats": 29,
+    "background": 103,
+    "transfer": 28,
+    "quantise": 49,
+    "downscale": 0,
+    "total": 233
+  },
+  "historyCards": [
+    "Small frame: the default edge margin reaches the sample grid.",
+    "Exists so rejected-edge is exercised, not merely reachable."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  400",
+    "NAXIS2  =                  300",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Edge probe'",
+    "EXPTIME =                 120. / seconds",
+    "HISTORY Small frame: the default edge margin reaches the sample grid.",
+    "HISTORY Exists so rejected-edge is exercised, not merely reachable.",
+    "END"
+  ]
+}

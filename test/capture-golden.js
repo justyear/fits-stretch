@@ -72,7 +72,11 @@ window.__GOLDEN = [
   // golden only pins the decode and the autostretch of a 1600x1200 frame. It
   // is captured now anyway: when background extraction lands, "what changed"
   // has to be answerable against a baseline taken before it existed.
-  ['gradient-fixture',  '/f/test/fixtures/fixture-gradient.fit']
+  ['gradient-fixture',  '/f/test/fixtures/fixture-gradient.fit'],
+  // 400x300, o unico pequeno o bastante para a margem padrao alcancar a
+  // grade de amostras. Existe para que rejected-edge seja exercitado e nao
+  // apenas alcancavel.
+  ['edge-fixture',      '/f/test/fixtures/fixture-edge.fit']
 ];
 
 window.__captureAll = async function () {

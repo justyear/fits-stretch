@@ -106,15 +106,15 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
+    "header": 1,
     "decode": 24,
-    "preview": 1,
-    "stats": 53,
-    "background": 173,
-    "transfer": 66,
-    "quantise": 83,
+    "preview": 2,
+    "stats": 78,
+    "background": 170,
+    "transfer": 71,
+    "quantise": 87,
     "downscale": 0,
-    "total": 412
+    "total": 451
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

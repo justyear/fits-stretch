@@ -36,6 +36,15 @@
 #                  `decoded`, `cfa`, `header`, `view`, cards: exact. Those are
 #                  read off the file and must not move at all.
 #
+#   png            per pixel, per channel, up to 1 level (section 7).
+#   log.txt        EXACT. No tolerance, on purpose: every number the log prints
+#                  comes from the `before` of the stretch record, which no step
+#                  downstream can move. A log FAIL beside a records PASS is
+#                  therefore a real finding and reads as one. The day a printed
+#                  5-decimal number sits on a rounding boundary and flips,
+#                  recapture - do not loosen this.
+#   clip counts    EXACT, see below.
+#
 # CLIP COUNTS ARE EXACT HERE, and section 7 says 0.05% of the frame. The
 # departure is deliberate and the two comparators now differ on purpose:
 #
@@ -54,14 +63,6 @@
 # because background extraction had removed the gradient that caused it - and
 # it passed at 269 against a limit of 270. It passed by ONE PIXEL. A tolerance
 # that forgives a count going to zero is not measuring that count.
-#   png            per pixel, per channel, up to 1 level (section 7).
-#   log.txt        EXACT. No tolerance, on purpose: every number the log prints
-#                  comes from record.before, and buildLog is handed
-#                  records[0].before.perChannel, which no step downstream can
-#                  move. A log FAIL beside a records PASS is therefore a real
-#                  finding and reads as one. The day a printed 5-decimal number
-#                  sits on a rounding boundary and flips, recapture - do not
-#                  loosen this.
 #
 # The blind spot, and what is done about it: a whole image shifted by exactly 1
 # level passes the PNG check. That is what "up to 1 level" means, section 7
@@ -93,7 +94,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture'),
     [switch]   $Detail
 )
 

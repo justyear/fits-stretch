@@ -129,15 +129,15 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 350,
-    "roworder": 3,
-    "preview": 55,
-    "stats": 159,
-    "background": 415,
-    "transfer": 251,
-    "quantise": 320,
-    "downscale": 38,
-    "total": 1617
+    "decode": 416,
+    "roworder": 4,
+    "preview": 65,
+    "stats": 193,
+    "background": 624,
+    "transfer": 313,
+    "quantise": 360,
+    "downscale": 44,
+    "total": 2038
   },
   "historyCards": [],
   "allCards": [

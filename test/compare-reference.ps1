@@ -30,7 +30,8 @@
 param(
     [string]   $Reference = 'justyear-referencia.json',
     [string[]] $Only,
-    [switch]   $Quiet
+    [switch]   $Quiet,
+    [switch]   $Csv
 )
 
 $ErrorActionPreference = 'Stop'
@@ -221,7 +222,7 @@ foreach ($fixture in $MAP.Keys) {
     }
     if ($unmodelled.Count -gt 0) {
         $rows += New-Row $fixture 'canais' '(todos)' '-' '-' 'N/A' `
-                 ("pipeline roda " + ($unmodelled -join ', ') + " e reference.py nao modela - passo 8 da secao 6")
+                 ("reference.py nao modela " + ($unmodelled -join ', ') + " - coberto pelo bloco 'cadeia' abaixo")
         continue
     }
 
@@ -403,7 +404,153 @@ if (-not (Test-Path -LiteralPath $M1_REF)) {
     }
 }
 
-if (-not $Quiet) { $rows | Format-Table -AutoSize -Wrap }
+# ---------------------------------------------------------------------------
+# Cadeia completa, contra chain.py
+# ---------------------------------------------------------------------------
+#
+# Este arquivo reabre o que o passo 6 fechou. `justyear-referencia.json` descreve
+# a cadeia SEM extracao de fundo, entao desde que a etapa passou a mexer em pixel
+# o bloco por canal do Modulo 0 compara dois quadros diferentes.
+# `referencia-cadeia.json` monta a cadeia inteira -- decode, fundo, autostretch
+# sobre o quadro CORRIGIDO -- e volta a ser comparavel numero a numero.
+#
+# A moeda aqui e a da secao 7: sao dois estimadores da mesma grandeza sobre os
+# mesmos pixels, e nao dois ajustes diferentes como no bloco anterior. Histograma
+# contra selecao exata, float32 contra float64. As tolerancias da secao 7
+# aplicam-se sem ajuste.
+$CHAIN_REF = Join-Path $root 'referencia-cadeia.json'
+
+if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
+    $rows += New-Row 'cadeia' 'canais' '(todos)' '-' '-' 'N/A' 'referencia-cadeia.json ausente'
+} else {
+    $cr = Get-Content -LiteralPath $CHAIN_REF -Raw | ConvertFrom-Json
+    $stillNa = @($cr.cobertura.porCanalAindaNA)
+
+    foreach ($fx in $cr.fixtures.PSObject.Properties.Name) {
+        $name = "$fx-fixture"
+        $rf2  = $cr.fixtures.$fx
+
+        # N/A escrito, nao falha. A referencia nao faz debayer, entao para um
+        # mosaico ela mede o padrao Bayer e nao o quadro demosaicado: a razao de
+        # MADN da 4,51 e isso nao e discordancia, sao grandezas diferentes. A
+        # propria referencia declara quais fixtures ficam de fora, e este bloco
+        # obedece a declaracao dela em vez de manter a lista aqui.
+        if ($stillNa -contains $fx) {
+            $rows += New-Row $name 'cadeia' '(todos)' '-' '-' 'N/A' $cr.cobertura.motivo
+            continue
+        }
+
+        $recPath2 = Join-Path $gold "$name.records.json"
+        if (-not (Test-Path -LiteralPath $recPath2)) {
+            $rows += New-Row $name 'cadeia' '-' '-' '-' 'NO GOLDEN' 'capture-golden.js primeiro'
+            continue
+        }
+        $recs2 = Get-Content -LiteralPath $recPath2 -Raw | ConvertFrom-Json
+        $bgRec = $recs2 | Where-Object { $_.id -eq 'background' }  | Select-Object -First 1
+        $stRec = $recs2 | Where-Object { $_.id -eq 'stretch-mtf' } | Select-Object -First 1
+        if (-not $stRec) {
+            $rows += New-Row $name 'cadeia' '-' '-' '-' 'NO RECORD' 'nenhum record de stretch-mtf'
+            continue
+        }
+
+        $fxFile = Get-ChildItem -LiteralPath (Join-Path $root 'test\fixtures') -File |
+                  Where-Object { $_.Name -like "fixture-$fx.*" } | Select-Object -First 1
+        if ($fxFile) {
+            $h2 = (Get-FileHash -LiteralPath $fxFile.FullName -Algorithm SHA256).Hash.ToLower()
+            $rows += Compare-Value $name 'cadeia' 'sha256' $h2 $rf2.sha256 'exact' 0 0
+        }
+
+        # A etapa de fundo, como a referencia a viu.
+        $rows += Compare-Value $name 'cadeia' 'fundo.geradas' $bgRec.samples.generated $rf2.fundo.geradas 'exact' 0 0
+        $rows += Compare-Value $name 'cadeia' 'fundo.aceitas' $bgRec.samples.accepted $rf2.fundo.aceitas 'exact' 0 0
+
+        # PRE-CONDICAO para comparar estatistica pos-correcao.
+        #
+        # A tolerancia da secao 7 pressupoe que os dois lados medem OS MESMOS
+        # PIXELS por caminhos diferentes. Depois da extracao de fundo isso deixa
+        # de ser verdade se as duas aceitarem conjuntos de amostras diferentes:
+        # ajustes diferentes, correcoes diferentes, quadros corrigidos
+        # diferentes. Comparar as medianas desses dois quadros nao mede
+        # concordancia de estimador, mede a diferenca entre as duas superficies,
+        # e reprovar catorze campos por canal descreve o sintoma catorze vezes
+        # em vez de nomear a causa uma.
+        #
+        # A causa fica visivel na linha `fundo.aceitas` acima, que reprova. As
+        # consequencias ficam N/A com o motivo escrito.
+        if ([int]$bgRec.samples.accepted -ne [int]$rf2.fundo.aceitas) {
+            $rows += New-Row $name 'canais' '(todos)' $bgRec.samples.accepted $rf2.fundo.aceitas 'N/A' `
+                     ("conjuntos de amostras diferentes ({0} contra {1}): as duas corrigem com superficies diferentes, entao nao medem os mesmos pixels" -f `
+                      $bgRec.samples.accepted, $rf2.fundo.aceitas)
+            continue
+        }
+
+        $names2 = $rf2.canais.PSObject.Properties.Name
+        for ($ci = 0; $ci -lt $names2.Count; $ci++) {
+            $ch2 = $names2[$ci]
+            $rc2 = $rf2.canais.$ch2
+            $b2  = $stRec.before.perChannel[$ci]
+            $a2  = $stRec.after.perChannel[$ci]
+
+            $span2 = if ($null -ne $b2.span) { [double]$b2.span } else { 3.0 * ([double]$b2.q3 - [double]$b2.q1) }
+            $tot2  = [double]$b2.totalPixels
+
+            # O `before` do stretch E a medicao do quadro corrigido. Que estes
+            # numeros batam e a confirmacao independente do bug corrigido no
+            # passo 6: uma segunda implementacao, escrita depois e montada do
+            # zero, mede o mesmo MADN pos-correcao.
+            $e2 = $rc2.estatisticaExata
+            foreach ($f in @('median', 'q1', 'q3', 'p001', 'p999')) {
+                $rows += Compare-Value $name $ch2 "corrigido.$f" $b2.$f $e2.$f 'unit' $span2 $tot2
+            }
+            foreach ($f in @('mad', 'madn')) {
+                $rows += Compare-Value $name $ch2 "corrigido.$f" $b2.$f $e2.$f 'mad' $span2 $tot2
+            }
+
+            $p2 = $rc2.parametros
+            foreach ($f in @('shadows', 'midtones', 'target', 'scale')) {
+                $rows += Compare-Value $name $ch2 "params.$f" $b2.$f $p2.$f 'unit' $span2 $tot2
+            }
+
+            # O pedestal vem do ajuste, nao da medicao: duas superficies
+            # diferentes, entao a moeda e o nivel de 8 bits e nao o bin do
+            # histograma. Mesmo criterio do bloco anterior.
+            if ($bgRec.surface -and $bgRec.surface.perChannel) {
+                $d3 = [math]::Abs([double]$bgRec.surface.perChannel[$ci].pedestal - [double]$rc2.pedestal) * 255.0
+                $rows += New-Row $name $ch2 'pedestal' ("{0:F6}" -f [double]$bgRec.surface.perChannel[$ci].pedestal) `
+                         ("{0:F6}" -f [double]$rc2.pedestal) $(if ($d3 -le 0.5) { 'PASS' } else { 'FAIL' }) `
+                         ("{0:F4} nivel / limite 0,50 - piso de quantizacao" -f $d3)
+            }
+
+            $s2 = $rc2.saida
+            $rows += Compare-Value $name $ch2 'saida.clipLow'  $a2.clipLow  $s2.clipLow  'count' $span2 $tot2
+            $rows += Compare-Value $name $ch2 'saida.clipHigh' $a2.clipHigh $s2.clipHigh 'count' $span2 $tot2
+
+            # A saida da referencia esta em niveis e e a mediana dos INTEIROS; a
+            # minha e a mediana do float antes do quantise. Um nivel de limite,
+            # porque a diferenca entre as duas e a quantizacao em si.
+            $d4 = [math]::Abs([double]$a2.median * 255.0 - [double]$s2.median)
+            $rows += New-Row $name $ch2 'saida.median' ("{0:F2}" -f ([double]$a2.median * 255.0)) `
+                     ("{0:F2}" -f [double]$s2.median) $(if ($d4 -le 1.0) { 'PASS' } else { 'FAIL' }) `
+                     ("{0:F3} nivel / limite 1,00 - minha mediana e do float, a dela do inteiro" -f $d4)
+        }
+    }
+
+    # A confirmacao do bug, como a referencia a publica. Nao e uma comparacao
+    # nova, e o registro de que ela existe e do que ela diz.
+    foreach ($fx in $cr.cobertura.confirmacaoDoBugDoMADN.PSObject.Properties.Name) {
+        if ($fx -eq 'nota') { continue }
+        $ratio = [double]$cr.cobertura.confirmacaoDoBugDoMADN.$fx
+        $rows += New-Row "$fx-fixture" 'cadeia' 'razaoMADN' ("{0:F4}" -f $ratio) '1,0000' `
+                 $(if ([math]::Abs($ratio - 1.0) -le 0.02) { 'PASS' } else { 'FAIL' }) `
+                 'razao entre o MADN pos-correcao dela e o meu; 1,00 confirma o conserto do passo 6'
+    }
+}
+
+# -Csv existe porque a tabela formatada trunca a coluna do veredito quando os
+# campos sao largos (um sha256 empurra tudo para fora da tela), e "quais
+# linhas reprovaram" e a pergunta que mais se faz deste script.
+if ($Csv) { $rows | ConvertTo-Csv -NoTypeInformation }
+elseif (-not $Quiet) { $rows | Format-Table -AutoSize -Wrap }
 
 # Not $known: PowerShell variable names are case-insensitive, so that would be
 # the same variable as $KNOWN and would overwrite the debt list with its count.
