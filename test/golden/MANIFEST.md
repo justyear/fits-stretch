@@ -11,9 +11,9 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`54c003607bbc29f91686630597cdd91c9e3b8dd7e4a26904da7d0548dc80ad5a`
-(147.173 bytes — pipeline em 13 arquivos, cadeia em float pleno, extração de
-fundo aplicada, dither no quantise).
+`5337066f47c1b7256b10443b247690a6b448ef11294ff9f4418210b0e7288692`
+(148.347 bytes — pipeline em 13 arquivos, cadeia em float pleno, extração de
+fundo aplicada com grade sobre o quadro inteiro, dither no quantise).
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
@@ -48,7 +48,7 @@ compartilhada; ver a seção "O modelo contra a verdade", abaixo.
 descartáveis dos próprios goldens e confere que o comparador chega ao veredito
 certo em cada caso. Existe porque "controle negativo verificado" escrito numa
 spec é uma afirmação que deixa de ser verdadeira no instante em que ninguém
-consegue rodá-la de novo. São 23 casos, e dois importam mais que os outros. O
+consegue rodá-la de novo. São 26 casos, e dois importam mais que os outros. O
 `madn +8e-6` reprova pela regra de `span` e passaria pela regra de [0,1], que
 nessa magnitude é **21 vezes** mais frouxa — é o único caso capaz de distinguir
 as duas. E o par `png every sample +1` contra `png one sample +1`: mesmo
@@ -67,11 +67,16 @@ negativo que se auto-desativasse em silêncio seria pior que não existir.
 > diferentes, e o comparador diz isso **uma vez** em vez de reprovar 63 números:
 > `N/A — pipeline roda background e reference.py nao modela — passo 8 da §6`.
 >
-> O que sobra e continua valendo: **36 comparações, 33 PASS, todo o bloco de
-> decode**, nos quatro fixtures. O que se perdeu: a verificação por segunda
-> implementação de mediana, MAD, quartis, percentis, `shadows`, `midtones`,
-> `scale` e contagens de clip. **Está fora do ar até o passo 8**, e isso é a
-> dívida mais cara em aberto no projeto agora.
+> O que sobra do Módulo 0: **33 PASS, todo o bloco de decode**, nos quatro
+> fixtures. O que se perdeu, e **continua perdido depois do passo 8**: a
+> verificação por segunda implementação de mediana, MAD, quartis, percentis,
+> `shadows`, `midtones`, `scale` e contagens de clip para `rice` e `nonlinear`.
+>
+> O passo 8 **não** reabriu essas 80 comparações. O `referencia-modulo1.json`
+> cobre só o `fixture-gradient` e só os campos da etapa de fundo — são 40
+> comparações **novas**, não as 80 antigas. Reabrir as 80 exige regerar o
+> `justyear-referencia.json` para a cadeia com extração de fundo, e é a dívida
+> mais cara em aberto no projeto.
 >
 > É `N/A` e não `KNOWN` de propósito. A lista `KNOWN` é para divergências entre
 > duas implementações que descrevem a mesma coisa; esta é as duas deixando de
@@ -480,6 +485,43 @@ comparada contra o resultado de `notAppliedLabels` sem nenhum record de fundo.
 E o guarda do catálogo continua vivo: um passo declarado `neverImplemented`
 reportando que rodou faz `notAppliedLabels` recusar produzir log, em vez de
 produzir um que negue o que acabou de acontecer. Verificado com `id: 'ai'`.
+
+## Grade sobre o quadro inteiro — e as duas implementações coincidindo
+
+A grade deixou de ser encaixada dentro da margem. Centro em `(i+0,5)·w/cols`; a
+margem é só critério de rejeição, que é o que a §2.2 sempre disse.
+
+**Depois da mudança, contra `reference_bg.py`:**
+
+| | esta implementação | `reference_bg.py` | diferença |
+|---|---|---|---|
+| amostras aceitas | 92 | 92 | 0 |
+| rejeitadas por brilho | 16 | 16 | 0 |
+| campo limpo R, máximo | 0,111218 | 0,111214 | 4,5e-6 nível |
+| campo limpo R, média | 0,011537 | 0,011537 | 2,4e-7 nível |
+| campo limpo G, máximo | 0,129388 | 0,129384 | 4,1e-6 nível |
+| campo limpo B, máximo | 0,111776 | 0,111772 | 3,6e-6 nível |
+| pedestal R | 0,018307595 | 0,018308640 | 0,00027 nível |
+
+**Cinco algarismos significativos**, com grades independentes e álgebra
+independente (`numpy.linalg.solve` contra eliminação de Gauss escrita à mão). O
+resíduo de 4,5e-6 nível é 1,7e-8 em [0,1] e tem causa identificada: as duas
+avaliam a superfície em retículas de tamanhos diferentes — 201×151 aqui,
+200×150 lá — então o valor interpolado num pixel difere nessa ordem. O pedestal
+difere um pouco mais porque é a **mediana** dessa retícula, e as duas tomam a
+mediana sobre conjuntos de nós diferentes.
+
+Antes da mudança eram 93 contra 92 aceitas e 0,1688 contra 0,1112 no campo
+limpo. **"Grade diferente e álgebra diferente" era uma causa só.**
+
+**O que a mudança custou e rendeu**, medido no `fixture-gradient`:
+
+| | grade encaixada | quadro inteiro |
+|---|---|---|
+| campo limpo fora do casco das amostras | 31,4% | — |
+| campo limpo, máximo | 0,1688 | **0,1112** |
+| campo limpo, média | 0,0337 | **0,0115** |
+| casco das amostras | 1422×1024 | 1466×1066 |
 
 ### Amostragem, por fixture
 

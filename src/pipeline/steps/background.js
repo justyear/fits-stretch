@@ -435,17 +435,37 @@ function stepBackground(img, params, report){
   var cols = Math.max(2, params.samplesPerRow | 0);
   var rows = Math.max(2, Math.round(cols * h / w));
 
-  var spanX = w - 2 * margin, spanY = h - 2 * margin;
-  var dx = spanX / cols, dy = spanY / rows;
+  // THE GRID COVERS THE WHOLE FRAME. The margin is a rejection criterion and
+  // nothing else.
+  //
+  // It used to inset the grid as well — centres at `margin + (i+0.5)*(w-2m)/n`
+  // — which applied the margin twice and made section 2.2's `rejected-edge`
+  // unreachable by construction: no box could cross a margin the grid had
+  // already been shrunk inside. All four fixtures reported zero edge
+  // rejections, and that read as normal rather than as the symptom it was.
+  //
+  // Measured cost of the inset, on fixture-gradient: 31.4% of the clean field
+  // fell outside the convex hull of the accepted samples, where a thin-plate
+  // spline extrapolates — the classic RBF failure. Clean-field max error was
+  // 0.169 of a level against 0.094 inside the hull.
+  //
+  // And the argument for the inset does not survive contact with the rule this
+  // project runs on: a sample near the edge may catch vignetting or a stacking
+  // artefact, and the answer to that is to REJECT it, visibly, with a reason in
+  // the record and the tooltip. Not generating it is silent, and silence is
+  // what confusion 21 forbids.
+  var dx = w / cols, dy = h / rows;
 
   var counts = { bright: 0, edge: 0, clipped: 0, nan: 0 };
   var points = [];
   var accepted = 0;
 
   // A frame too small to hold one box inside its own margin cannot be sampled
-  // at all. Saying so is cheaper than producing zero points and letting the
-  // minimum-sample guard explain it as if it were a rejection problem.
-  if (spanX < boxEff || spanY < boxEff){
+  // at all: every box would cross the margin and every sample would be an edge
+  // rejection. Saying so is cheaper than producing a full grid of rejections
+  // and letting the minimum-sample guard explain it as if it were a threshold
+  // problem.
+  if (w - 2 * margin < boxEff || h - 2 * margin < boxEff){
     report({
       id: 'background', name: 'Background extraction',
       applied: false,
@@ -476,8 +496,8 @@ function stepBackground(img, params, report){
 
   for (j = 0; j < rows; j++){
     for (i = 0; i < cols; i++){
-      var cx = Math.round(margin + (i + 0.5) * dx);
-      var cy = Math.round(margin + (j + 0.5) * dy);
+      var cx = Math.round((i + 0.5) * dx);
+      var cy = Math.round((j + 0.5) * dy);
 
       var pt = { x: cx, y: cy, state: 'accepted', reason: null, median: [] };
 

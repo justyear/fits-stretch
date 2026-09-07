@@ -183,6 +183,50 @@ nenhum teste desta suíte. **Os dois foram achados por medição, não por teste
 |---|---|---|
 | λ da RBF | escalado por `mean(diag(A))`, que é 0 para thin-plate spline | `smoothing` não fazia nada; o ajuste era o pior da varredura |
 | `before` do stretch | medido antes da etapa de fundo, usado depois dela | ponto preto 2,5 a 5× fundo demais, em todo quadro |
+| grade encaixada na margem | `edgeMargin` aplicado duas vezes | `rejected-edge` inalcançável; 31% do campo limpo fora do casco |
+
+#### Sub-assinatura: estado documentado que nunca pode ocorrer
+
+O terceiro é os dois primeiros mais uma coisa, e essa coisa merece nome próprio.
+
+A §2.2 define `rejected-edge` como "a caixa cruza a margem de borda". A
+implementação encaixava a grade **dentro** da margem e depois testava se a caixa
+cruzava a margem. O teste era código que nunca executava o ramo verdadeiro,
+**para nenhum valor de nenhum parâmetro**.
+
+E o relatório dizia isso, em todo fixture, desde o primeiro dia:
+
+```
+rejeitadas por borda: 0
+rejeitadas por borda: 0
+rejeitadas por borda: 0
+rejeitadas por borda: 0
+```
+
+Eu li quatro zeros como "não há amostras na borda destes fixtures". Eram
+"este estado é inalcançável". **Um zero é um dado; quatro zeros num campo que
+tem um ramo de código são uma pergunta.**
+
+**Por que não falha:** o estado é opcional. Nada quebra quando um enum nunca
+atinge um de seus valores — o programa só percorre menos caminhos do que
+diz percorrer. O record continua bem formado, o log continua correto, o
+tooltip continua funcionando para os estados que ocorrem.
+
+**Por que é caro mesmo assim:** o custo não estava no estado ausente, estava na
+causa dele. A grade encolhida deixava 31,4% do campo limpo fora do casco das
+amostras, onde a spline extrapola — que é o modo de falha clássico de RBF. Erro
+máximo de campo limpo 0,169 contra 0,094 dentro do casco.
+
+**A regra:** para todo estado que uma spec enumera, ou o teste demonstra o
+estado ocorrendo, ou está escrito por que ele não pode ocorrer naquele fixture.
+Contagem zero persistente num estado enumerado é hipótese a testar, não
+observação a registrar.
+
+Depois da correção o estado é alcançável, e foi **demonstrado** em vez de
+argumentado: `edgeMargin` 0,05 dispara no `nonlinear` e no `gradient`, 0,06 no
+`seestar`, 0,09 no `rice` — exatamente onde a geometria prevê, que é
+`margem > w/(2·colunas) − metade da caixa`. Continua zero no padrão de 0,02, e
+agora isso é uma propriedade dos fixtures e não do código.
 
 **A assinatura da classe:**
 

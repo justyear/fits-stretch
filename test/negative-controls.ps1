@@ -100,7 +100,7 @@ function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize, [int]
 # just outside one specific limit, so a limit that silently widened shows up as
 # a MISMATCH here instead of as a quiet pass.
 #
-#   median  unit rule,  max(1e-4 * ref, 4/65535)      = 6.104e-5 at ref 0.2635
+#   median  unit rule,  max(1e-4 * ref, 4/65535)      = 6.104e-5 at ref 0.26357
 #   madn    span rule,  max(1e-4 * ref, 8*span/65535) = 2.884e-6 at span 0.02362
 #   clip    0.05% of totalPixels                      = 270 of 540000
 #
@@ -111,29 +111,29 @@ $cases = @(
     @{ name = 'baseline, untouched'; art = $null; want = 'PASS'; do = { } }
 
     @{ name = 'records median +5e-5 (0.82 of limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2634927901121538' '0.26354279011215381' } }
+         Edit-Text $tmpdir $ART_REC '0.2635690852216373' '0.26361908522163729' } }
     @{ name = 'records median +7e-5 (1.15 of limit)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2634927901121538' '0.26356279011215383' } }
+         Edit-Text $tmpdir $ART_REC '0.2635690852216373' '0.26363908522163731' } }
 
     @{ name = 'records madn +2e-6 (0.69 of the span limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.005833267217727239' '0.0058352672177272389' } }
+         Edit-Text $tmpdir $ART_REC '0.005831129706837635' '0.0058331297068376356' } }
     @{ name = 'records madn +8e-6, fails span rule, passes [0,1] rule'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.005833267217727239' '0.0058412672177272388' } }
+         Edit-Text $tmpdir $ART_REC '0.005831129706837635' '0.0058391297068376355' } }
 
     # Clip counts are exact in this comparator, so all three of these fail, and
     # the third is the one the rule exists for. Under the old 0.05% tolerance
     # the first two passed and the third passed too - a shadow clip vanishing
     # completely read as "within tolerance", by one pixel.
-    @{ name = 'records clipHigh 56 -> 57 (one pixel, exact now)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 57' } }
-    @{ name = 'records clipHigh 56 -> 290 (was inside the old 0.05%)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 290' } }
-    @{ name = 'records clipHigh 56 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 56' '"clipHigh": 0' } }
-    @{ name = 'records clipLow 265 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipLow": 265' '"clipLow": 0' } }
-    @{ name = 'diag pixelsBlack 265 -> 0 (the clip vanished)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_DIAG '"pixelsBlack": 265' '"pixelsBlack": 0' } }
+    @{ name = 'records clipHigh 58 -> 57 (one pixel, exact now)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 59' } }
+    @{ name = 'records clipHigh 58 -> 290 (was inside the old 0.05%)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 292' } }
+    @{ name = 'records clipHigh 58 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 0' } }
+    @{ name = 'records clipLow 249 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_REC '"clipLow": 249' '"clipLow": 0' } }
+    @{ name = 'diag pixelsBlack 249 -> 0 (the clip vanished)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
+         Edit-Text $tmpdir $ART_DIAG '"pixelsBlack": 249' '"pixelsBlack": 0' } }
 
     @{ name = 'records params.target nudged (input knob, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"target": 0.25,' '"target": 0.2501,' } }
@@ -145,7 +145,7 @@ $cases = @(
          Edit-Text $tmpdir $ART_REC '"applied": true' '"applied": false' } }
 
     @{ name = 'diag channels[0].median +5e-5'; art = $ART_DIAG; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_DIAG '"median": 0.2634927901121538' '"median": 0.26354279011215381' } }
+         Edit-Text $tmpdir $ART_DIAG '"median": 0.2635690852216373' '"median": 0.26361908522163729' } }
     @{ name = 'diag decoded.normMax nudged (off the file, exact)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_DIAG '"normMax": 1' '"normMax": 1.0001' } }
 
@@ -183,7 +183,7 @@ $cases = @(
          Edit-Png $tmpdir $ART_PNG 2 99999999 } }
 
     @{ name = 'log one digit changed'; art = $ART_LOG; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_LOG 'median 0.26349' 'median 0.26350' } }
+         Edit-Text $tmpdir $ART_LOG 'median 0.26357' 'median 0.26358' } }
 )
 
 $good = 0; $bad = 0
