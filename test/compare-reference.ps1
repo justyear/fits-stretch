@@ -17,8 +17,16 @@
 # Tolerance - see modulo-0-spec.md section 7
 #
 #   value on the [0,1] axis:  |a-b| <= max(1e-4*|ref|, 4/65535)
-#   mad and madn:             |a-b| <= max(1e-4*|ref|, 8*span/65535)
+#   mad and madn:             |a-b| <= max(1e-4*|ref|, 8*span/65535
+#                                             + 1.4826*|dMediana|)
 #   pixel counts:             0.05% of the frame
+#
+# The median term is a BOUND, not a fitted constant: MAD(m) = mediana(|v-m|),
+# and ||v-m-d| - |v-m|| <= |d| for every v by the triangle inequality, so the
+# bound passes through the median because the median is monotone. It is needed
+# because the median is judged in bins of [0,1] and the MAD in bins of `span`,
+# and after background extraction `span` shrinks 2.5-5x - so the MAD is judged
+# on a fine scale while carrying uncertainty inherited from a coarse one.
 #
 # The floors are the resolution of the instrument, not slack. A flat 1e-4
 # relative would fail 14 of 24 values of a correct implementation, because one
@@ -31,14 +39,17 @@ param(
     [string]   $Reference = 'justyear-referencia.json',
     [string[]] $Only,
     [switch]   $Quiet,
-    [switch]   $Csv
+    [switch]   $Csv,
+    # Diretorio de goldens. Existe para que os controles negativos possam apontar
+    # o comparador para copias descartaveis em vez de mexer nos goldens reais.
+    [string]   $Golden
 )
 
 $ErrorActionPreference = 'Stop'
 [System.Threading.Thread]::CurrentThread.CurrentCulture = [System.Globalization.CultureInfo]::InvariantCulture
 
 $root = Split-Path -Parent $PSScriptRoot
-$gold = Join-Path $PSScriptRoot 'golden'
+$gold = if ($Golden) { $Golden } else { Join-Path $PSScriptRoot 'golden' }
 $refPath = if ([System.IO.Path]::IsPathRooted($Reference)) { $Reference } else { Join-Path $root $Reference }
 
 if (-not (Test-Path -LiteralPath $refPath)) {
@@ -101,7 +112,14 @@ function New-Row($fixture, $scope, $field, $mine, $refv, $verdict, $detail) {
 
 # kind: 'unit' for anything on the [0,1] axis, 'mad' for mad/madn, 'count' for
 # pixel counts, 'exact' for integers and strings that must match outright.
-function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $total) {
+#
+# $medianDelta only matters for kind 'mad'. It is the difference between the two
+# sides' medians of the same channel, and it enters the floor as
+# 1.4826*|dMediana| because MAD is measured RELATIVE to the median:
+# MAD(m) = mediana(|v-m|), and ||v-m-d| - |v-m|| <= |d| for every v by the
+# triangle inequality, so the bound passes through the median, which is
+# monotone. It is a bound, not a fitted constant - see section 7.
+function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $total, $medianDelta = 0) {
     $known = Get-Known $fixture $field
 
     if ($kind -eq 'exact') {
@@ -117,7 +135,7 @@ function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $to
     if ($kind -eq 'mad') {
         if ($span -le 0) { $span = 1.0 / $BINS }
         $unit = $span / $BINS
-        $floor = 8.0 * $unit
+        $floor = 8.0 * $unit + 1.4826 * [math]::Abs([double]$medianDelta)
         $label = 'bins de span'
     } elseif ($kind -eq 'count') {
         $unit = 1.0
@@ -263,8 +281,10 @@ foreach ($fixture in $MAP.Keys) {
         foreach ($f in @('median', 'q1', 'q3', 'p001', 'p999')) {
             $rows += Compare-Value $fixture $ch "before.$f" $b.$f $e.$f 'unit' $span $total
         }
+        # A mediana entra no piso do mad/madn: ver a derivacao na secao 7.
+        $dMed = [math]::Abs([double]$b.median - [double]$e.median)
         foreach ($f in @('mad', 'madn')) {
-            $rows += Compare-Value $fixture $ch "before.$f" $b.$f $e.$f 'mad' $span $total
+            $rows += Compare-Value $fixture $ch "before.$f" $b.$f $e.$f 'mad' $span $total $dMed
         }
 
         $p = $rc.parametros
@@ -502,8 +522,9 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             foreach ($f in @('median', 'q1', 'q3', 'p001', 'p999')) {
                 $rows += Compare-Value $name $ch2 "corrigido.$f" $b2.$f $e2.$f 'unit' $span2 $tot2
             }
+            $dMed2 = [math]::Abs([double]$b2.median - [double]$e2.median)
             foreach ($f in @('mad', 'madn')) {
-                $rows += Compare-Value $name $ch2 "corrigido.$f" $b2.$f $e2.$f 'mad' $span2 $tot2
+                $rows += Compare-Value $name $ch2 "corrigido.$f" $b2.$f $e2.$f 'mad' $span2 $tot2 $dMed2
             }
 
             $p2 = $rc2.parametros
