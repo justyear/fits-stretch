@@ -1,0 +1,405 @@
+{
+  "geradoPor": "chain.py -- cadeia completa com extracao de fundo",
+  "proposito": "reabre as comparacoes por canal que ficaram em N/A no passo 8",
+  "cadeia": [
+    "decode",
+    "extracao de fundo (grade no quadro inteiro)",
+    "autostretch sobre o quadro CORRIGIDO"
+  ],
+  "fixtures": {
+    "seestar": {
+      "sha256": "6d0acf7bbd4ce595d926ccc9bbf8e239447cda8ed7207c682fe598f5534cb28b",
+      "decode": {
+        "width": 1920,
+        "height": 1080,
+        "planes": 1,
+        "rawMin": 511.0,
+        "rawMax": 20650.0,
+        "scaleMode": "int",
+        "scaleLo": 0.0,
+        "scaleDiv": 65535.0,
+        "normMin": 0.007797360189211872,
+        "normMax": 0.3150988021667811
+      },
+      "fundo": {
+        "aplicado": true,
+        "aceitas": 81,
+        "geradas": 84,
+        "observacao": "extracao rodou sobre o mosaico, nao sobre RGB debayerizado"
+      },
+      "globalMedian": 0.010926284948513262,
+      "nonLinear": false,
+      "canais": {
+        "_NA": "mosaico CFA; esta implementacao nao faz debayer. O MADN medido (0,000951) e dominado pelo proprio padrao Bayer, que nao e gradiente e nao pode ser removido pela etapa de fundo. Coincide com o valor PRE-correcao dele (0,000939) porque e a mesma grandeza: a variacao pixel a pixel do mosaico."
+      }
+    },
+    "rice": {
+      "sha256": "6d120445184897033a88fe5cdbcce333588179888b2480b725cfc8f3ef0c83f3",
+      "decode": {
+        "width": 2600,
+        "height": 1000,
+        "planes": 3,
+        "rawMin": 0.0,
+        "rawMax": 1.0000029802322388,
+        "scaleMode": "unit",
+        "scaleLo": 0.0,
+        "scaleDiv": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0000029802322388
+      },
+      "fundo": {
+        "aplicado": true,
+        "aceitas": 53,
+        "geradas": 60
+      },
+      "globalMedian": 0.015570067877939653,
+      "nonLinear": false,
+      "canais": {
+        "R": {
+          "estatisticaExata": {
+            "median": 0.01700381162923672,
+            "madn": 0.00036626414325147545,
+            "mad": 0.00024704178015073214,
+            "q1": 0.016757486885677842,
+            "q3": 0.017251558563454394,
+            "p001": 0.01622579858793753,
+            "p999": 0.5022362809837653,
+            "pBlack": 0.01617632256103613,
+            "min": 0.00297750206696136,
+            "max": 1.002872000866934,
+            "n": 2600000
+          },
+          "parametros": {
+            "shadows": 0.015978272028132588,
+            "midtones": 0.0031200726568350276,
+            "target": 0.25,
+            "scale": 1.016237722779826,
+            "x": 0.001042192028846593
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 70.46966923076923,
+            "clipLow": 576,
+            "clipHigh": 17,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.0006538461538461538
+          },
+          "pedestal": 0.01700624504843355
+        },
+        "G": {
+          "estatisticaExata": {
+            "median": 0.015476612550868322,
+            "madn": 0.0003672178367530507,
+            "mad": 0.00024768503760491754,
+            "q1": 0.015230800319631579,
+            "q3": 0.0157262817622957,
+            "p001": 0.014641523107306126,
+            "p999": 0.49287610335980625,
+            "pBlack": 0.014587550429987276,
+            "min": 0.0027330942114792336,
+            "max": 0.9166109358516709,
+            "n": 2600000
+          },
+          "parametros": {
+            "shadows": 0.01444840260795978,
+            "midtones": 0.0031233341313163755,
+            "target": 0.25,
+            "scale": 1.0146602193595882,
+            "x": 0.0010432837262192903
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 70.45451961538461,
+            "clipLow": 576,
+            "clipHigh": 0,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.0
+          },
+          "pedestal": 0.015480256809456505
+        },
+        "B": {
+          "estatisticaExata": {
+            "median": 0.014229779453713915,
+            "madn": 0.0003660072619275887,
+            "mad": 0.0002468685160714884,
+            "q1": 0.013983615075829889,
+            "q3": 0.014477346651001548,
+            "p001": 0.013455398029119138,
+            "p999": 0.49985169785228684,
+            "pBlack": 0.013407141991796502,
+            "min": 0.002497091333199083,
+            "max": 1.0030464790958673,
+            "n": 2600000
+          },
+          "parametros": {
+            "shadows": 0.013204959120316667,
+            "midtones": 0.003109144497175756,
+            "target": 0.25,
+            "scale": 1.0133816634389905,
+            "x": 0.0010385341341842041
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 70.45350153846154,
+            "clipLow": 576,
+            "clipHigh": 20,
+            "clipLowPct": 0.022153846153846152,
+            "clipHighPct": 0.0007692307692307692
+          },
+          "pedestal": 0.014240097025289541
+        }
+      }
+    },
+    "nonlinear": {
+      "sha256": "f11ae11071b83e482bc1935d2fcb72c30898cebc9ce2964f5c4ecbe0c07c6adc",
+      "decode": {
+        "width": 900,
+        "height": 600,
+        "planes": 3,
+        "rawMin": 0.1841290444135666,
+        "rawMax": 1.0,
+        "scaleMode": "unit",
+        "scaleLo": 0.0,
+        "scaleDiv": 1.0,
+        "normMin": 0.1841290444135666,
+        "normMax": 1.0
+      },
+      "fundo": {
+        "aplicado": true,
+        "aceitas": 82,
+        "geradas": 96
+      },
+      "globalMedian": 0.2461356444788397,
+      "nonLinear": true,
+      "canais": {
+        "R": {
+          "estatisticaExata": {
+            "median": 0.2633923671232987,
+            "madn": 0.005852952210753241,
+            "mad": 0.003947762181811171,
+            "q1": 0.2594193716488667,
+            "q3": 0.2673134142985649,
+            "p001": 0.252767804377114,
+            "p999": 0.9665670559060895,
+            "pBlack": 0.25224963027535874,
+            "min": 0.25085447256795695,
+            "max": 1.0196587130706454,
+            "n": 540000
+          },
+          "parametros": {
+            "shadows": 0.25224963027535874,
+            "midtones": 0.04058765777766379,
+            "target": 0.2633923671232987,
+            "scale": 1.3373447081921865,
+            "x": 0.014901680158370621
+          },
+          "saida": {
+            "median": 67.0,
+            "mean": 72.77019074074074,
+            "clipLow": 270,
+            "clipHigh": 58,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.01074074074074074
+          },
+          "pedestal": 0.26322943505535523
+        },
+        "G": {
+          "estatisticaExata": {
+            "median": 0.24507875011953348,
+            "madn": 0.006116885446349369,
+            "mad": 0.004125782710339518,
+            "q1": 0.24092206975773783,
+            "q3": 0.24917371494813217,
+            "p001": 0.2342062574746248,
+            "p999": 0.9625796562664691,
+            "pBlack": 0.23363822541018553,
+            "min": 0.2322279311766422,
+            "max": 1.0164961566913142,
+            "n": 540000
+          },
+          "parametros": {
+            "shadows": 0.23363822541018553,
+            "midtones": 0.04459908409213959,
+            "target": 0.24507875011953348,
+            "scale": 1.3048667524358681,
+            "x": 0.014928360323649163
+          },
+          "saida": {
+            "median": 62.0,
+            "mean": 68.5208962962963,
+            "clipLow": 270,
+            "clipHigh": 37,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.006851851851851852
+          },
+          "pedestal": 0.2448939412602925
+        },
+        "B": {
+          "estatisticaExata": {
+            "median": 0.22993581619368691,
+            "madn": 0.006329747252996291,
+            "mad": 0.0042693560319683604,
+            "q1": 0.22563436816753735,
+            "q3": 0.234173188667345,
+            "p001": 0.2188124057019178,
+            "p999": 0.9642928339495929,
+            "pBlack": 0.21839602055852844,
+            "min": 0.2170538617264339,
+            "max": 1.0180941036651603,
+            "n": 540000
+          },
+          "parametros": {
+            "shadows": 0.21839602055852844,
+            "midtones": 0.04778865885362255,
+            "target": 0.22993581619368691,
+            "scale": 1.2794203027402606,
+            "x": 0.014764248825095192
+          },
+          "saida": {
+            "median": 59.0,
+            "mean": 64.93371481481482,
+            "clipLow": 270,
+            "clipHigh": 34,
+            "clipLowPct": 0.05,
+            "clipHighPct": 0.006296296296296296
+          },
+          "pedestal": 0.22965008852576016
+        }
+      }
+    },
+    "gradient": {
+      "sha256": "b14ac76614949a4feef20e1c9aa263b29813f7b2a7298f9b461388d482e1fc25",
+      "decode": {
+        "width": 1600,
+        "height": 1200,
+        "planes": 3,
+        "rawMin": 0.005811622831970453,
+        "rawMax": 0.47134628891944885,
+        "scaleMode": "unit",
+        "scaleLo": 0.0,
+        "scaleDiv": 1.0,
+        "normMin": 0.005811622831970453,
+        "normMax": 0.47134628891944885
+      },
+      "fundo": {
+        "aplicado": true,
+        "aceitas": 92,
+        "geradas": 108
+      },
+      "globalMedian": 0.016823874213833644,
+      "nonLinear": false,
+      "canais": {
+        "R": {
+          "estatisticaExata": {
+            "median": 0.018491061700781766,
+            "madn": 0.0013937777482511823,
+            "mad": 0.0009400902119595187,
+            "q1": 0.017600484267690095,
+            "q3": 0.01949421236706862,
+            "p001": 0.014610280000456628,
+            "p999": 0.13548501705469926,
+            "pBlack": 0.014362238730243183,
+            "min": 0.012260425072889228,
+            "max": 0.46894122124168286,
+            "n": 1920000
+          },
+          "parametros": {
+            "shadows": 0.014588484005678456,
+            "midtones": 0.011787692879731403,
+            "target": 0.25,
+            "scale": 1.0148044586133724,
+            "x": 0.003960353245075936
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 67.12499010416667,
+            "clipLow": 1805,
+            "clipHigh": 0,
+            "clipLowPct": 0.09401041666666667,
+            "clipHighPct": 0.0
+          },
+          "pedestal": 0.018308640143723097
+        },
+        "G": {
+          "estatisticaExata": {
+            "median": 0.016757315447698554,
+            "madn": 0.0013867788386433765,
+            "mad": 0.0009353695121026417,
+            "q1": 0.015870342533014677,
+            "q3": 0.01775361345731739,
+            "p001": 0.012857923025172153,
+            "p999": 0.1343634949484335,
+            "pBlack": 0.012619291193630571,
+            "min": 0.010815483778983491,
+            "max": 0.46858072753545427,
+            "n": 1920000
+          },
+          "parametros": {
+            "shadows": 0.0128743346994971,
+            "midtones": 0.011708754934553632,
+            "target": 0.25,
+            "scale": 1.013042244925906,
+            "x": 0.003933623534162075
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 66.9764078125,
+            "clipLow": 2019,
+            "clipHigh": 0,
+            "clipLowPct": 0.10515625,
+            "clipHighPct": 0.0
+          },
+          "pedestal": 0.016582137387447984
+        },
+        "B": {
+          "estatisticaExata": {
+            "median": 0.015223245493020607,
+            "madn": 0.0013858501764100783,
+            "mad": 0.0009347431380076071,
+            "q1": 0.014337004999709163,
+            "q3": 0.016218329717062226,
+            "p001": 0.01133875466759948,
+            "p999": 0.13418116566372454,
+            "pBlack": 0.01107344787477005,
+            "min": 0.009157534964191801,
+            "max": 0.4667504654129927,
+            "n": 1920000
+          },
+          "parametros": {
+            "shadows": 0.011342864999072388,
+            "midtones": 0.011682991171382197,
+            "target": 0.25,
+            "scale": 1.011473001708587,
+            "x": 0.003924900105985254
+          },
+          "saida": {
+            "median": 64.0,
+            "mean": 66.85365885416667,
+            "clipLow": 1948,
+            "clipHigh": 0,
+            "clipLowPct": 0.10145833333333333,
+            "clipHighPct": 0.0
+          },
+          "pedestal": 0.015052815619229248
+        }
+      }
+    }
+  },
+  "cobertura": {
+    "porCanalReaberto": [
+      "rice",
+      "nonlinear",
+      "gradient"
+    ],
+    "porCanalAindaNA": [
+      "seestar"
+    ],
+    "motivo": "debayer nao implementado nesta referencia -- mesma lacuna ja registrada no Modulo 0",
+    "confirmacaoDoBugDoMADN": {
+      "rice": 1.0062,
+      "nonlinear": 1.0034,
+      "gradient": 0.9991,
+      "nota": "razao entre meu MADN pos-correcao e o dele; 1,00 confirma que o stretch mede o quadro corrigido"
+    }
+  }
+}

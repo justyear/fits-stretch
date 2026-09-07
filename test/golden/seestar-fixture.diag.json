@@ -130,17 +130,17 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 58,
-    "roworder": 2,
-    "cfa": 41,
-    "debayer": 128,
-    "preview": 54,
-    "stats": 129,
-    "background": 391,
-    "transfer": 200,
-    "quantise": 258,
-    "downscale": 1,
-    "total": 1299
+    "decode": 59,
+    "roworder": 1,
+    "cfa": 42,
+    "debayer": 165,
+    "preview": 87,
+    "stats": 157,
+    "background": 445,
+    "transfer": 321,
+    "quantise": 483,
+    "downscale": 0,
+    "total": 1787
   },
   "historyCards": [],
   "allCards": [

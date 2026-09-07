@@ -1,0 +1,1396 @@
+[
+  {
+    "id": "background",
+    "name": "Background extraction",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "samplesPerRow": 12,
+      "boxSize": 25,
+      "tolerance": 1,
+      "edgeMargin": 0.02,
+      "smoothing": 0.1,
+      "correction": "subtract",
+      "pedestal": "model-median"
+    },
+    "notes": [
+      "Placed 108 samples on a 12 x 9 grid, 25 px boxes, 64 accepted and 44 rejected.",
+      "Rejected: 6 brighter than the background estimate, 38 on the edge margin, 0 clipped, 0 non-finite.",
+      "Every rejected sample is still in the record, with the reason it was rejected.",
+      "Thin-plate spline through the 64 accepted samples, smoothing 0.1, per channel and unlinked.",
+      "Evaluated on every 8th pixel and interpolated between; measured against direct evaluation at 1000 pixels, worst case 0.00334 of one 8-bit level.",
+      "Corrected by subtraction, returning each channel its own model median as the pedestal (R 0.01698, G 0.01543, B 0.01422). The background LEVEL is preserved and only the variation is removed, so the ratio between channels is unchanged and no colour grading happened.",
+      "0 pixels came out below zero, which is expected: noise that sat under the model stays under it, and nothing is clamped until the 8-bit step."
+    ],
+    "samples": {
+      "generated": 108,
+      "accepted": 64,
+      "rejected": {
+        "bright": 6,
+        "edge": 38,
+        "clipped": 0,
+        "nan": 0
+      },
+      "forced": 0,
+      "moved": 0,
+      "boxSizeEffective": 25,
+      "minimum": 8,
+      "grid": {
+        "cols": 12,
+        "rows": 9,
+        "marginPx": 6,
+        "spacingX": 33.333333333333336,
+        "spacingY": 33.333333333333336
+      },
+      "points": [
+        {
+          "x": 17,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 83,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 117,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 150,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 183,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 217,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 250,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 283,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 317,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 350,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 383,
+          "y": 17,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 50,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014234165661036968,
+            0.012905662879347801,
+            0.01191760879009962
+          ]
+        },
+        {
+          "x": 83,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014619825407862663,
+            0.013233908452093601,
+            0.012210012413561344
+          ]
+        },
+        {
+          "x": 117,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015017040073871613,
+            0.013649272732436657,
+            0.0125955231487751
+          ]
+        },
+        {
+          "x": 150,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015362086705863476,
+            0.01402967981994152,
+            0.012866764329373837
+          ]
+        },
+        {
+          "x": 183,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01580965518951416,
+            0.014348159544169903,
+            0.013249214738607407
+          ]
+        },
+        {
+          "x": 217,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01620027981698513,
+            0.014735559932887554,
+            0.013460553251206875
+          ]
+        },
+        {
+          "x": 250,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016625680029392242,
+            0.015096447430551052,
+            0.013839945197105408
+          ]
+        },
+        {
+          "x": 283,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0169477891176939,
+            0.015379681251943111,
+            0.01416957750916481
+          ]
+        },
+        {
+          "x": 317,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017292194068431854,
+            0.01576288603246212,
+            0.014478988014161587
+          ]
+        },
+        {
+          "x": 350,
+          "y": 50,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017715265974402428,
+            0.016125578433275223,
+            0.014873184263706207
+          ]
+        },
+        {
+          "x": 383,
+          "y": 50,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 83,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014928001910448074,
+            0.013511106371879578,
+            0.01238994300365448
+          ]
+        },
+        {
+          "x": 83,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014914937317371368,
+            0.013607248663902283,
+            0.012507517822086811
+          ]
+        },
+        {
+          "x": 117,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015562290325760841,
+            0.0142692681401968,
+            0.01313388254493475
+          ]
+        },
+        {
+          "x": 150,
+          "y": 83,
+          "state": "rejected-bright",
+          "reason": "B median 0.01635 is above the background estimate 0.01433 + 1 x MADN 0.00169 = 0.01602",
+          "median": [
+            0.018708055838942528,
+            0.01719612628221512,
+            0.016345733776688576
+          ]
+        },
+        {
+          "x": 183,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016314255073666573,
+            0.014841565862298012,
+            0.013690956868231297
+          ]
+        },
+        {
+          "x": 217,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016650263220071793,
+            0.015160607174038887,
+            0.013916859403252602
+          ]
+        },
+        {
+          "x": 250,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017287585884332657,
+            0.01574261300265789,
+            0.014511173591017723
+          ]
+        },
+        {
+          "x": 283,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017254728823900223,
+            0.015735436230897903,
+            0.014457176439464092
+          ]
+        },
+        {
+          "x": 317,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017818983644247055,
+            0.016257915645837784,
+            0.014974798075854778
+          ]
+        },
+        {
+          "x": 350,
+          "y": 83,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018217505887150764,
+            0.01659969799220562,
+            0.015296961180865765
+          ]
+        },
+        {
+          "x": 383,
+          "y": 83,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 117,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015457016415894032,
+            0.014092003926634789,
+            0.013000719249248505
+          ]
+        },
+        {
+          "x": 83,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015251357108354568,
+            0.013866858556866646,
+            0.01278055738657713
+          ]
+        },
+        {
+          "x": 117,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01566980965435505,
+            0.01420641876757145,
+            0.013138968497514725
+          ]
+        },
+        {
+          "x": 150,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017082499340176582,
+            0.015671322122216225,
+            0.014603426679968834
+          ]
+        },
+        {
+          "x": 183,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016363494098186493,
+            0.0148432282730937,
+            0.013691827654838562
+          ]
+        },
+        {
+          "x": 217,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016855455935001373,
+            0.015372242778539658,
+            0.014149741269648075
+          ]
+        },
+        {
+          "x": 250,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01722082681953907,
+            0.015584171749651432,
+            0.014358872547745705
+          ]
+        },
+        {
+          "x": 283,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017704442143440247,
+            0.016166212037205696,
+            0.014858700335025787
+          ]
+        },
+        {
+          "x": 317,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018136881291866302,
+            0.016548633575439453,
+            0.015247481875121593
+          ]
+        },
+        {
+          "x": 350,
+          "y": 117,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018445592373609543,
+            0.016767680644989014,
+            0.015482397750020027
+          ]
+        },
+        {
+          "x": 383,
+          "y": 117,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 150,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015217646956443787,
+            0.013753892853856087,
+            0.012693128548562527
+          ]
+        },
+        {
+          "x": 83,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01551852934062481,
+            0.01409238949418068,
+            0.012990491464734077
+          ]
+        },
+        {
+          "x": 117,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016140805557370186,
+            0.01459491066634655,
+            0.013493488542735577
+          ]
+        },
+        {
+          "x": 150,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016964953392744064,
+            0.015434574335813522,
+            0.014262019656598568
+          ]
+        },
+        {
+          "x": 183,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016882410272955894,
+            0.015313331969082355,
+            0.014188496395945549
+          ]
+        },
+        {
+          "x": 217,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017176184803247452,
+            0.015689153224229813,
+            0.01443404145538807
+          ]
+        },
+        {
+          "x": 250,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017509931698441505,
+            0.015903938561677933,
+            0.014590364880859852
+          ]
+        },
+        {
+          "x": 283,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018066808581352234,
+            0.016411904245615005,
+            0.015161248855292797
+          ]
+        },
+        {
+          "x": 317,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01836230978369713,
+            0.016699770465493202,
+            0.015336158685386181
+          ]
+        },
+        {
+          "x": 350,
+          "y": 150,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018738754093647003,
+            0.01704605296254158,
+            0.015684325248003006
+          ]
+        },
+        {
+          "x": 383,
+          "y": 150,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 183,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015835806727409363,
+            0.014495537616312504,
+            0.013312524184584618
+          ]
+        },
+        {
+          "x": 83,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015871722251176834,
+            0.014377527870237827,
+            0.013289524242281914
+          ]
+        },
+        {
+          "x": 117,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016202569007873535,
+            0.014808770269155502,
+            0.013594504445791245
+          ]
+        },
+        {
+          "x": 150,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01678813062608242,
+            0.01522739976644516,
+            0.014068017713725567
+          ]
+        },
+        {
+          "x": 183,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017031650990247726,
+            0.015469296835362911,
+            0.014250841923058033
+          ]
+        },
+        {
+          "x": 217,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017369965091347694,
+            0.01585392840206623,
+            0.014548689126968384
+          ]
+        },
+        {
+          "x": 250,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01786494441330433,
+            0.016175733879208565,
+            0.014857921749353409
+          ]
+        },
+        {
+          "x": 283,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01876905746757984,
+            0.01718820258975029,
+            0.01580909825861454
+          ]
+        },
+        {
+          "x": 317,
+          "y": 183,
+          "state": "rejected-bright",
+          "reason": "R median 0.01921 is above the background estimate 0.01712 + 1 x MADN 0.00197 = 0.01909",
+          "median": [
+            0.019214048981666565,
+            0.017500488087534904,
+            0.01616910845041275
+          ]
+        },
+        {
+          "x": 350,
+          "y": 183,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019064810127019882,
+            0.01737307570874691,
+            0.01600775308907032
+          ]
+        },
+        {
+          "x": 383,
+          "y": 183,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 217,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015788566321134567,
+            0.014400958083570004,
+            0.013235194608569145
+          ]
+        },
+        {
+          "x": 83,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016247553750872612,
+            0.01473684050142765,
+            0.013629377819597721
+          ]
+        },
+        {
+          "x": 117,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01657901518046856,
+            0.01504521630704403,
+            0.013801158405840397
+          ]
+        },
+        {
+          "x": 150,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01695084385573864,
+            0.01547709759324789,
+            0.014208988286554813
+          ]
+        },
+        {
+          "x": 183,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017283421009778976,
+            0.015708772465586662,
+            0.014437636360526085
+          ]
+        },
+        {
+          "x": 217,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018060093745589256,
+            0.016395462676882744,
+            0.015109507367014885
+          ]
+        },
+        {
+          "x": 250,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01819545030593872,
+            0.01654662936925888,
+            0.015209936536848545
+          ]
+        },
+        {
+          "x": 283,
+          "y": 217,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019029300659894943,
+            0.017350152134895325,
+            0.015983501449227333
+          ]
+        },
+        {
+          "x": 317,
+          "y": 217,
+          "state": "rejected-bright",
+          "reason": "R median 0.02043 is above the background estimate 0.01712 + 1 x MADN 0.00197 = 0.01909",
+          "median": [
+            0.02043381705880165,
+            0.019009606912732124,
+            0.018182946369051933
+          ]
+        },
+        {
+          "x": 350,
+          "y": 217,
+          "state": "rejected-bright",
+          "reason": "R median 0.01932 is above the background estimate 0.01712 + 1 x MADN 0.00197 = 0.01909",
+          "median": [
+            0.019316669553518295,
+            0.017520522698760033,
+            0.016152773052453995
+          ]
+        },
+        {
+          "x": 383,
+          "y": 217,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 250,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016149692237377167,
+            0.014661505818367004,
+            0.013469111174345016
+          ]
+        },
+        {
+          "x": 83,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016539795324206352,
+            0.01503362599760294,
+            0.013824069872498512
+          ]
+        },
+        {
+          "x": 117,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01683735102415085,
+            0.015292271971702576,
+            0.014085490256547928
+          ]
+        },
+        {
+          "x": 150,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017538920044898987,
+            0.015899883583188057,
+            0.01472468301653862
+          ]
+        },
+        {
+          "x": 183,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017609674483537674,
+            0.01596492901444435,
+            0.014735197648406029
+          ]
+        },
+        {
+          "x": 217,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018028298392891884,
+            0.01638244092464447,
+            0.014985334128141403
+          ]
+        },
+        {
+          "x": 250,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01857648603618145,
+            0.01682399958372116,
+            0.015550144948065281
+          ]
+        },
+        {
+          "x": 283,
+          "y": 250,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018805287778377533,
+            0.01711319014430046,
+            0.015729404985904694
+          ]
+        },
+        {
+          "x": 317,
+          "y": 250,
+          "state": "rejected-bright",
+          "reason": "R median 0.01955 is above the background estimate 0.01712 + 1 x MADN 0.00197 = 0.01909",
+          "median": [
+            0.019553139805793762,
+            0.017831768840551376,
+            0.016405435279011726
+          ]
+        },
+        {
+          "x": 350,
+          "y": 250,
+          "state": "rejected-bright",
+          "reason": "R median 0.01960 is above the background estimate 0.01712 + 1 x MADN 0.00197 = 0.01909",
+          "median": [
+            0.01959938555955887,
+            0.01785043254494667,
+            0.016398148611187935
+          ]
+        },
+        {
+          "x": 383,
+          "y": 250,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 17,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 50,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 83,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 117,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 150,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 183,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 217,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 250,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 283,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 317,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 350,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        },
+        {
+          "x": 383,
+          "y": 283,
+          "state": "rejected-edge",
+          "reason": "the 25 px box crosses the 6 px edge margin",
+          "median": []
+        }
+      ]
+    },
+    "surface": {
+      "method": "thin-plate-spline",
+      "lambda": 0.011908677248486628,
+      "kernelScale": 0.11908677248486628,
+      "gridDivisor": 8,
+      "gridSize": [
+        51,
+        39
+      ],
+      "maxInterpErrorLevels": 0.0033382676279832425,
+      "interpProbes": 1000,
+      "interpLimitLevels": 0.5,
+      "correction": "subtract",
+      "perChannel": [
+        {
+          "modelMin": 0.013221578368841094,
+          "modelMax": 0.020508915614612228,
+          "modelMedian": 0.01698148968186558,
+          "pedestal": 0.01698148968186558
+        },
+        {
+          "modelMin": 0.011922978708547529,
+          "modelMax": 0.01865813727205246,
+          "modelMedian": 0.01543374008437577,
+          "pedestal": 0.01543374008437577
+        },
+        {
+          "modelMin": 0.011001346387459969,
+          "modelMax": 0.017204686770122688,
+          "modelMedian": 0.014220810152743686,
+          "pedestal": 0.014220810152743686
+        }
+      ]
+    },
+    "correction": [
+      {
+        "pedestal": 0.01698148968186558,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.01543374008437577,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.014220810152743686,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      }
+    ],
+    "clamped": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.017120622568093387,
+          "madn": 0.001973805931330944,
+          "mad": 0.0013313138616828169,
+          "span": 0.008010986495765624,
+          "q1": 0.01585412375066758,
+          "q3": 0.018524452582589456,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012939650568398567,
+          "p999": 0.6741741054398414,
+          "totalPixels": 120000
+        },
+        {
+          "median": 0.015579461356527047,
+          "madn": 0.0018110661669293322,
+          "mad": 0.0012215473943945315,
+          "span": 0.007370107576104366,
+          "q1": 0.014404516670481423,
+          "q3": 0.016861219195849545,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.01168841077286946,
+          "p999": 0.6435492484931716,
+          "totalPixels": 120000
+        },
+        {
+          "median": 0.01432822156099794,
+          "madn": 0.0016877947540362849,
+          "mad": 0.001138401965490547,
+          "span": 0.006866559853513391,
+          "q1": 0.013244831006332494,
+          "q3": 0.015533684290836958,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010711833371480888,
+          "p999": 0.6419012741283284,
+          "totalPixels": 120000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.01701380941481651,
+          "madn": 0.0006735644780028837,
+          "mad": 0.0004543130163246214,
+          "span": 0.0027466239414053566,
+          "q1": 0.016556038757915618,
+          "q3": 0.017471580071717403,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.015793087663080796,
+          "p999": 0.6727702754253453,
+          "totalPixels": 120000
+        },
+        {
+          "median": 0.015472648203250172,
+          "madn": 0.0006755362903739118,
+          "mad": 0.0004556429855483015,
+          "span": 0.0027008468757152623,
+          "q1": 0.01501487754634928,
+          "q3": 0.015915159838254367,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.014267185473411154,
+          "p999": 0.644739452201114,
+          "totalPixels": 120000
+        },
+        {
+          "median": 0.014251926451514458,
+          "madn": 0.0006764849143927486,
+          "mad": 0.00045628282368322446,
+          "span": 0.0027466239414053566,
+          "q1": 0.013794155794613565,
+          "q3": 0.01470969710841535,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.013031204699778745,
+          "p999": 0.6425116350041963,
+          "totalPixels": 120000
+        }
+      ]
+    }
+  },
+  {
+    "id": "stretch-mtf",
+    "name": "Autostretch",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "shadowSigma": -2.8,
+      "target": 0.25,
+      "blackPct": 0.0005,
+      "nonLinear": false
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.01701380941481651,
+          "madn": 0.0006735644780028837,
+          "mad": 0.0004543130163246214,
+          "span": 0.0027466239414053566,
+          "q1": 0.016556038757915618,
+          "q3": 0.017471580071717403,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.015793087663080796,
+          "p999": 0.6727702754253453,
+          "totalPixels": 120000,
+          "shadows": 0.015127828876408435,
+          "midtones": 0.005722930456919257,
+          "target": 0.25,
+          "scale": 1.015360195282145,
+          "outLow": 0,
+          "outHigh": 6
+        },
+        {
+          "median": 0.015472648203250172,
+          "madn": 0.0006755362903739118,
+          "mad": 0.0004556429855483015,
+          "span": 0.0027008468757152623,
+          "q1": 0.01501487754634928,
+          "q3": 0.015915159838254367,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.014267185473411154,
+          "p999": 0.644739452201114,
+          "totalPixels": 120000,
+          "shadows": 0.013581146590203218,
+          "midtones": 0.005730654614625154,
+          "target": 0.25,
+          "scale": 1.0137681336313238,
+          "outLow": 0,
+          "outHigh": 0
+        },
+        {
+          "median": 0.014251926451514458,
+          "madn": 0.0006764849143927486,
+          "mad": 0.00045628282368322446,
+          "span": 0.0027466239414053566,
+          "q1": 0.013794155794613565,
+          "q3": 0.01470969710841535,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.013031204699778745,
+          "p999": 0.6425116350041963,
+          "totalPixels": 120000,
+          "shadows": 0.012357768691214762,
+          "midtones": 0.005731589871899501,
+          "target": 0.25,
+          "scale": 1.0125123939615652,
+          "outLow": 0,
+          "outHigh": 0
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.250415808346685,
+          "madn": 0.0668136298095977,
+          "mad": 0.04506517591366363,
+          "span": 0.27237354085603116,
+          "q1": 0.20227359426260777,
+          "q3": 0.2930647745479515,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.10556191348134585,
+          "p999": 0.9971313038834211,
+          "totalPixels": 120000,
+          "clipLow": 0,
+          "clipHigh": 6,
+          "clipPct": 0.005
+        },
+        {
+          "median": 0.25008010986495766,
+          "madn": 0.0669850956722337,
+          "mad": 0.045180828053577295,
+          "span": 0.27241931792172125,
+          "q1": 0.20201419089036393,
+          "q3": 0.29282063019760435,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.10884260318913558,
+          "p999": 0.9967650873579004,
+          "totalPixels": 120000,
+          "clipLow": 0,
+          "clipHigh": 0,
+          "clipPct": 0
+        },
+        {
+          "median": 0.25056839856565194,
+          "madn": 0.06693602923403674,
+          "mad": 0.04514773319441302,
+          "span": 0.2721446555275807,
+          "q1": 0.2025329976348516,
+          "q3": 0.29324788281071185,
+          "sampled": 120000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.10589761196307317,
+          "p999": 0.996734569314107,
+          "totalPixels": 120000,
+          "clipLow": 0,
+          "clipHigh": 0,
+          "clipPct": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "quantise",
+    "name": "Quantise to 8-bit",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "dither": true,
+      "ditherSeed": 20260906,
+      "ditherAmplitudeLevels": 0.5
+    },
+    "notes": [
+      "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
+      "0 values below black and 0 above white were clamped here, out of 360000."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": {
+      "low": 0,
+      "high": 0,
+      "nonFinite": 0,
+      "samples": 360000,
+      "lowPct": 0,
+      "highPct": 0
+    },
+    "before": null,
+    "after": null
+  }
+]

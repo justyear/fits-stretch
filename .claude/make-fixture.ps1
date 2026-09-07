@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -766,6 +766,50 @@ if ($Only -eq 'all' -or $Only -eq 'nonlinear') {
         ('HISTORY Histogram transformation, unlinked channels'.PadRight(80))
     )
     Write-Fits (Join-Path $outDir 'fixture-nonlinear.fit') $cards `
+               ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+}
+
+# ------------------------------------------------------------------- edge
+if ($Only -eq 'all' -or $Only -eq 'edge') {
+    # O único fixture pequeno o bastante para a margem PADRÃO alcançar a grade.
+    #
+    # Com a grade sobre o quadro inteiro, a primeira amostra fica em
+    # w/(2·colunas) da borda e a caixa alcança w/(2·colunas) − metade. Então
+    # `rejected-edge` só ocorre quando
+    #
+    #     edgeMargin · min(w,h) > w/(2·colunas) − (boxSize−1)/2
+    #
+    # Com samplesPerRow 12, boxSize 25 e edgeMargin 0,02 isso pede um quadro
+    # abaixo de ~554 px. Nenhum dos outros quatro chega perto, e por isso os
+    # quatro reportavam zero rejeições de borda — o estado era alcançável mas
+    # não exercitado, que é meia-cobertura e foi registrado como pendência.
+    #
+    # 400×300: margem 6 px, primeira amostra em x=17, caixa alcança 5 < 6.
+    # Dispara. Sobram 70 amostras das 108, bem acima da salvaguarda de 8.
+    #
+    # 1,44 MB — o fixture mais barato da suíte, e o único que cobre quadro
+    # pequeno, que também não tinha cobertura nenhuma.
+    $W = 400; $H = 300; $planes = 3
+    Write-Host "fixture-edge.fit  ($W x $H x $planes, float32, TOP-DOWN, exercita rejected-edge)"
+
+    $img = [FitsFixture]::Scene($W, $H, $planes, 20260909, 0.012, 0.0008, 0.35)
+
+    $cards = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Edge probe' '' -AsString)
+        (New-Card 'EXPTIME'  '120.' 'seconds')
+        ('HISTORY Small frame: the default edge margin reaches the sample grid.'.PadRight(80))
+        ('HISTORY Exists so rejected-edge is exercised, not merely reachable.'.PadRight(80))
+    )
+    Write-Fits (Join-Path $outDir 'fixture-edge.fit') $cards `
                ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
 }
 

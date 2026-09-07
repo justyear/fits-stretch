@@ -67,22 +67,80 @@ negativo que se auto-desativasse em silêncio seria pior que não existir.
 > diferentes, e o comparador diz isso **uma vez** em vez de reprovar 63 números:
 > `N/A — pipeline roda background e reference.py nao modela — passo 8 da §6`.
 >
-> O que sobra do Módulo 0: **33 PASS, todo o bloco de decode**, nos quatro
-> fixtures. O que se perdeu, e **continua perdido depois do passo 8**: a
-> verificação por segunda implementação de mediana, MAD, quartis, percentis,
-> `shadows`, `midtones`, `scale` e contagens de clip para `rice` e `nonlinear`.
->
-> O passo 8 **não** reabriu essas 80 comparações. O `referencia-modulo1.json`
-> cobre só o `fixture-gradient` e só os campos da etapa de fundo — são 40
-> comparações **novas**, não as 80 antigas. Reabrir as 80 exige regerar o
-> `justyear-referencia.json` para a cadeia com extração de fundo, e é a dívida
-> mais cara em aberto no projeto.
+> O que sobra do Módulo 0: **todo o bloco de decode**, nos quatro fixtures.
 >
 > É `N/A` e não `KNOWN` de propósito. A lista `KNOWN` é para divergências entre
 > duas implementações que descrevem a mesma coisa; esta é as duas deixando de
 > descrever a mesma coisa. Encher `KNOWN` com sessenta entradas transformaria um
 > registro de dívida em papel de parede — §7 do Módulo 0, "KNOWN não é uma saída
 > de emergência".
+>
+> **`referencia-cadeia.json` reabriu o bloco.** Ele monta a cadeia inteira —
+> decode, fundo, autostretch sobre o quadro **corrigido** — e volta a ser
+> comparável número a número. Ver a seção abaixo.
+
+## A cadeia completa contra `chain.py`
+
+`referencia-cadeia.json` fecha o que o passo 6 abriu. O comparador vai a **180
+linhas: 168 PASS, 5 N/A, 7 FAIL.**
+
+| fixture | linhas | PASS | FAIL | N/A |
+|---|---|---|---|---|
+| `seestar` | 13 | 11 | 0 | 2 |
+| `rice` | 61 | 58 | 2 | 1 |
+| `nonlinear` | 17 | 14 | 1 | 2 |
+| `gradient` | 89 | 85 | 4 | 0 |
+
+### A confirmação independente do bug do passo 6
+
+O `before` do stretch **é** a medição do quadro corrigido. Que estes números
+batam é confirmação de fora de que o conserto do passo 6 está certo: uma segunda
+implementação, escrita depois e montada do zero, mede o mesmo MADN
+pós-correção. A razão entre o dela e o meu:
+
+| `rice` | `nonlinear` | `gradient` |
+|---|---|---|
+| 1,0062 | 1,0034 | 0,9991 |
+
+O `seestar` dá 4,51 e **não é discordância**: a referência não faz debayer, então
+o MADN dela é dominado pelo padrão Bayer, que não é gradiente. O 0,000951 dela
+coincide com o valor **pré**-correção daqui (0,000939) porque é a mesma
+grandeza. Bloco por canal em N/A, mesma lacuna do Módulo 0.
+
+### As 7 que reprovam, e o que são
+
+**1 é a causa, visível:** `nonlinear fundo.aceitas` 81 contra 82. Uma amostra
+de diferença, do mesmo jeito que antes eram 92 contra 93 — limiares estimados
+por caminhos diferentes decidem diferente numa caixa de fronteira.
+
+As **consequências** disso ficam `N/A` e não `FAIL`, com pré-condição explícita
+no comparador: a tolerância da §7 pressupõe que os dois lados medem **os mesmos
+pixels**. Se as duas aceitam conjuntos diferentes, ajustam superfícies
+diferentes, corrigem diferente, e comparar as medianas desses dois quadros mede
+a diferença entre as superfícies e não concordância de estimador. Reprovar 33
+campos descreveria o sintoma 33 vezes.
+
+**6 são `mad`/`madn` acima do piso da §7**, e são reais:
+
+| | bins de span | limite |
+|---|---|---|
+| `rice` G, B `madn` | 8,75 / 9,45 | 8,00 |
+| `gradient` R `mad`, `madn` | 14,58 / 21,62 | 8,00 |
+| `gradient` B `mad`, `madn` | 8,59 / 12,74 | 8,00 |
+
+**Diagnóstico, e por que não afrouxei o número.** As medianas concordam
+**muito** bem — 0,19 a 0,81 bins do eixo [0,1], contra um limite de 4. O que
+falha é só a dispersão. A causa é que `MAD = mediana(|v − m|)` é medida
+**relativa à mediana**, e o piso da §7 é dimensionado em bins de `span`, que
+depois da correção ficou 2,5 a 5× menor. Um deslocamento de mediana de 0,81 bins
+do eixo [0,1] são 143 bins de `span` — o MADN herda a incerteza da mediana
+medida num eixo muito mais grosso.
+
+O limite derivável seria `max(1e-4·ref, 8·span/65535 + 1,4826·|Δmediana|)`, e
+com ele os 6 passam com folga: para `gradient` R o termo novo vale 1,84e-5
+contra um `Δmadn` observado de 1,87e-6, dez vezes maior. **Não aplicado** —
+mudar a §7 é decisão de spec, e um limite que eu ajusto no dia em que ele
+reprova é um limite que parou de medir.
 
 ## O que o float pleno mudou, medido
 
@@ -124,7 +182,7 @@ que isso precisa ser medido de verdade quando a RBF entrar.
 
 ## Fixtures — todos sintéticos
 
-**Nenhum arquivo de terceiro entra aqui.** Ver `CLAUDE.md`. Os quatro saem de
+**Nenhum arquivo de terceiro entra aqui.** Ver `CLAUDE.md`. Os cinco saem de
 `.claude/make-fixture.ps1` com semente fixa e são reprodutíveis byte a byte —
 verificado: regerar o `fixture-seestar.fit` devolve o mesmo sha256 do arquivo
 versionado.
@@ -135,8 +193,9 @@ versionado.
 | `rice-fixture` | `test/fixtures/fixture-rice.fit.fz` | 8.671.680 | ver `make-fixture.ps1` |
 | `nonlinear-fixture` | `test/fixtures/fixture-nonlinear.fit` | 6.482.880 | ver `make-fixture.ps1` |
 | `gradient-fixture` | `test/fixtures/fixture-gradient.fit` | 23.042.880 | `b14ac76614949a4feef20e1c9aa263b29813f7b2a7298f9b461388d482e1fc25` |
+| `edge-fixture` | `test/fixtures/fixture-edge.fit` | 1.442.880 | `3f18a50b3e896aab13683cb0b88abd4cc2f26c6a399dcf71072b8531d64ebf38` |
 
-Quatro, e não um, porque cobrem caminhos disjuntos:
+Cinco, e não um, porque cobrem caminhos disjuntos:
 
 - **`seestar-fixture`** — 1920×1080, BITPIX 16, BZERO 32768, ROWORDER BOTTOM-UP,
   BAYERPAT GRBG. Leitura de inteiro, flip de linha, detecção de CFA, debayer,
@@ -161,6 +220,12 @@ Quatro, e não um, porque cobrem caminhos disjuntos:
 - **`gradient-fixture`** — 1600×1200×3, float32, TOP-DOWN. Para o Módulo 1.
   Ver a seção própria abaixo: é o único da suíte cujo fundo é conhecido
   independentemente das duas implementações.
+- **`edge-fixture`** — 400×300×3, float32, TOP-DOWN. 1,44 MB, o mais barato da
+  suíte, e o único pequeno o bastante para a margem **padrão** alcançar a grade
+  de amostras: 38 das 108 amostras são rejeitadas por borda, 6 por brilho, 64
+  aceitas. Existe porque `rejected-edge` era alcançável e não exercitado — o
+  estado aparecia na spec, no código e no tooltip, e em nenhum golden. Cobre de
+  passagem o caso de quadro pequeno, que também não tinha nada.
 
 ## `fixture-gradient.fit` — o único com uma verdade externa
 

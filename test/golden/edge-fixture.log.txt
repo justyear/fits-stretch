@@ -1,0 +1,21 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-edge.fit
+400 × 300 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.01041 to 1.00000.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is linear: median 0.01568, no stretch recorded in the header. Full autostretch applied.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 64 of them (6 brighter than the background, 38 on the frame edge were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01698, G 0.01543, B 0.01422), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
+    R  median 0.01701  MADN 0.00067  →  shadows 0.01513  midtones 0.00572
+    G  median 0.01547  MADN 0.00068  →  shadows 0.01358  midtones 0.00573
+    B  median 0.01425  MADN 0.00068  →  shadows 0.01236  midtones 0.00573
+    0.002% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.
