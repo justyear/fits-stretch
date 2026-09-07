@@ -8,13 +8,13 @@ Processing log — fixture-nonlinear.fit
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
 • Data is already non-linear: the header records Autostretch and Histogram Transf. and Midtones transfer, the measured median sits at 0.2467. Stretch reduced accordingly — black point taken at the 0.050% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.
 • Background extraction: measured the sky in 96 boxes of 25 pixels on a 12 × 8 grid and used 81 of them (15 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
-    Each channel got its own model median back as a pedestal (R 0.26338, G 0.24500, B 0.22978), so the background level is preserved and only its variation was removed.
+    Each channel got its own model median back as a pedestal (R 0.26322, G 0.24486, B 0.22965), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
 • Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), target background held at each channel’s own median, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.26357  MADN 0.00583  →  shadows 0.25402  midtones 0.03497
-    G  median 0.24520  MADN 0.00610  →  shadows 0.23540  midtones 0.03842
-    B  median 0.23011  MADN 0.00632  →  shadows 0.21964  midtones 0.04351
-    0.056% of pixels land on pure black or pure white after the transfer.
+    R  median 0.26342  MADN 0.00583  →  shadows 0.25386  midtones 0.03499
+    G  median 0.24506  MADN 0.00610  →  shadows 0.23525  midtones 0.03850
+    B  median 0.22997  MADN 0.00632  →  shadows 0.21950  midtones 0.04354
+    0.055% of pixels land on pure black or pure white after the transfer.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
 • Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
 
