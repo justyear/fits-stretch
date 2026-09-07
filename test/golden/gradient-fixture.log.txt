@@ -7,14 +7,14 @@ Processing log — fixture-gradient.fit
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00581 to 0.47135.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
 • Data is linear: median 0.01676, no stretch recorded in the header. Full autostretch applied.
-• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 93 of them (15 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
-    Each channel got its own model median back as a pedestal (R 0.01836, G 0.01664, B 0.01514), so the background level is preserved and only its variation was removed.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 92 of them (16 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01831, G 0.01658, B 0.01505), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
 • Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.01848  MADN 0.00139  →  shadows 0.01457  midtones 0.01180
-    G  median 0.01675  MADN 0.00139  →  shadows 0.01287  midtones 0.01172
-    B  median 0.01526  MADN 0.00139  →  shadows 0.01137  midtones 0.01170
-    0.100% of pixels land on pure black or pure white after the transfer.
+    R  median 0.01848  MADN 0.00139  →  shadows 0.01458  midtones 0.01177
+    G  median 0.01675  MADN 0.00139  →  shadows 0.01287  midtones 0.01171
+    B  median 0.01521  MADN 0.00138  →  shadows 0.01134  midtones 0.01167
+    0.099% of pixels land on pure black or pure white after the transfer.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
 • Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
 

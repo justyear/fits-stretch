@@ -101,21 +101,17 @@ params: {
 encolhe proporcionalmente, senão a amostra do preview não corresponde à do
 render final. Registre o valor efetivamente usado no record.
 
-### PENDÊNCIA — a grade cobre o quadro inteiro; a margem só rejeita
+### A grade cobre o quadro inteiro; a margem só rejeita — CORRIGIDO
 
-**A implementação atual aplica `edgeMargin` duas vezes e isso custa medido.**
+A implementação encaixava a grade dentro da margem, com centro em
+`margem + (i+0,5)·(w−2·margem)/cols`, e depois testava se a caixa cruzava a
+margem — teste que **nunca disparava**, porque a grade já tinha sido encolhida
+para dentro. Os quatro fixtures reportavam `rejeitadas por borda: 0`, lido como
+normal. Era sintoma: **o estado `rejected-edge` era inalcançável por
+construção**.
 
-O que ela faz: encaixa a grade dentro da margem, com centro em
-`margem + (i+0,5)·(w−2·margem)/cols`. Depois testa se a caixa cruza a margem —
-teste que **nunca dispara**, porque a grade já foi encolhida para dentro. Os
-quatro fixtures reportam `rejeitadas por borda: 0`, e eu li isso como normal.
-Era sintoma: **o estado `rejected-edge` da §2.2 é inalcançável por construção**.
-
-O que a §2.2 exige: `rejected-edge` significa "a caixa cruza a margem de borda",
-e isso só pode acontecer se a grade **alcançar** a margem. As duas cláusulas da
-spec juntas pedem grade sobre o quadro inteiro, com centro em
-`(i+0,5)·w/cols`, e a margem servindo só de critério de rejeição — que é o que a
-`reference_bg.py` faz.
+Agora a grade tem centro em `(i+0,5)·w/cols`, cobrindo o quadro inteiro, e a
+margem é só critério de rejeição — que é o que esta §2.2 sempre disse.
 
 **Medido no `fixture-gradient.fit`, canal R:**
 
@@ -135,12 +131,36 @@ O custo da grade encaixada: **31,4% do campo limpo fica fora do casco das
 amostras**, e a spline extrapola ali. O pior pixel de campo limpo está em
 (1599, 1199), o canto exato do quadro.
 
-**Não corrigido nesta rodada** — muda os quatro goldens e é decisão de projeto.
-O que a decisão precisa pesar: corrigir alinha com a §2.2, reativa um estado de
-rejeição que hoje é código morto, reduz o erro de campo limpo em 1,5× no máximo
-e 2,9× na média, e faz as duas implementações coincidirem. Contra: amostras
-mais perto da borda são mais sujeitas a vinheta e a artefato de empilhamento,
-que é a razão de existir uma margem.
+**O contra, e por que não venceu.** Amostra perto da borda pega vinheta e
+artefato de empilhamento, que é a razão de existir uma margem. Mas a resposta a
+uma amostra ruim é **rejeitá-la**, com motivo no record e no tooltip — não
+deixar de gerá-la. Rejeitar é visível; não gerar é silencioso, e silêncio é o
+que a confusão 21 proíbe.
+
+### Quando `rejected-edge` dispara, e por que continua 0 no padrão
+
+Com a grade sobre o quadro inteiro, a primeira amostra fica em `w/(2·cols)` da
+borda e a caixa alcança `w/(2·cols) − metade`. Então a condição é:
+
+```
+margem > w/(2·colunas) − (boxSize−1)/2
+```
+
+Com `samplesPerRow` 12 e `boxSize` 25, o padrão `edgeMargin: 0.02` fica abaixo
+do limiar nos quatro fixtures — a borda continua em 0, e agora isso é uma
+propriedade dos fixtures e não do código. Demonstrado, e não argumentado:
+
+| fixture | margem no padrão | limiar | dispara em | rejeições ali |
+|---|---|---|---|---|
+| `nonlinear` 900×600 | 12 px | 26 px | `0,05` | 36 |
+| `gradient` 1600×1200 | 24 px | 55 px | `0,05` | 38 |
+| `seestar` 1920×1080 | 22 px | 65 px | `0,06` | 12 |
+| `rice` 2600×1000 | 20 px | 88 px | `0,09` | 24 |
+
+**Pendência menor:** nenhum fixture exercita `rejected-edge` com os parâmetros
+padrão, então o estado é alcançável mas não coberto pela suíte de goldens. Fecha
+com um fixture de quadro pequeno, ou com um golden capturado com `edgeMargin`
+acima do limiar — decisão de quem escrever o próximo fixture.
 
 ### 2.2 Rejeição — por ponto, com motivo
 

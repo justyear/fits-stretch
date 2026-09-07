@@ -8,11 +8,11 @@ Processing log — fixture-seestar.fit
 • Colour filter array: BAYERPAT = GRBG read from the header, and its green sites already match the main diagonal the pixels show. Measured lattice contrast 11.1%, neighbour ratio 3.23 H / 2.73 V.
 • Debayered with bilinear interpolation to full-resolution RGB.
 • Data is linear: median 0.01100, no stretch recorded in the header. Full autostretch applied.
-• Background extraction: measured the sky in 84 boxes of 25 pixels on a 12 × 7 grid and used 72 of them (12 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+• Background extraction: measured the sky in 84 boxes of 25 pixels on a 12 × 7 grid and used 73 of them (11 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01223, G 0.01092, B 0.00982), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
 • Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.01224  MADN 0.00021  →  shadows 0.01165  midtones 0.00179
+    R  median 0.01222  MADN 0.00021  →  shadows 0.01163  midtones 0.00179
     G  median 0.01091  MADN 0.00021  →  shadows 0.01031  midtones 0.00181
     B  median 0.00981  MADN 0.00021  →  shadows 0.00922  midtones 0.00178
     0.000% of pixels land on pure black or pure white after the transfer.
