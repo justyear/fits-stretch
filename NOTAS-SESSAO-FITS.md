@@ -174,6 +174,37 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### Resultado negativo exige controle positivo antes de virar achado
+
+**Regra.** Quando uma medição diz "não funcionou", a primeira hipótese é o
+instrumento, não o objeto. Antes de reportar, rode a mesma medição num caso onde
+o resultado é conhecido. Se o controle também falhar, o achado era do
+instrumento.
+
+O caso: a auditoria do `index.html` mediu o Chrome headless carregando a página
+por `file://` e o pipeline **não completou** — sem erro de JS, sem exceção, com
+`state.diag` nulo depois de 6 segundos. Isso tinha tudo para virar "a ferramenta
+não roda por duplo clique no Chrome", que é um achado grave e falso.
+
+O controle: a mesma página, o mesmo navegador, o mesmo comando, sobre `http://`.
+**Também falhou.** Logo o defeito não era do `file://`.
+
+A causa real: `--virtual-time-budget` do Chrome headless avança o relógio da
+thread principal e **não avança os timers de dentro de um Worker**. O pipeline
+roda no worker, espera num `await yieldNow()`, e o worker nunca acorda. Medido de
+novo forçando o caminho inline — que é o caminho que existe justamente para
+`file://` — a página roda completa, nos dois navegadores.
+
+**Por que a regra é barata e a falta dela é cara.** O controle custou uma
+execução. Sem ele, o relatório teria dito "não roda no Chrome"; a investigação
+seguinte teria começado no Worker, no blob, na política de origem do `file://` —
+tudo lugar errado. É o mesmo formato do sintoma que aponta para o lugar errado,
+duas seções abaixo, só que auto-infligido.
+
+Vale para qualquer instrumento novo: navegador headless, harness recém-escrito,
+comparador recém-mudado. **A primeira vez que um instrumento diz "falhou", ele
+está sob suspeita junto com o objeto.**
+
 ### A classe mais cara: erro invisível na métrica de saída
 
 Dois bugs do Módulo 1 são a mesma classe, e nenhum dos dois teria sido pego por

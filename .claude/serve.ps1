@@ -22,6 +22,11 @@ $map = @{
     '/'                 = (Join-Path $root 'index.html')
     '/index.html'       = (Join-Path $root 'index.html')
     '/test/notfits.fit' = (Join-Path $PSScriptRoot 'notfits.fit')
+    # O build COM ganchos. A captura de golden abre este, nao o publicado:
+    # index.html nao tem mais __loadFromURL. Ver build/build.ps1.
+    # Precisa terminar em .html: e assim que o content-type e escolhido, mais
+    # abaixo. Sem isso o navegador baixa o arquivo em vez de abrir a pagina.
+    '/test.html'        = (Join-Path $PSScriptRoot 'index-test.html')
 }
 
 # Reads one CRLF-terminated line straight off the socket. A StreamReader would

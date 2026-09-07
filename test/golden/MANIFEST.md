@@ -11,9 +11,11 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`5337066f47c1b7256b10443b247690a6b448ef11294ff9f4418210b0e7288692`
-(148.347 bytes — pipeline em 13 arquivos, cadeia em float pleno, extração de
-fundo aplicada com grade sobre o quadro inteiro, dither no quantise).
+`7ea8749e407f963f1f09fddc882e5adce506d8170c208b07984929d3df4444bf`
+(151.781 bytes — `.claude/index-test.html`, o build **com ganchos**. O publicado
+é `index.html`, 150.088 bytes, sha256
+`b79bbba36b83b1a660b4166c4fbbb54af46b642ac16ac06744316104346c62cf`, e difere
+apenas pelo bloco de ganchos.)
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
@@ -28,9 +30,15 @@ powershell -File .claude\make-fixture.ps1        # se os fixtures não existirem
 powershell -File .claude\serve.ps1 -Port 8791
 ```
 
-Abrir `http://127.0.0.1:8791/`, colar `test/capture-golden.js` no console,
-`await __captureAll()`. Os quatro artefatos por fixture caem em
-`.claude/shots/`. Depois:
+Abrir **`http://127.0.0.1:8791/test.html`** — e não a raiz. A raiz serve o
+`index.html` publicado, que **não tem** `__loadFromURL`: os ganchos de teste
+saem do arquivo que as pessoas baixam, e `/test.html` serve o
+`.claude/index-test.html`, que é o mesmo build com o bloco de ganchos. Os dois
+saem do mesmo `template.html` e `build.ps1 -Check` valida os dois, então não
+podem divergir em nada além daquele bloco.
+
+Colar `test/capture-golden.js` no console e `await __captureAll()`. Os quatro
+artefatos por fixture caem em `.claude/shots/`. Depois:
 
 ```
 powershell -File test\compare-golden.ps1      # nao-regressao, com tolerancia

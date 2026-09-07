@@ -461,7 +461,7 @@ function exportFits(kind, post){
   // A copy, never a transfer. When no debayer ran, `source.data` and `decData`
   // are the same buffer, and transferring it would detach the frame every
   // later run depends on.
-  var copy = new Float32Array(SESSION.decData);
+  var copy = allocFrom(Float32Array, SESSION.decData, 'the FITS export buffer');
   post({ type: 'exported', kind: 'fits', fitsMeta: SESSION.fitsMeta, fitsData: copy.buffer },
        [copy.buffer]);
 }
@@ -541,7 +541,16 @@ self.onmessage = function(ev){
 
   function post(payload, transfer){ self.postMessage(payload, transfer || []); }
   function fail(e){
-    post({ type: 'error', kind: (e && e.kind) || 'unknown', message: String((e && e.message) || e) });
+    // A RangeError that reached here without a kind is an allocation that
+    // failed somewhere the `alloc` helper does not cover. It is not "something
+    // went wrong", it is a memory limit, and the two send the reader to
+    // completely different places: one asks for a bug report, the other says
+    // close some tabs. The header is validated before anything large is
+    // requested — `truncated` and `baddims` fire first — so by the time a
+    // RangeError can happen, the size being asked for is a size the file
+    // genuinely declares.
+    var kind = (e && e.kind) || ((e instanceof RangeError) ? 'memory' : 'unknown');
+    post({ type: 'error', kind: kind, message: String((e && e.message) || e) });
   }
 
   try {

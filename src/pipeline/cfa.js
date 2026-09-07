@@ -126,7 +126,7 @@ function debayer(src, w, h, pattern){
   var code = new Int8Array(4);                       // 0 = R, 1 = G, 2 = B
   for (var k = 0; k < 4; k++) code[k] = pattern[k] === 'R' ? 0 : (pattern[k] === 'B' ? 2 : 1);
 
-  var out = new Float32Array(w * h * 3);
+  var out = alloc(Float32Array, w * h * 3, 'the debayered RGB frame');
   var N = w * h;
 
   function at(x, y){

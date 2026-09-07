@@ -243,7 +243,7 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
     var gh = Math.ceil((h - 1) / divisor) + 1;
     var grid = [];
     for (c = 0; c < nch; c++){
-      var g = new Float64Array(gw * gh);
+      var g = alloc(Float64Array, gw * gh, 'the background lattice');
       for (var gy = 0; gy < gh; gy++){
         var vv = (gy * divisor) / norm;
         for (var gx = 0; gx < gw; gx++){

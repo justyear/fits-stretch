@@ -27,7 +27,7 @@ function Image(data, w, h, channels){
 // caller still needs afterwards is cloned before the step sees it — see the
 // note in run.js about dec.data, which the FITS export hands back untouched.
 Image.prototype.clone = function(){
-  return new Image(new Float32Array(this.data), this.w, this.h, this.channels);
+  return new Image(allocFrom(Float32Array, this.data, 'a working copy of the frame'), this.w, this.h, this.channels);
 };
 
 // Box average, per channel, in float. Used to build the preview buffer the
@@ -47,7 +47,7 @@ function downscaleFloat(img, maxEdge){
 
   var dw = Math.max(1, Math.floor(img.w / f));
   var dh = Math.max(1, Math.floor(img.h / f));
-  var out = new Float32Array(dw * dh * img.channels);
+  var out = alloc(Float32Array, dw * dh * img.channels, 'the preview buffer');
   var area = f * f, src = img.data;
 
   for (var c = 0; c < img.channels; c++){

@@ -178,7 +178,7 @@ function decodeTileCompressed(buffer, hdu, report, stage){
     throw FitsError('cmptype', 'table holds ' + rows + ' tiles but the geometry needs ' + expected);
   }
 
-  var out = new Float32Array(w * h * planes);
+  var out = alloc(Float32Array, w * h * planes, 'the decompressed frame');
   var idata = new Int32Array(t1 * t2 * t3);
   var plane = w * h;
   var scaleIdentity = (bzero === 0 && bscale === 1);

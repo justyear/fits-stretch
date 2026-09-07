@@ -137,7 +137,19 @@ uma amostra ruim é **rejeitá-la**, com motivo no record e no tooltip — não
 deixar de gerá-la. Rejeitar é visível; não gerar é silencioso, e silêncio é o
 que a confusão 21 proíbe.
 
-### PENDÊNCIA — o modo de arredondamento do centro da amostra não está especificado
+**O centro da amostra é `round((i+0,5)·w/cols)` com meio arredondado PARA CIMA.**
+Especificado, e não deixado ao acaso da linguagem. Dois motivos:
+
+1. **É o que a ferramenta já faz.** `Math.round` do JavaScript é meio-para-cima,
+   então fixar isso não muda nenhum pixel, nenhum golden e nenhuma saída. A
+   escolha custa zero e a alternativa custaria uma recaptura.
+2. **Meio-para-o-par existe para não enviesar médias**, que é um problema real
+   quando se soma muitos valores arredondados. Posição de grade não é somada:
+   cada centro é usado uma vez, para ler uma caixa. O viés que a convenção
+   evita não existe aqui, e em troca ela introduz um resultado que depende de
+   qual linguagem calculou.
+
+### RESOLVIDO — o modo de arredondamento do centro da amostra
 
 O centro é `round((i+0,5)·w/cols)`, e **`round` não é a mesma função nas duas
 implementações**: JavaScript arredonda meio para cima, Python arredonda meio
@@ -164,11 +176,11 @@ desacordo é quantização ou critério:
 A amostra em questão, (638, 563) no canal R, é rejeitada pelos **dois** limiares.
 O que difere é onde a caixa está: 563 é `Math.round(562,5)`; o Python põe em 562.
 
-**Fica como FAIL visível**, não como `KNOWN`. É desacordo real e barato de
-resolver — a spec precisa dizer qual arredondamento, e as duas passam a
-concordar. Enquanto não disser, o desacordo é da spec e não das
-implementações, e esconder isso numa lista de exceções seria transformar uma
-lacuna de especificação em dívida silenciosa.
+**Era FAIL visível e não `KNOWN`**, porque o desacordo era da spec e não das
+implementações — e esconder uma lacuna de especificação numa lista de exceções
+seria transformá-la em dívida silenciosa. Fechado pela regra acima: a
+`reference_bg.py` e a `chain.py` alinham o arredondamento e as duas passam a
+aceitar as mesmas 82 amostras do `nonlinear`.
 
 ### Quando `rejected-edge` dispara, e por que continua 0 no padrão
 
