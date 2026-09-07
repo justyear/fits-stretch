@@ -174,6 +174,62 @@ Cards preservados verbatim, menos os estruturais e os de compressão. Adiciona
 uma linha de `HISTORY`, quebrada em limite de palavra (card FITS tem 80 bytes e
 `HISTORY ` come 8; a primeira versão estourou e cortou no meio de uma palavra).
 
+### A correção óbvia é pior que o bug — e a tolerância teria calado o instrumento
+
+**O caso.** O pedestal era a mediana da **retícula** do modelo, não do modelo
+sobre o quadro. A retícula anda em passo fixo de 8 px, então o último nó cai
+**fora da imagem** — 904 num quadro de 900 — onde a spline extrapola. Aqueles
+valores entravam na mediana, e como o gradiente cresce para x alto o pedestal
+saía alto: **+10 bins** contra a segunda implementação.
+
+**A correção óbvia piora.** "Descarte os nós de fora" leva o viés de **+10 para
+−16 bins**: agora falta a borda alta em vez de sobrar. Medido, nas três:
+
+| definição | erro, em bins |
+|---|---|
+| retícula em passo fixo, ultrapassando a borda | +10,2 / +9,0 / +8,4 |
+| **passo fixo, só os nós de dentro** | **−16,0 / −16,9 / −14,0** |
+| linspace cobrindo exatamente `[0, N−1]` | 0,28 / 1,37 / 0,68 |
+| **mediana sobre os pixels do quadro** | **0,08 / 0,06 / 0,05** |
+
+**A regra geral:** *passo fixo nunca cobre `[0, N−1]` uniformemente a menos que
+`N−1` seja múltiplo do passo.* Ultrapassa ou falta, e nos dois casos a amostra é
+enviesada — só o sinal muda. Descartar o excedente não conserta; troca de erro.
+
+**O que decide não é qual número bate, é a definição.** O pedestal é a mediana
+**do modelo**, e o modelo é o que se aplica ao quadro; a mediana dele é sobre os
+pixels do quadro. A retícula existe por razão de custo. Deixá-la definir o valor
+foi confundir o instrumento com a grandeza — a mesma forma de [indicador verde
+lido como resposta a outra pergunta], num lugar diferente. O `linspace` daria ~1
+bin de graça e ainda assim estaria errado: funciona porque cobre a borda por
+construção, não porque a definição está certa, e muda o divisor e volta a
+divergir.
+
+#### O que a tolerância teria custado
+
+Antes de achar isto, eu propus um termo derivável para o piso da §7 — somar
+`|Δpedestal|` às estatísticas de posição, porque `out = in − model + pedestal` e
+um deslocamento de pedestal move todo quantil igual. **A derivação estava certa
+e aplicá-la teria sido um desastre.**
+
+As 24 comparações que reprovavam passariam — com **9 bins de extrapolação fora
+do quadro** por baixo. O defeito ficaria no produto, não no comparador: um
+pedestal errado desloca o quadro corrigido inteiro em 1,5e-4, que é 0,04 nível
+de 255.
+
+E o pior: **este projeto tem um detector de deslocamento sistemático**, escrito
+exatamente para pegar isso, e ele teria pegado. A tolerância nova o teria
+silenciado antes.
+
+**A assinatura completa, e é a lição mais cara desta sessão:**
+
+> Tolerância que cresce para acomodar um número que ninguém explicou desliga o
+> instrumento que acharia a causa.
+
+Um limite só pode ser afrouxado depois que a diferença está explicada — nunca
+para explicá-la. A derivação ser correta não basta: ela justifica *que o termo
+existe*, não *que aquele número específico vinha dali*.
+
 ### Resultado negativo exige controle positivo antes de virar achado
 
 **Regra.** Quando uma medição diz "não funcionou", a primeira hipótese é o
@@ -550,6 +606,49 @@ investigado.
 Vale como classe de caso, não como cliente: **MADN muito pequeno contra mediana
 pequena produz midtones de três zeros, e o que aparece na tela é o gradiente.**
 É o argumento mais forte a favor da extração de fundo do Módulo 1.
+
+## Decisões de publicação — 2026-09-07
+
+### Os fixtures ficam versionados, e o motivo derrubou o meu argumento
+
+Eu propus regerar em vez de versionar: o `make-fixture.ps1` é determinístico, o
+`MANIFEST` traz os sha256, e cortaria 42 dos 62 MB. O contra-argumento é melhor
+e é o que vale:
+
+**O determinismo foi verificado numa máquina só.** Entre máquinas, com C# e
+ponto flutuante, é provável — não garantido. Versão do .NET, versão do
+PowerShell, e a geração usa `Math.Exp`, `Math.Log` e `Math.Cos`, que não são
+obrigadas a dar o mesmo bit em toda implementação.
+
+**O modo de falha é o que decide.** Se o gerado divergir na máquina de quem
+verifica, o sha256 não bate e a pessoa fica sem poder verificar **nada** — não
+só aquele fixture. E isso acontece exatamente com quem duvida e foi conferir,
+que é a única pessoa para quem esta suíte existe. Os 42 MB compram imunidade a
+esse modo de falha.
+
+**Sobre o crescimento do repositório**, que era o meu motivo real: ele vem dos
+goldens, não dos fixtures. PNG não deltifica, e recapturei cerca de dez vezes
+numa sessão — o `.git` foi a 103 MB com 23 commits. Os fixtures são estáveis; os
+goldens é que se repetem.
+
+**Regra adotada:** recaptura de golden vira **commit próprio, com o motivo
+escrito**. Não entra de carona num commit de código. Assim o histórico diz
+quantas vezes os goldens mudaram e por quê, e o custo fica visível em vez de
+diluído.
+
+### O histórico não é reescrito
+
+`Justyear <noreply@justyear.invalid>` fica em todos os commits. Dois motivos, e
+o segundo é o que fecha:
+
+- **"Justyear" lê como projeto, não como hobby de uma pessoa.** Para um
+  repositório de produto isso é melhor que um nome próprio.
+- **Reescrever depois que alguém clonou quebra o clone dessa pessoa.** Os
+  hashes mudam, o `git pull` diverge, e o custo cai em quem confiou primeiro.
+
+Isto encerra a questão levantada acima em [Identidade do git deste
+repositório]: sim, estes commits não vão ligar a um perfil do GitHub, e não,
+não vamos consertar isso. **Não voltar a esta decisão.**
 
 ## Identidade do git deste repositório
 

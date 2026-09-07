@@ -96,6 +96,57 @@ function Edit-Png($dir, $file, [int]$delta, [long]$count, [switch]$Resize, [int]
     $bmp.Dispose()
 }
 
+# --- ancoras, lidas do golden em tempo de execucao ------------------------
+#
+# Nao hardcoded. Os valores concretos mudaram quatro vezes nesta suite -- cada
+# recaptura de golden os movia e o script parava com "pattern not found", que e
+# o modo de falha certo mas custa uma reancoragem manual toda vez. Lidos daqui,
+# os casos seguem valendo enquanto a ESTRUTURA nao mudar, que e o que eles
+# realmente testam.
+#
+# A busca usa o literal exato como o JSON.stringify o escreveu, porque .NET nao
+# tem o round-trip mais curto do JavaScript e reformatar erraria o alvo.
+$recTxt  = [System.IO.File]::ReadAllText((Join-Path $gold $ART_REC))
+$diagTxt = [System.IO.File]::ReadAllText((Join-Path $gold $ART_DIAG))
+$logTxt  = [System.IO.File]::ReadAllText((Join-Path $gold $ART_LOG))
+$recJson = $recTxt | ConvertFrom-Json
+$sti = 0
+for ($k9 = 0; $k9 -lt @($recJson).Count; $k9++) { if (@($recJson)[$k9].id -eq 'stretch-mtf') { $sti = $k9 } }
+$b9 = @($recJson)[$sti].before.perChannel[0]
+$a9 = @($recJson)[$sti].after.perChannel[0]
+
+function Find-Literal([string]$text, [string]$key, [string]$approx) {
+    $m = [regex]::Match($text, '"' + $key + '":\s*(' + [regex]::Escape($approx.Substring(0, [Math]::Min(10, $approx.Length))) + '[0-9eE+-]*)')
+    if (-not $m.Success) { throw "literal de $key nao encontrado no golden" }
+    return $m.Groups[1].Value
+}
+# InvariantCulture em toda formatacao: neste sistema a cultura usa virgula
+# decimal, e "{0:R}" -f produziria "0,2635..." -- um prefixo que nunca casa com
+# o ponto que o JSON escreveu. Foi exatamente assim que a primeira versao falhou.
+$inv9   = [cultureinfo]::InvariantCulture
+function RT9([double]$v){ return [string]::Format($inv9, '{0:R}', $v) }
+$MED    = Find-Literal $recTxt  'median' (RT9 ([double]$b9.median))
+$MADN   = Find-Literal $recTxt  'madn'   (RT9 ([double]$b9.madn))
+$DIAGMED= Find-Literal $diagTxt 'median' (RT9 ([double]$b9.median))
+$medV   = [double]::Parse($MED,  $inv9)
+$madV   = [double]::Parse($MADN, $inv9)
+$spanV  = [double]$b9.span
+
+# Os deltas sao calculados a partir dos limites da secao 7, nao escolhidos:
+#   unit  = max(1e-4*ref, 4/65535)          -> dentro em 0.82x, fora em 1.15x
+#   span  = max(1e-4*ref, 8*span/65535)     -> dentro em 0.69x, fora em 2.77x
+$uLim9  = [Math]::Max(1e-4 * $medV, 4.0 / 65535.0)
+$mLim9  = [Math]::Max(1e-4 * $madV, 8.0 * $spanV / 65535.0)
+$MED_IN  = [string]::Format($inv9, '{0:G17}', ($medV + 0.82 * $uLim9))
+$MED_OUT = [string]::Format($inv9, '{0:G17}', ($medV + 1.15 * $uLim9))
+$MAD_IN  = [string]::Format($inv9, '{0:G17}', ($madV + 0.69 * $mLim9))
+$MAD_OUT = [string]::Format($inv9, '{0:G17}', ($madV + 2.77 * $mLim9))
+$CLIPHI  = '"clipHigh": ' + $a9.clipHigh
+$CLIPLO  = '"clipLow": '  + $a9.clipLow
+$PXBLACK = '"pixelsBlack": ' + $a9.clipLow
+$LOGMED  = 'median ' + ([double]$b9.median).ToString('0.00000', $inv9)
+$LOGMED2 = 'median ' + ([double]$b9.median + 0.00001).ToString('0.00000', $inv9)
+if (-not $logTxt.Contains($LOGMED)) { throw "ancora do log nao encontrada: $LOGMED" }
 # The numbers are read off the current goldens. Each pair sits just inside and
 # just outside one specific limit, so a limit that silently widened shows up as
 # a MISMATCH here instead of as a quiet pass.
@@ -111,29 +162,29 @@ $cases = @(
     @{ name = 'baseline, untouched'; art = $null; want = 'PASS'; do = { } }
 
     @{ name = 'records median +5e-5 (0.82 of limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2635690852216373' '0.26361908522163729' } }
+         Edit-Text $tmpdir $ART_REC $MED $MED_IN } }
     @{ name = 'records median +7e-5 (1.15 of limit)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.2635690852216373' '0.26363908522163731' } }
+         Edit-Text $tmpdir $ART_REC $MED $MED_OUT } }
 
     @{ name = 'records madn +2e-6 (0.69 of the span limit)'; art = $ART_REC; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.005831129706837635' '0.0058331297068376356' } }
+         Edit-Text $tmpdir $ART_REC $MADN $MAD_IN } }
     @{ name = 'records madn +8e-6, fails span rule, passes [0,1] rule'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '0.005831129706837635' '0.0058391297068376355' } }
+         Edit-Text $tmpdir $ART_REC $MADN $MAD_OUT } }
 
     # Clip counts are exact in this comparator, so all three of these fail, and
     # the third is the one the rule exists for. Under the old 0.05% tolerance
     # the first two passed and the third passed too - a shadow clip vanishing
     # completely read as "within tolerance", by one pixel.
     @{ name = 'records clipHigh 58 -> 57 (one pixel, exact now)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 59' } }
+         Edit-Text $tmpdir $ART_REC $CLIPHI ($CLIPHI -replace '\d+$', ([int]$a9.clipHigh + 1)) } }
     @{ name = 'records clipHigh 58 -> 290 (was inside the old 0.05%)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 292' } }
+         Edit-Text $tmpdir $ART_REC $CLIPHI ($CLIPHI -replace '\d+$', ([int]$a9.clipHigh + 234)) } }
     @{ name = 'records clipHigh 58 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipHigh": 58' '"clipHigh": 0' } }
+         Edit-Text $tmpdir $ART_REC $CLIPHI '"clipHigh": 0' } }
     @{ name = 'records clipLow 249 -> 0 (the clip vanished)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"clipLow": 249' '"clipLow": 0' } }
+         Edit-Text $tmpdir $ART_REC $CLIPLO '"clipLow": 0' } }
     @{ name = 'diag pixelsBlack 249 -> 0 (the clip vanished)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_DIAG '"pixelsBlack": 249' '"pixelsBlack": 0' } }
+         Edit-Text $tmpdir $ART_DIAG $PXBLACK '"pixelsBlack": 0' } }
 
     @{ name = 'records params.target nudged (input knob, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"target": 0.25,' '"target": 0.2501,' } }
@@ -145,7 +196,7 @@ $cases = @(
          Edit-Text $tmpdir $ART_REC '"applied": true' '"applied": false' } }
 
     @{ name = 'diag channels[0].median +5e-5'; art = $ART_DIAG; want = 'PASS~'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_DIAG '"median": 0.2635690852216373' '"median": 0.26361908522163729' } }
+         Edit-Text $tmpdir $ART_DIAG ('"median": ' + $DIAGMED) ('"median": ' + $MED_IN) } }
     @{ name = 'diag decoded.normMax nudged (off the file, exact)'; art = $ART_DIAG; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_DIAG '"normMax": 1' '"normMax": 1.0001' } }
 
@@ -183,7 +234,7 @@ $cases = @(
          Edit-Png $tmpdir $ART_PNG 2 99999999 } }
 
     @{ name = 'log one digit changed'; art = $ART_LOG; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_LOG 'median 0.26357' 'median 0.26358' } }
+         Edit-Text $tmpdir $ART_LOG $LOGMED $LOGMED2 } }
 )
 
 $good = 0; $bad = 0
