@@ -270,22 +270,70 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
 
   // --- per-channel statistics of the model itself ---
   //
-  // Taken over the lattice, not over every pixel. The lattice is a uniform
-  // sample of a surface that is smooth by construction, so its median is the
-  // spatial median to within the interpolation error just measured — and
-  // materialising the full-resolution model here, only to measure it, would
-  // cost the memory the lattice exists to avoid.
+  // THE MEDIAN IS TAKEN OVER THE FRAME, not over the lattice.
+  //
+  // It used to be the median of the lattice nodes, and that was wrong by about
+  // ten histogram bins on a frame whose background sits near 0.26. The lattice
+  // steps by a fixed `divisor`, so its last node lands PAST the last pixel —
+  // 904 on a 900-wide frame — and the spline extrapolates there. Those
+  // extrapolated values were entering the median, and since the gradient rises
+  // toward high x the pedestal came out high.
+  //
+  // Dropping the outside nodes is the obvious fix and it is WORSE: it takes the
+  // bias from +10 bins to -16, because now the high edge is missing instead of
+  // over-represented. A fixed step never covers [0, N-1] uniformly unless N-1
+  // is a multiple of the step, and either way the sample is biased — the sign
+  // just flips.
+  //
+  // The definition settles it. The pedestal is the median of THE MODEL, and the
+  // model is the thing applied to the frame; its median is over the frame's
+  // pixels. The lattice exists to make evaluation cheap. Letting it define the
+  // value was mistaking the instrument for the quantity.
+  //
+  // Done by histogram rather than by sorting w*h values: O(N) with fixed memory
+  // and no allocation the size of the frame. The bin range comes from the
+  // lattice, which is a safe superset — a bilinear interpolation of four nodes
+  // always lands between their min and max, so no frame pixel can fall outside
+  // the lattice range. `modelMin` and `modelMax` are still the frame's own,
+  // measured in the same pass.
+  var PED_BINS = 65536;
   var perChannel = [];
+  var pedRow = new Float64Array(surface.gw);
   for (c = 0; c < nch; c++){
     var gg = surface.grid[c];
-    var lo = Infinity, hi = -Infinity;
+    var glo = Infinity, ghi = -Infinity;
     for (i = 0; i < gg.length; i++){
-      if (gg[i] < lo) lo = gg[i];
-      if (gg[i] > hi) hi = gg[i];
+      if (gg[i] < glo) glo = gg[i];
+      if (gg[i] > ghi) ghi = gg[i];
     }
-    var sorted = Float64Array.from(gg);
-    sorted.sort();
-    var med = sorted[sorted.length >> 1];
+    var gspan = ghi - glo;
+    if (!(gspan > 0)) gspan = 1;
+
+    var pedHist = alloc(Uint32Array, PED_BINS, 'the pedestal histogram');
+    var lo = Infinity, hi = -Infinity, seen = 0;
+    for (var py = 0; py < h; py++){
+      var pfy = py / divisor, pgy = pfy | 0, pty = pfy - pgy;
+      var pr0 = pgy * surface.gw, pr1 = pr0 + surface.gw;
+      for (var pk = 0; pk < surface.gw; pk++){
+        pedRow[pk] = gg[pr0 + pk] + (gg[pr1 + pk] - gg[pr0 + pk]) * pty;
+      }
+      for (var px = 0; px < w; px++){
+        var pfx = px / divisor, pgx = pfx | 0, ptx = pfx - pgx;
+        var mv = pedRow[pgx] + (pedRow[pgx + 1] - pedRow[pgx]) * ptx;
+        if (mv < lo) lo = mv;
+        if (mv > hi) hi = mv;
+        var pb = ((mv - glo) / gspan) * (PED_BINS - 1);
+        pb = (pb < 0) ? 0 : ((pb > PED_BINS - 1) ? PED_BINS - 1 : (pb | 0));
+        pedHist[pb]++; seen++;
+      }
+    }
+    var half2 = seen / 2, pacc = 0, pmi = PED_BINS - 1;
+    for (i = 0; i < PED_BINS; i++){
+      pacc += pedHist[i];
+      if (pacc >= half2){ pmi = i; break; }
+    }
+    var med = glo + (pmi / (PED_BINS - 1)) * gspan;
+
     perChannel.push({
       modelMin: lo, modelMax: hi, modelMedian: med,
       // 'model-median' pedestal, section 2.4: give back the model's own median,

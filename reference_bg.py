@@ -112,8 +112,8 @@ def sample_grid(planes, samples_per_row=12, box=25, edge_margin=0.02):
     pts = []
     for j in range(ny):
         for i in range(nx):
-            x = int(round((i + 0.5) * w / nx))
-            y = int(round((j + 0.5) * h / ny))
+            x = int(np.floor((i + 0.5) * w / nx + 0.5))   # meio para cima, como Math.round
+            y = int(np.floor((j + 0.5) * h / ny + 0.5))   # meio para cima, como Math.round
             pts.append(dict(x=x, y=y))
 
     out = []

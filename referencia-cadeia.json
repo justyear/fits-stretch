@@ -24,13 +24,12 @@
       "fundo": {
         "aplicado": true,
         "aceitas": 81,
-        "geradas": 84,
-        "observacao": "extracao rodou sobre o mosaico, nao sobre RGB debayerizado"
+        "geradas": 84
       },
       "globalMedian": 0.010926284948513262,
       "nonLinear": false,
       "canais": {
-        "_NA": "mosaico CFA; esta implementacao nao faz debayer. O MADN medido (0,000951) e dominado pelo proprio padrao Bayer, que nao e gradiente e nao pode ser removido pela etapa de fundo. Coincide com o valor PRE-correcao dele (0,000939) porque e a mesma grandeza: a variacao pixel a pixel do mosaico."
+        "_NA": "mosaico CFA; esta implementacao nao faz debayer. O MADN medido e dominado pelo padrao Bayer, que nao e gradiente e nao pode ser removido pela etapa de fundo."
       }
     },
     "rice": {
@@ -166,104 +165,104 @@
       },
       "fundo": {
         "aplicado": true,
-        "aceitas": 82,
+        "aceitas": 81,
         "geradas": 96
       },
-      "globalMedian": 0.2461356444788397,
+      "globalMedian": 0.246155484989848,
       "nonLinear": true,
       "canais": {
         "R": {
           "estatisticaExata": {
-            "median": 0.2633923671232987,
-            "madn": 0.005852952210753241,
-            "mad": 0.003947762181811171,
-            "q1": 0.2594193716488667,
-            "q3": 0.2673134142985649,
-            "p001": 0.252767804377114,
-            "p999": 0.9665670559060895,
-            "pBlack": 0.25224963027535874,
-            "min": 0.25085447256795695,
-            "max": 1.0196587130706454,
+            "median": 0.2634190873111616,
+            "madn": 0.0058309973924363535,
+            "mad": 0.0039329538597304425,
+            "q1": 0.259444853831147,
+            "q3": 0.26731476230473245,
+            "p001": 0.25409283792414833,
+            "p999": 0.9665757497779004,
+            "pBlack": 0.2538776103637768,
+            "min": 0.25305835018240974,
+            "max": 1.0195913604668938,
             "n": 540000
           },
           "parametros": {
-            "shadows": 0.25224963027535874,
-            "midtones": 0.04058765777766379,
-            "target": 0.2633923671232987,
-            "scale": 1.3373447081921865,
-            "x": 0.014901680158370621
+            "shadows": 0.2538776103637768,
+            "midtones": 0.03495551444694096,
+            "target": 0.2634190873111616,
+            "scale": 1.340262688655619,
+            "x": 0.012788085547247528
           },
           "saida": {
             "median": 67.0,
-            "mean": 72.77019074074074,
+            "mean": 71.97127222222223,
             "clipLow": 270,
             "clipHigh": 58,
             "clipLowPct": 0.05,
             "clipHighPct": 0.01074074074074074
           },
-          "pedestal": 0.26322943505535523
+          "pedestal": 0.2632257990742311
         },
         "G": {
           "estatisticaExata": {
-            "median": 0.24507875011953348,
-            "madn": 0.006116885446349369,
-            "mad": 0.004125782710339518,
-            "q1": 0.24092206975773783,
-            "q3": 0.24917371494813217,
-            "p001": 0.2342062574746248,
-            "p999": 0.9625796562664691,
-            "pBlack": 0.23363822541018553,
-            "min": 0.2322279311766422,
-            "max": 1.0164961566913142,
+            "median": 0.2450695682657552,
+            "madn": 0.006101793361186313,
+            "mad": 0.004115603238355803,
+            "q1": 0.24091488643977751,
+            "q3": 0.24914565895892876,
+            "p001": 0.23546712007173384,
+            "p999": 0.9625743012897874,
+            "pBlack": 0.2352653029794706,
+            "min": 0.23419764128050935,
+            "max": 1.0163094804303952,
             "n": 540000
           },
           "parametros": {
-            "shadows": 0.23363822541018553,
-            "midtones": 0.04459908409213959,
-            "target": 0.24507875011953348,
-            "scale": 1.3048667524358681,
-            "x": 0.014928360323649163
+            "shadows": 0.2352653029794706,
+            "midtones": 0.03846713155935951,
+            "target": 0.2450695682657552,
+            "scale": 1.3076430347623613,
+            "x": 0.012820479212572483
           },
           "saida": {
             "median": 62.0,
-            "mean": 68.5208962962963,
+            "mean": 67.80153888888889,
             "clipLow": 270,
-            "clipHigh": 37,
+            "clipHigh": 36,
             "clipLowPct": 0.05,
-            "clipHighPct": 0.006851851851851852
+            "clipHighPct": 0.006666666666666667
           },
-          "pedestal": 0.2448939412602925
+          "pedestal": 0.24485805940832733
         },
         "B": {
           "estatisticaExata": {
-            "median": 0.22993581619368691,
-            "madn": 0.006329747252996291,
-            "mad": 0.0042693560319683604,
-            "q1": 0.22563436816753735,
-            "q3": 0.234173188667345,
-            "p001": 0.2188124057019178,
-            "p999": 0.9642928339495929,
-            "pBlack": 0.21839602055852844,
-            "min": 0.2170538617264339,
-            "max": 1.0180941036651603,
+            "median": 0.2299777993926272,
+            "madn": 0.006316096918362313,
+            "mad": 0.004260149007393979,
+            "q1": 0.22567913875417597,
+            "q3": 0.23420093596314429,
+            "p001": 0.21981439257360996,
+            "p999": 0.9642599800694114,
+            "pBlack": 0.2195249923268202,
+            "min": 0.21827568888566928,
+            "max": 1.0179989275499512,
             "n": 540000
           },
           "parametros": {
-            "shadows": 0.21839602055852844,
-            "midtones": 0.04778865885362255,
-            "target": 0.22993581619368691,
-            "scale": 1.2794203027402606,
-            "x": 0.014764248825095192
+            "shadows": 0.2195249923268202,
+            "midtones": 0.04347535956331777,
+            "target": 0.2299777993926272,
+            "scale": 1.2812710082559686,
+            "x": 0.013392878648311622
           },
           "saida": {
             "median": 59.0,
-            "mean": 64.93371481481482,
+            "mean": 64.5672,
             "clipLow": 270,
             "clipHigh": 34,
             "clipLowPct": 0.05,
             "clipHighPct": 0.006296296296296296
           },
-          "pedestal": 0.22965008852576016
+          "pedestal": 0.22964983147741186
         }
       }
     },
@@ -394,12 +393,11 @@
     "porCanalAindaNA": [
       "seestar"
     ],
-    "motivo": "debayer nao implementado nesta referencia -- mesma lacuna ja registrada no Modulo 0",
-    "confirmacaoDoBugDoMADN": {
-      "rice": 1.0062,
-      "nonlinear": 1.0034,
-      "gradient": 0.9991,
-      "nota": "razao entre meu MADN pos-correcao e o dele; 1,00 confirma que o stretch mede o quadro corrigido"
-    }
+    "motivo": "debayer nao implementado nesta referencia -- lacuna herdada do Modulo 0"
+  },
+  "arredondamento": {
+    "regra": "meio para cima (Math.round do JavaScript)",
+    "motivo": "Python round() arredonda meio para o par; divergia so no nonlinear, unico fixture onde w/cols=75 cai em meio exato",
+    "efeito": "nonlinear fundo.aceitas 82 -> 81, agora igual a implementacao JS"
   }
 }

@@ -415,6 +415,20 @@ sombra cortada.
 preserva o nível de fundo e remove só a **variação** — que é o que gradiente
 significa.
 
+> **A mediana é SOBRE OS PIXELS DO QUADRO.** Não sobre a retícula em que o
+> modelo é avaliado por razão de custo, e não sobre qualquer grade auxiliar.
+>
+> Precisa estar escrito porque a implementação errou aqui e a segunda também
+> poderia: a retícula anda em passo fixo, o último nó cai fora da imagem, a
+> spline extrapola ali, e aqueles valores entravam na mediana — **+10 bins**. E
+> a correção óbvia, descartar os nós de fora, leva a **−16**: passo fixo nunca
+> cobre `[0, N−1]` uniformemente a menos que `N−1` seja múltiplo do passo.
+>
+> Com a mediana sobre o quadro as duas implementações concordam em **0,05 a 0,08
+> bins**, que é a quantização do estimador. Custa uma passada a mais sobre um
+> laço que a correção já faz, e pode ser por histograma: O(N), memória fixa,
+> sem ordenar `w·h` valores.
+
 **Consequência de cor:** o pedestal por canal preserva a razão entre canais tal
 como estava. Um pedestal único para os três canais mudaria o balanço. Fique com
 por canal, e registre no record que o balanço foi preservado — isso é o que o
