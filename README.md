@@ -107,6 +107,11 @@ Processing log — fixture-gradient.fit
 Every number above was measured from the file itself.
 ```
 
+The date on the second line, `2026-09-05`, is the day this golden was captured
+and is deliberately frozen there — a log that printed today's date could not be
+compared byte for byte against a stored one. Your own runs print the day you
+ran them.
+
 Every figure there was read off the frame: 92 of 108 sample boxes accepted, a
 median of 0.01676, a per-channel MADN of 0.00139, 0.099% of pixels clipped. If
 the tool ever produced a different one, you would know — that text is stored in
