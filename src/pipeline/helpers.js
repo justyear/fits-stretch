@@ -24,10 +24,18 @@ function FitsError(kind, message){
  * ordinary case must not produce a message that asks for a bug report about a
  * browser limit. The message says what to do instead.
  *
- * A RangeError here can only mean allocation: the header is validated before
- * any of these run — `truncated` fires when the declared data exceeds the file,
- * `baddims` when a dimension is not positive — so by the time a buffer is
- * requested, the size asked for is a size the file really claims.
+ * A RangeError *inside this function* can only mean allocation, because that is
+ * all this function does: `new ctor(length)` with a plain length, never a view
+ * over the file. That is why the label is safe to attach here and nowhere else.
+ *
+ * It used to say something broader and wrong — that the header is fully
+ * validated before any of these run, so any RangeError anywhere was an
+ * allocation. It was not. A negative PCOUNT and an oversized ZTILE both reached
+ * a typed-array constructor with a bad length, and the resulting RangeError was
+ * reported to the user as a memory limit about a file of a few kilobytes. Both
+ * are rejected upstream now (`badheader`), and `fail` in run.js no longer
+ * guesses `memory` from the error type. The invariant this comment may claim is
+ * the narrow one: everything that scales with the file comes through here.
  *
  * `what` names the buffer, so the diagnostics say which allocation failed and
  * at what size rather than just that one did.

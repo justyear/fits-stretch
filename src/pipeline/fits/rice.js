@@ -161,7 +161,40 @@ function decodeTileCompressed(buffer, hdu, report, stage){
   var cScale = col['ZSCALE'], cZero = col['ZZERO'];
   if (!cData) throw FitsError('cmptype', 'the table has no COMPRESSED_DATA column');
 
-  var heap = hdu.dataStart + ((typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows);
+  // EVERY OFFSET BELOW COMES OUT OF THE FILE AND IS CHECKED AGAINST THE FILE.
+  //
+  // None of this was here, and the gap was not theoretical: a descriptor
+  // pointing two billion bytes past the end of a 14 kB file produced a picture.
+  // Reading past a Uint8Array returns `undefined`, the arithmetic degenerates
+  // quietly, and the decoder handed back a flat frame with no error at all.
+  //
+  // That is the worst failure this page can have. A wrong message sends someone
+  // to the wrong fix; silence tells them the file was read when it was not, and
+  // the whole argument of the page is that nothing happens to the pixels that is
+  // not written down. A frame assembled from bytes that were never in the file
+  // is exactly that, and it looks like a successful run.
+  //
+  // So the rule is: an offset that does not land inside the file is an error
+  // about the file, before any read.
+  var fileLen = bytes.length;
+  if (!(rowBytes > 0) || !(rows > 0)){
+    throw FitsError('badheader', 'the compressed table declares ' + rows + ' rows of ' + rowBytes + ' bytes');
+  }
+  var tableEnd = hdu.dataStart + rowBytes * rows;
+  if (tableEnd > fileLen){
+    throw FitsError('badheader', 'the compressed table (' + rows + ' x ' + rowBytes +
+      ' bytes) ends at ' + tableEnd + ', past the end of a ' + fileLen + '-byte file');
+  }
+  if (rowBytes < cData.offset + (cData.wide ? 16 : 8)){
+    throw FitsError('badheader', 'a table row is ' + rowBytes +
+      ' bytes, too short to hold the COMPRESSED_DATA descriptor it declares');
+  }
+
+  var theap = (typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows;
+  var heap = hdu.dataStart + theap;
+  if (!(theap >= 0) || heap > fileLen){
+    throw FitsError('badheader', 'the heap starts at ' + heap + ', outside a ' + fileLen + '-byte file');
+  }
 
   // --- quantisation -------------------------------------------------
   var quant = String(m.ZQUANTIZ || '').trim().toUpperCase();
@@ -179,7 +212,27 @@ function decodeTileCompressed(buffer, hdu, report, stage){
   }
 
   var out = alloc(Float32Array, w * h * planes, 'the decompressed frame');
-  var idata = new Int32Array(t1 * t2 * t3);
+
+  // THE TILE BUFFER IS CAPPED BY THE IMAGE, AND IT GOES THROUGH alloc().
+  //
+  // It used to be `new Int32Array(t1 * t2 * t3)` with the three values taken
+  // straight from ZTILE1/2/3 and nothing between them and the allocator. A
+  // 14 kB file with ZTILE 16384 x 16384 moved the renderer from 411 MB to
+  // 1179 MB - 768 MB measured, before a single byte of tile data was read - and
+  // ZTILE 100000 x 100000 threw a bare RangeError that came out as "this frame
+  // is too large for the browser to hold", about a file of fourteen kilobytes.
+  //
+  // The clamp is not a guess: the decoder already writes at most
+  // `nx = min(t1, w - x0)` columns per tile, so a tile larger than the image was
+  // never going to be filled past the image anyway. Clamping changes no output -
+  // ceil(w/t1) is 1 for every t1 >= w - and turns an unbounded request into one
+  // bounded by the frame that `out` above already had to fit.
+  var tDecl = [t1, t2, t3];
+  if (t1 > w) t1 = w;
+  if (t2 > h) t2 = h;
+  if (t3 > planes) t3 = planes;
+  var tileClamped = (t1 !== tDecl[0] || t2 !== tDecl[1] || t3 !== tDecl[2]);
+  var idata = alloc(Int32Array, t1 * t2 * t3, 'the tile buffer');
   var plane = w * h;
   var scaleIdentity = (bzero === 0 && bscale === 1);
   var everyN = Math.max(1, Math.floor(rows / 20));
@@ -199,6 +252,13 @@ function decodeTileCompressed(buffer, hdu, report, stage){
     }
     if (nelem <= 0){
       throw FitsError('cmptype', 'tile ' + (t + 1) + ' is not Rice-coded (this .fz mixes in gzip or raw tiles)');
+    }
+    // The descriptor is two numbers the file chose. Both are checked here, and
+    // the stream this tile claims has to lie inside the file before it is read.
+    if (!(hoff >= 0) || !isFinite(hoff) || !isFinite(nelem) || heap + hoff + nelem > fileLen){
+      throw FitsError('badheader', 'tile ' + (t + 1) + ' says its ' + nelem +
+        ' compressed bytes start at ' + (heap + hoff) + ', which is not inside a ' +
+        fileLen + '-byte file');
     }
 
     var tx = t % tilesX, ty = Math.floor(t / tilesX) % tilesY, tz = Math.floor(t / (tilesX * tilesY));
@@ -258,6 +318,9 @@ function decodeTileCompressed(buffer, hdu, report, stage){
       quantise: quant || 'none', ditherSeed: dither0, heapStart: heap, tableRowBytes: rowBytes
     }
   };
+  // The effective tile is what was used; the declared one is only recorded when
+  // the two differ, so a clamp is never silent.
+  if (tileClamped) meta.compression.tileDeclared = tDecl;
   normalisePhysical(out, w * h * planes, meta, report);
   return { data: out, w: w, h: h, planes: planes };
 }

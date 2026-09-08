@@ -295,6 +295,8 @@ var ERRORS = {
   bitpix:     ['Unusual pixel format',
                'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
   baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
+  badheader:  ['This file describes itself incorrectly',
+               'The header carries a number that does not match the file it is in — a count that is negative, or a pointer to data that lies outside the file. Nothing was decoded, because reading past that point would have produced a picture out of bytes that are not in your file. The usual causes are a transfer that damaged the file, or a tool that wrote the table differently from the standard. Re-downloading it, or re-saving it from Siril, is the thing to try.'],
   empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
   memory:     ['This frame is too large for the browser to hold',
                'Nothing is wrong with the file — the browser ran out of room. Three things usually fix it, in order of how often they work: close the other tabs and try again; use a 64-bit browser, since a 32-bit one caps out around 2 GB whatever the machine has; or process a smaller frame, for example one that has not been drizzled or upscaled. A stacked 4K frame in 32-bit float is about 100 MB per channel before anything else is allocated, and the chain needs a few copies of it.'],
@@ -404,6 +406,13 @@ function open(buffer, fileName, byteSize, opts){
 
   // A second file must not inherit the first one's export.
   state.fitsMeta = null;
+  // ...nor its diagnostics. If this run fails, the panel would otherwise still
+  // be showing measurements of the previous file, under the new file's error.
+  // The same staleness made the capture hook report success for a file that had
+  // just been rejected, because it reads state.diag to tell the two apart — it
+  // said "ok" three times during a robustness audit before the audit noticed
+  // that the instrument, not the page, was the thing answering.
+  state.diag = null;
   state.fitsData = null;
   pendingExport = null;
 

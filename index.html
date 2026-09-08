@@ -287,10 +287,18 @@ function FitsError(kind, message){
  * ordinary case must not produce a message that asks for a bug report about a
  * browser limit. The message says what to do instead.
  *
- * A RangeError here can only mean allocation: the header is validated before
- * any of these run — `truncated` fires when the declared data exceeds the file,
- * `baddims` when a dimension is not positive — so by the time a buffer is
- * requested, the size asked for is a size the file really claims.
+ * A RangeError *inside this function* can only mean allocation, because that is
+ * all this function does: `new ctor(length)` with a plain length, never a view
+ * over the file. That is why the label is safe to attach here and nowhere else.
+ *
+ * It used to say something broader and wrong — that the header is fully
+ * validated before any of these run, so any RangeError anywhere was an
+ * allocation. It was not. A negative PCOUNT and an oversized ZTILE both reached
+ * a typed-array constructor with a bad length, and the resulting RangeError was
+ * reported to the user as a memory limit about a file of a few kilobytes. Both
+ * are rejected upstream now (`badheader`), and `fail` in run.js no longer
+ * guesses `memory` from the error type. The invariant this comment may claim is
+ * the narrow one: everything that scales with the file comes through here.
  *
  * `what` names the buffer, so the diagnostics say which allocation failed and
  * at what size rather than just that one did.
@@ -415,7 +423,18 @@ function hduDataBytes(map){
   for (var i = 1; i <= naxis; i++) n *= (map['NAXIS' + i] | 0);
   var width = Math.abs(map.BITPIX | 0) / 8;
   var extra = 0;
-  if (map.PCOUNT) extra = map.PCOUNT | 0;
+  if (map.PCOUNT){
+    extra = map.PCOUNT | 0;
+    // PCOUNT is a count. A negative one is not a strange file, it is an
+    // impossible one - and it used to be the way through this check: `need`
+    // is n*width + extra, so a large negative extra shrank the declared size
+    // to nothing and the "does the data fit in the file?" test passed a header
+    // claiming 64 MB inside 4928 bytes. The typed-array view then threw a bare
+    // RangeError, which reached the user as "this frame is too large for the
+    // browser to hold". Rejecting it here is the fix; the classification in
+    // run.js was only the symptom.
+    if (extra < 0) throw FitsError('badheader', 'PCOUNT is negative (' + extra + ')');
+  }
   return n * width + extra;
 }
 
@@ -659,7 +678,40 @@ function decodeTileCompressed(buffer, hdu, report, stage){
   var cScale = col['ZSCALE'], cZero = col['ZZERO'];
   if (!cData) throw FitsError('cmptype', 'the table has no COMPRESSED_DATA column');
 
-  var heap = hdu.dataStart + ((typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows);
+  // EVERY OFFSET BELOW COMES OUT OF THE FILE AND IS CHECKED AGAINST THE FILE.
+  //
+  // None of this was here, and the gap was not theoretical: a descriptor
+  // pointing two billion bytes past the end of a 14 kB file produced a picture.
+  // Reading past a Uint8Array returns `undefined`, the arithmetic degenerates
+  // quietly, and the decoder handed back a flat frame with no error at all.
+  //
+  // That is the worst failure this page can have. A wrong message sends someone
+  // to the wrong fix; silence tells them the file was read when it was not, and
+  // the whole argument of the page is that nothing happens to the pixels that is
+  // not written down. A frame assembled from bytes that were never in the file
+  // is exactly that, and it looks like a successful run.
+  //
+  // So the rule is: an offset that does not land inside the file is an error
+  // about the file, before any read.
+  var fileLen = bytes.length;
+  if (!(rowBytes > 0) || !(rows > 0)){
+    throw FitsError('badheader', 'the compressed table declares ' + rows + ' rows of ' + rowBytes + ' bytes');
+  }
+  var tableEnd = hdu.dataStart + rowBytes * rows;
+  if (tableEnd > fileLen){
+    throw FitsError('badheader', 'the compressed table (' + rows + ' x ' + rowBytes +
+      ' bytes) ends at ' + tableEnd + ', past the end of a ' + fileLen + '-byte file');
+  }
+  if (rowBytes < cData.offset + (cData.wide ? 16 : 8)){
+    throw FitsError('badheader', 'a table row is ' + rowBytes +
+      ' bytes, too short to hold the COMPRESSED_DATA descriptor it declares');
+  }
+
+  var theap = (typeof tbl.THEAP === 'number') ? tbl.THEAP : rowBytes * rows;
+  var heap = hdu.dataStart + theap;
+  if (!(theap >= 0) || heap > fileLen){
+    throw FitsError('badheader', 'the heap starts at ' + heap + ', outside a ' + fileLen + '-byte file');
+  }
 
   // --- quantisation -------------------------------------------------
   var quant = String(m.ZQUANTIZ || '').trim().toUpperCase();
@@ -677,7 +729,27 @@ function decodeTileCompressed(buffer, hdu, report, stage){
   }
 
   var out = alloc(Float32Array, w * h * planes, 'the decompressed frame');
-  var idata = new Int32Array(t1 * t2 * t3);
+
+  // THE TILE BUFFER IS CAPPED BY THE IMAGE, AND IT GOES THROUGH alloc().
+  //
+  // It used to be `new Int32Array(t1 * t2 * t3)` with the three values taken
+  // straight from ZTILE1/2/3 and nothing between them and the allocator. A
+  // 14 kB file with ZTILE 16384 x 16384 moved the renderer from 411 MB to
+  // 1179 MB - 768 MB measured, before a single byte of tile data was read - and
+  // ZTILE 100000 x 100000 threw a bare RangeError that came out as "this frame
+  // is too large for the browser to hold", about a file of fourteen kilobytes.
+  //
+  // The clamp is not a guess: the decoder already writes at most
+  // `nx = min(t1, w - x0)` columns per tile, so a tile larger than the image was
+  // never going to be filled past the image anyway. Clamping changes no output -
+  // ceil(w/t1) is 1 for every t1 >= w - and turns an unbounded request into one
+  // bounded by the frame that `out` above already had to fit.
+  var tDecl = [t1, t2, t3];
+  if (t1 > w) t1 = w;
+  if (t2 > h) t2 = h;
+  if (t3 > planes) t3 = planes;
+  var tileClamped = (t1 !== tDecl[0] || t2 !== tDecl[1] || t3 !== tDecl[2]);
+  var idata = alloc(Int32Array, t1 * t2 * t3, 'the tile buffer');
   var plane = w * h;
   var scaleIdentity = (bzero === 0 && bscale === 1);
   var everyN = Math.max(1, Math.floor(rows / 20));
@@ -697,6 +769,13 @@ function decodeTileCompressed(buffer, hdu, report, stage){
     }
     if (nelem <= 0){
       throw FitsError('cmptype', 'tile ' + (t + 1) + ' is not Rice-coded (this .fz mixes in gzip or raw tiles)');
+    }
+    // The descriptor is two numbers the file chose. Both are checked here, and
+    // the stream this tile claims has to lie inside the file before it is read.
+    if (!(hoff >= 0) || !isFinite(hoff) || !isFinite(nelem) || heap + hoff + nelem > fileLen){
+      throw FitsError('badheader', 'tile ' + (t + 1) + ' says its ' + nelem +
+        ' compressed bytes start at ' + (heap + hoff) + ', which is not inside a ' +
+        fileLen + '-byte file');
     }
 
     var tx = t % tilesX, ty = Math.floor(t / tilesX) % tilesY, tz = Math.floor(t / (tilesX * tilesY));
@@ -756,6 +835,9 @@ function decodeTileCompressed(buffer, hdu, report, stage){
       quantise: quant || 'none', ditherSeed: dither0, heapStart: heap, tableRowBytes: rowBytes
     }
   };
+  // The effective tile is what was used; the declared one is only recorded when
+  // the two differ, so a clamp is never silent.
+  if (tileClamped) meta.compression.tileDeclared = tDecl;
   normalisePhysical(out, w * h * planes, meta, report);
   return { data: out, w: w, h: h, planes: planes };
 }
@@ -3121,15 +3203,24 @@ self.onmessage = function(ev){
 
   function post(payload, transfer){ self.postMessage(payload, transfer || []); }
   function fail(e){
-    // A RangeError that reached here without a kind is an allocation that
-    // failed somewhere the `alloc` helper does not cover. It is not "something
-    // went wrong", it is a memory limit, and the two send the reader to
-    // completely different places: one asks for a bug report, the other says
-    // close some tabs. The header is validated before anything large is
-    // requested — `truncated` and `baddims` fire first — so by the time a
-    // RangeError can happen, the size being asked for is a size the file
-    // genuinely declares.
-    var kind = (e && e.kind) || ((e instanceof RangeError) ? 'memory' : 'unknown');
+    // An unlabelled RangeError is NOT a memory limit. This used to say the
+    // opposite, and the reasoning it gave — "the header is validated before
+    // anything large is requested, so by the time a RangeError can happen the
+    // size is one the file genuinely declares" — was false. Two files proved
+    // it: a negative PCOUNT walked past the size check and a ZTILE of
+    // 100000 x 100000 asked for a 40 GB tile buffer, and both came out as
+    // "this frame is too large for the browser to hold" about files of five
+    // and fourteen kilobytes. Both are now rejected as `badheader` upstream.
+    //
+    // The direction that is actually provable runs the other way. Every
+    // allocation this chain makes that scales with the file goes through
+    // `alloc`/`allocFrom`, which label failure as `memory` themselves and name
+    // the buffer. What remains unlabelled is a typed-array *view* over the file
+    // buffer, and one of those throws when an offset or length does not fit —
+    // which is a bounds error, not a browser limit. So it maps to `unknown`,
+    // whose text asks for a report, and that is the correct request: reaching
+    // here means a validation gap upstream, and the gap is worth hearing about.
+    var kind = (e && e.kind) || 'unknown';
     post({ type: 'error', kind: kind, message: String((e && e.message) || e) });
   }
 
@@ -3184,6 +3275,8 @@ var ERRORS = {
   bitpix:     ['Unusual pixel format',
                'This file stores its pixels in a format outside the FITS standard set (8, 16, 32-bit integer or 32/64-bit float).'],
   baddims:    ['The image dimensions are unusable', 'The header declares a width or height that cannot describe a real picture.'],
+  badheader:  ['This file describes itself incorrectly',
+               'The header carries a number that does not match the file it is in — a count that is negative, or a pointer to data that lies outside the file. Nothing was decoded, because reading past that point would have produced a picture out of bytes that are not in your file. The usual causes are a transfer that damaged the file, or a tool that wrote the table differently from the standard. Re-downloading it, or re-saving it from Siril, is the thing to try.'],
   empty:      ['The image has no usable pixels', 'Every value in the frame is blank or non-finite.'],
   memory:     ['This frame is too large for the browser to hold',
                'Nothing is wrong with the file — the browser ran out of room. Three things usually fix it, in order of how often they work: close the other tabs and try again; use a 64-bit browser, since a 32-bit one caps out around 2 GB whatever the machine has; or process a smaller frame, for example one that has not been drizzled or upscaled. A stacked 4K frame in 32-bit float is about 100 MB per channel before anything else is allocated, and the chain needs a few copies of it.'],
@@ -3293,6 +3386,13 @@ function open(buffer, fileName, byteSize, opts){
 
   // A second file must not inherit the first one's export.
   state.fitsMeta = null;
+  // ...nor its diagnostics. If this run fails, the panel would otherwise still
+  // be showing measurements of the previous file, under the new file's error.
+  // The same staleness made the capture hook report success for a file that had
+  // just been rejected, because it reads state.diag to tell the two apart — it
+  // said "ok" three times during a robustness audit before the audit noticed
+  // that the instrument, not the page, was the thing answering.
+  state.diag = null;
   state.fitsData = null;
   pendingExport = null;
 
