@@ -10,19 +10,29 @@ menos `timingsMs` — valeu enquanto a cadeia tinha uma etapa e o LUT era a
 autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
-Capturados do build sha256
-`c9249796efff209e8050a10afe07125c0e1ea07b4f3f9c4bcaf8c4f1bcfb0440`
-(155.844 bytes — `.claude/index-test.html`, o build **com ganchos**. O publicado
-é `index.html`, 154.151 bytes, sha256
-`b92b1bf1ae2ec425237024787cf08e83d5b0f1f695f95d0974b5713cbce0c799`, e difere
-apenas pelo bloco de ganchos.)
+Os goldens abaixo foram capturados de `.claude/index-test.html`, o build **com
+ganchos**. O publicado é `index.html` e difere dele apenas pelo bloco de
+ganchos. Os dois:
 
-> **Estes dois hashes sao escritos a mao e nada os verifica.** Estavam
-> desatualizados desde `741f0e1` (a correcao do pedestal mudou `background.js`,
-> logo mudou o build) e ninguem percebeu, porque nenhum comparador os le. Sao a
-> forma invertida do argumento que o proprio log usa: a frase do log nao
-> envelhece porque e gerada, e estes numeros envelhecem porque nao sao. Ou
-> `build.ps1 -Check` passa a compara-los com o build, ou eles saem daqui.
+<!--BUILD_HASHES-->
+
+| arquivo | bytes | sha256 |
+|---|---|---|
+| `index.html` | 154151 | `b92b1bf1ae2ec425237024787cf08e83d5b0f1f695f95d0974b5713cbce0c799` |
+| `.claude/index-test.html` | 155844 | `c9249796efff209e8050a10afe07125c0e1ea07b4f3f9c4bcaf8c4f1bcfb0440` |
+
+<!--/BUILD_HASHES-->
+
+**Esta tabela é verificada por `build.ps1 -Check`**, que a lê entre os dois
+marcadores acima e compara com o build que acabou de montar. Ela existe para
+quem quer conferir o download sem rodar o build; ser escrita à mão é o motivo
+pelo qual precisa ser verificada, não uma licença para não ser.
+
+Precisou existir: os números daqui ficaram desatualizados desde `741f0e1` — a
+correção do pedestal mudou `background.js`, logo mudou o build — e ninguém
+percebeu, porque nenhum comparador os lia. É a forma invertida do argumento que
+o próprio log usa: a frase do log não envelhece porque é gerada; estes números
+envelhecem porque não são. O conserto não é gerá-los, é medi-los.
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador

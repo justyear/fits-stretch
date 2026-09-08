@@ -181,7 +181,7 @@ automated:
 | `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
-| `build\build.ps1 -Check` | is the published file exactly what this source builds? |
+| `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 
 The test images are synthetic and generated from a fixed seed, so they are
 reproducible and no one has to trust them either. **No frame from anyone else

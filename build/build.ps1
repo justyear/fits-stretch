@@ -2,7 +2,12 @@
 #
 #   pwsh build/build.ps1           writes ../index.html
 #   pwsh build/build.ps1 -Check    builds in memory and compares against the
-#                                  index.html already on disk; exit 1 if they differ
+#                                  index.html already on disk; exit 1 if they
+#                                  differ. Also checks that nothing from the test
+#                                  hooks leaked into the publication, that every
+#                                  file the suite references is tracked by git,
+#                                  and that the build hashes written into
+#                                  test/golden/MANIFEST.md are today's.
 #
 # Why not build.mjs + esbuild, which is what modulo-0-spec.md asks for: this
 # machine has no Node and no Python (NOTAS-SESSAO-FITS.md, "Harness de teste"),
@@ -180,6 +185,53 @@ function Test-Tracked {
     return $missing
 }
 
+# A tabela de hashes do MANIFEST bate com o build?
+#
+# Ela existe para quem quer conferir o arquivo baixado sem montar o build, entao
+# nao pode sair -- e por ser escrita a mao, envelhece. Ficou desatualizada desde
+# 741f0e1 sem que nada reclamasse, porque nenhum comparador a lia.
+#
+# Le entre marcadores em vez de casar a prosa: um regex sobre o texto corrido
+# passaria a nao casar nada no dia em que alguem reescrevesse a frase, e uma
+# verificacao que para de achar o que verificar vira PASS silencioso. Por isso
+# marcador ausente, bloco vazio ou linha faltando sao FAIL, e nao "nada a
+# fazer": este arquivo ja registra o caso do `rejected-edge`, onde quatro zeros
+# foram lidos como medicao quando eram um teste morto.
+function Test-Manifest($expect) {
+    $path = Join-Path $root 'test\golden\MANIFEST.md'
+    if (-not (Test-Path -LiteralPath $path)) { return @("MANIFEST.md ausente: $path") }
+    $txt = [System.IO.File]::ReadAllText($path)
+
+    $a = $txt.IndexOf('<!--BUILD_HASHES-->')
+    $b = $txt.IndexOf('<!--/BUILD_HASHES-->')
+    if ($a -lt 0 -or $b -lt 0 -or $b -lt $a) {
+        return @('MANIFEST.md: marcadores BUILD_HASHES ausentes ou fora de ordem')
+    }
+    $block = $txt.Substring($a, $b - $a)
+
+    $rows = @{}
+    foreach ($m in [regex]::Matches($block, '\|\s*`([^`]+)`\s*\|\s*([0-9]+)\s*\|\s*`([0-9a-f]{64})`\s*\|')) {
+        $rows[$m.Groups[1].Value] = @{ bytes = [int]$m.Groups[2].Value; hash = $m.Groups[3].Value }
+    }
+
+    $problems = @()
+    foreach ($e in $expect) {
+        $name = $e.name
+        if (-not $rows.ContainsKey($name)) { $problems += "MANIFEST.md: sem linha para $name"; continue }
+        $r = $rows[$name]
+        if ($r.bytes -ne $e.bytes) {
+            $problems += ("MANIFEST.md: {0} diz {1} bytes, o build tem {2}" -f $name, $r.bytes, $e.bytes)
+        }
+        if ($r.hash -ne $e.hash) {
+            $problems += ("MANIFEST.md: {0} diz sha256 {1}, o build tem {2}" -f $name, $r.hash.Substring(0,16), $e.hash.Substring(0,16))
+        }
+    }
+    if ($problems.Count -eq 0) {
+        Write-Host ("MANIFEST: {0} hashes de build conferem com o que acabou de ser montado" -f $expect.Count)
+    }
+    return $problems
+}
+
 if ($Check) {
     $fail = 0
     foreach ($pair in @(@($outPublish, $bytesPublish, $hashPublish, 'publicacao'),
@@ -201,6 +253,16 @@ if ($Check) {
     if ($untracked.Count) {
         Write-Host 'CHECK FAIL - a suite depende de arquivos que nao estao no git:'
         foreach ($u in $untracked) { Write-Host ("  {0}" -f $u) }
+        $fail++
+    }
+
+    $stale = Test-Manifest @(
+        @{ name = 'index.html';                bytes = $bytesPublish.Length; hash = $hashPublish },
+        @{ name = '.claude/index-test.html';   bytes = $bytesTest.Length;    hash = $hashTest }
+    )
+    if ($stale.Count) {
+        Write-Host 'CHECK FAIL - a tabela de hashes do MANIFEST nao bate com o build:'
+        foreach ($s in $stale) { Write-Host ("  {0}" -f $s) }
         $fail++
     }
 
