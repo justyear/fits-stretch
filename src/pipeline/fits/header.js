@@ -95,7 +95,18 @@ function hduDataBytes(map){
   for (var i = 1; i <= naxis; i++) n *= (map['NAXIS' + i] | 0);
   var width = Math.abs(map.BITPIX | 0) / 8;
   var extra = 0;
-  if (map.PCOUNT) extra = map.PCOUNT | 0;
+  if (map.PCOUNT){
+    extra = map.PCOUNT | 0;
+    // PCOUNT is a count. A negative one is not a strange file, it is an
+    // impossible one - and it used to be the way through this check: `need`
+    // is n*width + extra, so a large negative extra shrank the declared size
+    // to nothing and the "does the data fit in the file?" test passed a header
+    // claiming 64 MB inside 4928 bytes. The typed-array view then threw a bare
+    // RangeError, which reached the user as "this frame is too large for the
+    // browser to hold". Rejecting it here is the fix; the classification in
+    // run.js was only the symptom.
+    if (extra < 0) throw FitsError('badheader', 'PCOUNT is negative (' + extra + ')');
+  }
   return n * width + extra;
 }
 

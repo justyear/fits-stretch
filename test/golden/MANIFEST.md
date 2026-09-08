@@ -18,8 +18,8 @@ ganchos. Os dois:
 
 | arquivo | bytes | sha256 |
 |---|---|---|
-| `index.html` | 154151 | `b92b1bf1ae2ec425237024787cf08e83d5b0f1f695f95d0974b5713cbce0c799` |
-| `.claude/index-test.html` | 155844 | `c9249796efff209e8050a10afe07125c0e1ea07b4f3f9c4bcaf8c4f1bcfb0440` |
+| `index.html` | 160544 | `2b733b41507ddd25b04abbab05043e7cf3cfd59411b0cc1a07731b2313138fd9` |
+| `.claude/index-test.html` | 162237 | `b43f58551cb3cc349137af14324a33bdb72c70233167fdc00b734b83a77dd10b` |
 
 <!--/BUILD_HASHES-->
 
@@ -688,6 +688,49 @@ fileName, post, opts)` recebe `opts.now`, que cai em `new Date()` quando
 ausente. O navegador segue imprimindo o dia de hoje; a captura fixa
 `__GOLDEN_DATE = '2026-09-05'`. Estes goldens não expiram. Não mude
 `__GOLDEN_DATE`: invalida todos os logs guardados e não compra nada.
+
+## O corpus malformado
+
+33 arquivos que mentem sobre si mesmos, em `test/malformed/`, gerados por
+`test/make-malformed.ps1` e comparados por `test/compare-malformed.ps1` contra
+`test/golden/malformed.json`. Vieram de uma auditoria de robustez feita antes da
+publicação; quatro achados dela viraram correção de código.
+
+**Não são versionados, e o cabeçalho do gerador explica por quê**: a geração é só
+ASCII e inteiros big-endian, idêntica em qualquer máquina por construção — ao
+contrário dos fixtures, que passam por ponto flutuante e por isso ficam
+versionados. A divergência continua detectável: o `malformed.json` guarda o
+sha256 de cada arquivo e o comparador regenera e confere **antes** de olhar
+qualquer veredito. `build.ps1 -Check` lê a mesma lista para saber que estes
+arquivos não precisam estar no git.
+
+**A pergunta é outra que a dos goldens.** `compare-golden` pergunta "a saída de
+hoje é a de ontem?". Aqui é "isto continua sendo recusado?", e a falha grave é
+assimétrica: `rejeita → aceita` é a pior, porque parece uma rodada
+bem-sucedida — a página produz imagem a partir de bytes que ninguém verificou.
+Nove casos existem para o lado oposto (`a8`, `a9`, `a10`, `c2`, `d13`, `e2`,
+`e3`, `e6`, `e7`, `e8`): são os arquivos estranhos que **têm** que passar, e
+pegam o dia em que alguém apertar uma validação demais.
+
+O comparador também verifica **tempo**, com teto de 3000 ms. "Parou" é metade da
+afirmação: um arquivo que trava a aba falha diferente de um que dá erro. Pior
+caso hoje: 32 ms, o cabeçalho de 4 MB.
+
+### O que a auditoria achou, e o que mudou
+
+| achado | era | virou |
+|---|---|---|
+| descritor de heap fora do arquivo | **aceitava**, quadro chapado, sem erro | `badheader` antes de qualquer leitura |
+| `ZTILE` sem teto | `new Int32Array(t1*t2*t3)` fora do `alloc()`; **+768 MB medidos** de um arquivo de 14 kB | tile limitado pela imagem, através do `alloc()` |
+| `PCOUNT` negativo | encolhia o tamanho declarado e passava; `RangeError` cru lido como "memória" | `badheader` |
+| `RangeError` sem `kind` → `memory` | a justificativa escrita era falsa, e os dois casos acima a desmentiam | `unknown`, e a razão inversa está escrita: tudo que escala com o arquivo passa pelo `alloc()`, que rotula sozinho |
+
+O par `d11`/`d13` é o guarda de off-by-one da validação de ponteiro: um byte
+além do fim é `badheader`, o byte exato passa e decodifica.
+
+A correção não mexeu em nenhuma saída legítima — os 20 goldens saíram
+byte-idênticos sem recaptura, incluindo o `rice-fixture`, que é o que prova que
+o teto de `ZTILE` e a validação de heap não tocam um `.fz` válido.
 
 ## Cobertura que ainda falta
 

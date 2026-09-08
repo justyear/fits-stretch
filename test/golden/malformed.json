@@ -1,0 +1,176 @@
+{
+  "proposito": "O que a pagina faz com um arquivo que mente sobre si mesmo. Cada caso tem um veredito esperado; a falha que importa e a aceitacao silenciosa, um arquivo que era recusado e passa a produzir imagem.",
+  "geradoPor": "test/make-malformed.ps1 -- veja o cabecalho dele para por que estes arquivos nao sao versionados",
+  "comparadoPor": "test/compare-malformed.ps1",
+  "kinds": {
+    "notfits": "nao comeca como FITS",
+    "baddims": "largura ou altura nao descreve imagem",
+    "truncated": "o cabecalho promete mais dado do que o arquivo tem",
+    "bitpix": "BITPIX fora do conjunto do padrao",
+    "badheader": "um numero do cabecalho nao bate com o arquivo em que esta: contagem negativa, ou ponteiro para fora do arquivo",
+    "cmptype": "compressao ou stream que este leitor nao desempacota",
+    "empty": "nenhum pixel utilizavel",
+    "memory": "o navegador ficou sem espaco -- so pode vir de alloc()"
+  },
+  "casos": {
+    "a1-naxis1-negativo.fit": {
+      "sha256": "996c7c966e5f105824b809a0a5fb73c6e110e3e028be89b234bd2b9f458e880f",
+      "veredito": "rejeita", "kind": "baddims",
+      "porque": "NAXIS1 = -100"
+    },
+    "a2-naxis1-zero.fit": {
+      "sha256": "0a9ce856241b69cb1e3271c7eaf5326c28811b1747bb882274d5cb18f60415fe",
+      "veredito": "rejeita", "kind": "baddims",
+      "porque": "NAXIS1 = 0"
+    },
+    "a3-naxis1-2e31.fit": {
+      "sha256": "2ade9191a6ed22bc2601e8bbbcd9de038ddf2e6ac005a7fa56836b29d35c49d3",
+      "veredito": "rejeita", "kind": "baddims",
+      "porque": "NAXIS1 = 2^31, que |0 vira negativo. O caso existe para que a conversao continue sendo pega, e nao virando um numero pequeno e plausivel"
+    },
+    "a4-17gb-declarado.fit": {
+      "sha256": "4a57ebce808fd5fcbd70113cb5b3d90e6f9ceb679d754168b9f13ec80a48bab9",
+      "veredito": "rejeita", "kind": "truncated",
+      "porque": "65536 x 65536 em float32 = 17 GB declarados num arquivo de 4928 bytes"
+    },
+    "a5-3planos-entrega1.fit": {
+      "sha256": "c217ee7f72dde7acea5053a272ab089755227ef78fc010944f4a327fa6ea266e",
+      "veredito": "rejeita", "kind": "truncated",
+      "porque": "NAXIS3 = 3 com dado para um plano so"
+    },
+    "a6-produto-2e9.fit": {
+      "sha256": "4d4480bd4ee67c7ef462bcfefd58dcee500f22f4a8e9f048ed7ea2d55a44d65e",
+      "veredito": "rejeita", "kind": "truncated",
+      "porque": "46341^2 = 2,1 G pixels: o produto passa de 2^31 sem passar de 2^32"
+    },
+    "a7-pcount-negativo.fit": {
+      "sha256": "e241957d8e85fdaf18c30480ebbdd08cbb9ee8e58468cef30cf48d4576019051",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "PCOUNT = -67108864 encolhia o tamanho declarado ate zero e passava pela checagem. Saia como RangeError cru, que virava 'memoria' sobre um arquivo de 5 kB"
+    },
+    "a8-naxis-999.fit": {
+      "sha256": "b768ceb62af1d454e7d737ed6e5ca7c17392cb8703be83868ff24b4d89d2d137",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "NAXIS = 999 com NAXIS3.. ausentes: os eixos que nao existem valem 1, e a imagem 2D atras deles e legivel. Aceitar esta certo"
+    },
+    "a9-naxis3-negativo.fit": {
+      "sha256": "3a5c5865b0aa460048b58f793f6469f98eb30db90440106173bfe4e0fc3f709d",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "NAXIS3 = -5 cai para um plano. Aceitar esta certo: o dado 2D esta la"
+    },
+    "a10-1x1.fit": {
+      "sha256": "8665cde3b203feeb8917495739dea063c7916cc0b5f630fd16c5d6ff20ea116d",
+      "veredito": "aceita", "dims": "1x1x1",
+      "porque": "a menor imagem possivel, contra a grade de 12x9 caixas de 25 px da extracao de fundo"
+    },
+    "b1-bitpix-24.fit": {
+      "sha256": "2228fbdc87b41e098dd1f41470f406abf84c2d28491df9e0acf79f13f4904d35",
+      "veredito": "rejeita", "kind": "bitpix", "porque": "BITPIX = 24"
+    },
+    "b2-bitpix-zero.fit": {
+      "sha256": "a9b20bd9c358e880abf0f4c82d2eef1b7f04a895a804b8ddf87521aacfd65771",
+      "veredito": "rejeita", "kind": "bitpix", "porque": "BITPIX = 0"
+    },
+    "b3-bitpix-ausente.fit": {
+      "sha256": "0103183e8a7b11a1154e738b27f35b95c5f28af1b2bd0ea492fe05f22b3b8bd8",
+      "veredito": "rejeita", "kind": "bitpix", "porque": "sem cartao BITPIX"
+    },
+    "b4-bitpix-texto.fit": {
+      "sha256": "0a20241fd56d7ada897192b531ac2972a4ae17b2b8cc20b2f35842b626595860",
+      "veredito": "rejeita", "kind": "bitpix", "porque": "BITPIX = 'abc'"
+    },
+    "c1-sem-end.fit": {
+      "sha256": "69406c41d0f63c83a6b93faf4c91b3dc6aac154e608a7a252dc2c08c65e7fc5b",
+      "veredito": "rejeita", "kind": "truncated",
+      "porque": "cabecalho sem END. O laco que le blocos tem que parar no fim do arquivo, nao girar"
+    },
+    "c2-50k-cards.fit": {
+      "sha256": "297e701864a536711d49120b06bb77073761790e47a056e8b5d7648ecc020134",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "50 mil cartoes, 4 MB de cabecalho. Legal, so grande: tem que ser lido, nao recusado"
+    },
+    "c3-curto.fit": {
+      "sha256": "1b7d568b1bcfe9e406b936e0e5756bdc6530ec779c084819708577b359d2cf20",
+      "veredito": "rejeita", "kind": "notfits", "porque": "30 bytes, menos que um bloco FITS"
+    },
+    "d1-ztile-100000.fz": {
+      "sha256": "ce6f984baa4ba9798eea8782e1c92411c723802f8b920190f86f86998fe73c6a",
+      "veredito": "rejeita", "kind": "cmptype",
+      "porque": "ZTILE 100000x100000 pedia um Int32Array de 1e10 e dava RangeError cru, lido como 'memoria'. Agora o tile e limitado pela imagem (64x64) e o caso morre onde d12 morre, no stream: o teto nao mudou nada alem da alocacao"
+    },
+    "d6-ztile-16384.fz": {
+      "sha256": "b437bbe3f6cc8a41300283c91f9e3df742aa69d2e30f0d29d3012c2b4e2b685d",
+      "veredito": "rejeita", "kind": "cmptype",
+      "porque": "ZTILE 16384x16384 alocava 1 GB de um arquivo de 14 kB -- 768 MB medidos no processo do navegador. Mesmo teto, mesmo desfecho que d1"
+    },
+    "d7-heap-fora.fz": {
+      "sha256": "5c55529fce9a7f2cc7e250e78ff7a4e66bb7fcc09cde8f764cc327b73abee07f",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "descritor aponta 2.000.000.000 bytes depois do fim. ACEITAVA, e devolvia um quadro chapado montado de bytes que nao estavam no arquivo"
+    },
+    "d8-nelem-enorme.fz": {
+      "sha256": "cac05a0f7f7584c0dafb1776af1503cdef7883bf13fca36705d2da6c6416ebbf",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "o tile diz ter 2.000.000.000 bytes comprimidos num arquivo de 14 kB"
+    },
+    "d9-heap-negativo.fz": {
+      "sha256": "988ba34099b5f7bd7577b25a8f45f5a47b4d7b2c2cbeea841c03bbeea8974bc1",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "deslocamento negativo. Tambem aceitava: indice negativo em Uint8Array devolve undefined, nao erro"
+    },
+    "d10-rowbytes-mentira.fz": {
+      "sha256": "de0af7e870acd22b976f3d79e3c6c1d39c3ccfea9d59be9137c3b9d1f220a08d",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "NAXIS1 = 1.000.000 bytes por linha de tabela num arquivo de 14 kB"
+    },
+    "d11-heap-1-alem.fz": {
+      "sha256": "a78b74642ea0704f4b6b16fb6c467a33fb3466e9ccaca7c5a825f3378b7e8d43",
+      "veredito": "rejeita", "kind": "badheader",
+      "porque": "limite: heap + hoff + nelem = tamanho do arquivo + 1. Um byte, e tem que ser recusado"
+    },
+    "d13-heap-no-limite.fz": {
+      "sha256": "1362db2d2a92b54ba08c17604c214ca333dfbb86a937302719e775d9a1186a85",
+      "veredito": "aceita", "dims": "64x64x1",
+      "porque": "o outro lado do limite: heap + hoff + nelem = tamanho exato do arquivo. Este caso existe para que a validacao de ponteiro nao vire off-by-one, e o par com d11 e a prova: um byte a mais e badheader, o byte exato passa. Depois de passar ele DECODIFICA -- os 100 bytes apontados sao zeros, e um stream Rice de zeros e a codificacao valida de um tile constante. Aceitar esta certo; a expectativa escrita aqui dizia cmptype e era ela que estava errada"
+    },
+    "d12-stream-curto.fz": {
+      "sha256": "cf095b430e4461c72bac1286ef87ef2558164e25ace367f00d4c538f4cd68752",
+      "veredito": "rejeita", "kind": "cmptype",
+      "porque": "ponteiros validos, stream Rice que acaba antes dos 4096 pixels do tile"
+    },
+    "e2-bscale-zero.fit": {
+      "sha256": "727c2f0c2fca7e7441581b6329c6db10669b95d6db9339135b90576b79ea683e",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "BSCALE = 0 vira 1. Aceitar esta certo; o que nao pode e dividir por zero"
+    },
+    "e3-bscale-texto.fit": {
+      "sha256": "0c3b9eb3122d9c3f1c9ca7cf1cb47cf990934ca3a8bd7adc93800c4d7cb3e844",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "BSCALE = 'nan' nao e numero, entao o default 1 vale"
+    },
+    "e4-tudo-nan.fit": {
+      "sha256": "1e339158c1471c679e8a4b39d58462749ec91e049d58778702dd415fd16861c6",
+      "veredito": "rejeita", "kind": "empty", "porque": "todos os pixels NaN"
+    },
+    "e5-bzero-bscale-1e308.fit": {
+      "sha256": "e36cb524791121284b3fd6fcdaff41b0e8f26b4c05fd2276939cc620a40a16e6",
+      "veredito": "rejeita", "kind": "empty",
+      "porque": "BZERO e BSCALE em 1e308: todo valor fisico estoura para infinito e nao sobra pixel utilizavel"
+    },
+    "e6-metade-nan.fit": {
+      "sha256": "6bfd74612541371f5c5298a027fa01530a49133bba32b49224fca3ebfeb07bf9",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "metade NaN. Siril escreve NaN em pixel mascarado, entao isto e caso comum e nao adversarial: tem que ser aceito, e o log tem que dizer quantos ficaram de fora"
+    },
+    "e7-infinitos.fit": {
+      "sha256": "f3e8e2886b843a076e6a3c105801c6b6d4e32b035014a183f9f64b3d3c89caab",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "+Inf e -Inf misturados com valores reais"
+    },
+    "e8-constante.fit": {
+      "sha256": "fc2f939e0210e6f60b7314a4ed2954703115f9c5f2c2d3ac3332dacf1e8dd66c",
+      "veredito": "aceita", "dims": "16x16x1",
+      "porque": "quadro constante: MADN vai a zero e o autostretch divide por ele"
+    }
+  }
+}

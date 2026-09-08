@@ -541,15 +541,24 @@ self.onmessage = function(ev){
 
   function post(payload, transfer){ self.postMessage(payload, transfer || []); }
   function fail(e){
-    // A RangeError that reached here without a kind is an allocation that
-    // failed somewhere the `alloc` helper does not cover. It is not "something
-    // went wrong", it is a memory limit, and the two send the reader to
-    // completely different places: one asks for a bug report, the other says
-    // close some tabs. The header is validated before anything large is
-    // requested — `truncated` and `baddims` fire first — so by the time a
-    // RangeError can happen, the size being asked for is a size the file
-    // genuinely declares.
-    var kind = (e && e.kind) || ((e instanceof RangeError) ? 'memory' : 'unknown');
+    // An unlabelled RangeError is NOT a memory limit. This used to say the
+    // opposite, and the reasoning it gave — "the header is validated before
+    // anything large is requested, so by the time a RangeError can happen the
+    // size is one the file genuinely declares" — was false. Two files proved
+    // it: a negative PCOUNT walked past the size check and a ZTILE of
+    // 100000 x 100000 asked for a 40 GB tile buffer, and both came out as
+    // "this frame is too large for the browser to hold" about files of five
+    // and fourteen kilobytes. Both are now rejected as `badheader` upstream.
+    //
+    // The direction that is actually provable runs the other way. Every
+    // allocation this chain makes that scales with the file goes through
+    // `alloc`/`allocFrom`, which label failure as `memory` themselves and name
+    // the buffer. What remains unlabelled is a typed-array *view* over the file
+    // buffer, and one of those throws when an offset or length does not fit —
+    // which is a bounds error, not a browser limit. So it maps to `unknown`,
+    // whose text asks for a report, and that is the correct request: reaching
+    // here means a validation gap upstream, and the gap is worth hearing about.
+    var kind = (e && e.kind) || 'unknown';
     post({ type: 'error', kind: kind, message: String((e && e.message) || e) });
   }
 

@@ -159,7 +159,11 @@ function Test-Tracked {
     $cap = Join-Path $root 'test\capture-golden.js'
     if (Test-Path -LiteralPath $cap) {
         foreach ($m in [regex]::Matches([System.IO.File]::ReadAllText($cap), "'/f/([^']+)'")) {
-            [void]$need.Add($m.Groups[1].Value)
+            $ref = $m.Groups[1].Value
+            # Um prefixo concatenado no codigo -- '/f/test/malformed/' + f -- casa
+            # com o mesmo regex e nao nomeia arquivo nenhum. Termina em barra.
+            if ($ref.EndsWith('/')) { continue }
+            [void]$need.Add($ref)
         }
     }
     $cmp = Join-Path $root 'test\compare-golden.ps1'
@@ -175,9 +179,22 @@ function Test-Tracked {
         }
     }
 
+    # O corpus malformado nao e rastreado, e isso esta escrito: make-malformed.ps1
+    # explica no cabecalho por que (geracao so com ASCII e inteiros, identica em
+    # qualquer maquina por construcao), e malformed.json guarda o sha256 de cada
+    # arquivo para que a divergencia seja detectavel. A lista sai desse mesmo
+    # JSON, e nao de uma copia aqui: uma lista aqui seria a terceira copia da
+    # mesma verdade, e a que ninguem lembraria de atualizar.
+    $generated = @{}
+    $mf = Join-Path $root 'test\golden\malformed.json'
+    if (Test-Path -LiteralPath $mf) {
+        $j = [System.IO.File]::ReadAllText($mf) | ConvertFrom-Json
+        foreach ($n in $j.casos.PSObject.Properties.Name) { $generated['test/malformed/' + $n] = $true }
+    }
+
     $missing = @()
     foreach ($f in ($need | Sort-Object -Unique)) {
-        if (-not $tracked.ContainsKey($f)) { $missing += $f }
+        if (-not $tracked.ContainsKey($f) -and -not $generated.ContainsKey($f)) { $missing += $f }
     }
     if ($missing.Count -eq 0) {
         Write-Host ("rastreamento: {0} arquivos da suite, todos no git" -f $need.Count)

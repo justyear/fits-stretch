@@ -26,7 +26,12 @@ The page does not talk to the internet. Not to us, not to anyone.
 > It works exactly the same. A page that needed a server would stop.
 
 If you want the stronger version: open your browser's developer tools (`F12`),
-click the **Network** tab, and process a photo. The list stays empty.
+click the **Network** tab, and process a photo. **Nothing goes out.** You will
+see exactly one entry, and it starts with `blob:` — that is the page handing its
+own code to a background thread inside your browser, from memory. A `blob:`
+address is not on the internet; it cannot leave the tab. Every other kind of
+entry — an `http://` or `https://` to anywhere — is absent, and there is no code
+in the file that could produce one.
 
 There is no account, no sign-in, no upload button, and no analytics. There is
 no server to send anything to — the file you downloaded *is* the program. You
@@ -185,6 +190,7 @@ automated:
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? |
 | `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
+| `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 
@@ -211,6 +217,12 @@ was measured, what is verified and what is not.
 - **It has been tested against synthetic frames and a second implementation, not
   against a large collection of real files.** The measurements are honest about
   which is which.
+- **A file that lies about itself is refused, not guessed at.** 33 deliberately
+  broken files are part of the test suite, and each one has to keep getting the
+  same answer. The failure the suite watches hardest for is the quiet one: a
+  file that used to be refused starting to produce a picture. It has caught that
+  exact thing once — a `.fz` whose table pointed two billion bytes past the end
+  of a 14 kB file was decoding into a blank frame with no error at all.
 
 ---
 
