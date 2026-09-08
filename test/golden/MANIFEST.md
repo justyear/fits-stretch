@@ -11,11 +11,18 @@ autoridade sobre o valor do pixel. Morreu no passo 2 do Módulo 1, por
 construção e no prazo. Ver "O que o float pleno mudou", abaixo.
 
 Capturados do build sha256
-`7ea8749e407f963f1f09fddc882e5adce506d8170c208b07984929d3df4444bf`
-(151.781 bytes — `.claude/index-test.html`, o build **com ganchos**. O publicado
-é `index.html`, 150.088 bytes, sha256
-`b79bbba36b83b1a660b4166c4fbbb54af46b642ac16ac06744316104346c62cf`, e difere
+`c9249796efff209e8050a10afe07125c0e1ea07b4f3f9c4bcaf8c4f1bcfb0440`
+(155.844 bytes — `.claude/index-test.html`, o build **com ganchos**. O publicado
+é `index.html`, 154.151 bytes, sha256
+`b92b1bf1ae2ec425237024787cf08e83d5b0f1f695f95d0974b5713cbce0c799`, e difere
 apenas pelo bloco de ganchos.)
+
+> **Estes dois hashes sao escritos a mao e nada os verifica.** Estavam
+> desatualizados desde `741f0e1` (a correcao do pedestal mudou `background.js`,
+> logo mudou o build) e ninguem percebeu, porque nenhum comparador os le. Sao a
+> forma invertida do argumento que o proprio log usa: a frase do log nao
+> envelhece porque e gerada, e estes numeros envelhecem porque nao sao. Ou
+> `build.ps1 -Check` passa a compara-los com o build, ou eles saem daqui.
 
 Navegador: Chromium 148 (`Chrome/148.0.7778.280`, in-app browser do Claude
 Code). Isso ainda importa para o PNG, mas menos do que importava: o comparador
