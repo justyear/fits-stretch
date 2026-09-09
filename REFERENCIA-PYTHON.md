@@ -225,3 +225,469 @@ nonlinear  6.482.880 B  sha256 f11ae11071b83e48...
 ```
 
 Ambiente que gerou: astropy 8.0.1, numpy 2.4.4.
+
+---
+
+# Passo 7 — o que `reference_bg.py` e `chain.py` precisam cobrir
+
+A cadeia mudou duas vezes desde a última referência. Hoje ela é:
+
+```
+decode → debayer → extração de fundo → calibração de cor → esticamento LIGADO → quantise
+```
+
+`chain.py` modela até o fundo e depois faz autostretch **por canal**. Os dois
+últimos elos são novos, e é por isso que 7 comparações estão em N/A e os dois
+controles negativos do termo da mediana ficaram não-exercitáveis.
+
+Este documento é a especificação executável. **Tudo que está escrito aqui é
+comportamento observado do código que está commitado**, não intenção. Onde há
+uma escolha de arredondamento ou de definição, ela está marcada com ⚠ — foram
+esses dois tipos de detalhe que custaram duas rodadas da última vez.
+
+---
+
+## 1. Regra de aritmética, que vale para tudo abaixo
+
+O quadro é **float32** do decode até o quantise.
+
+⚠ **Toda escrita de volta no quadro arredonda para float32. Toda redução
+(mediana, média, soma) roda em float64 sobre valores que estavam em float32.**
+
+Em NumPy isso é:
+
+```python
+# ler para reduzir: sobe para float64, não arredonda nada
+med = float(np.median(plane.astype(np.float64)))
+
+# escrever de volta: desce para float32, arredonda
+plane[:] = (plane.astype(np.float64) - offset).astype(np.float32)
+```
+
+Fazer a subtração inteira em float32 dá um resultado diferente, e é a diferença
+que aparece no quinto decimal do golden.
+
+**Mediana**: `np.median`, isto é, para contagem par a **média dos dois centrais**,
+calculada em float64. A implementação JS usa `quickselect` com exatamente essa
+convenção, de propósito, para que as duas estejam computando a mesma definição
+em vez de duas aproximações dela.
+
+**NaN**: excluído de toda redução, sempre. Nunca propagado, nunca substituído
+por zero — exceto num lugar, marcado abaixo.
+
+---
+
+## 2. Calibração de cor — `colour_cal(planes, w, h, params)`
+
+Entra o quadro **depois da extração de fundo** (o `corrected` que o `chain.py`
+já produz). Só roda com 3 canais.
+
+Parâmetros efetivos, e são os defaults de hoje:
+
+```python
+starSigma      = 12.0
+starMax        = 0.85
+minStarPixels  = 2000
+extendedWindow = 25
+extendedFrac   = 0.50
+reference      = 'green'          # índice 1
+```
+
+### 2a — neutralização, nesta ordem exata
+
+```python
+beforeMedians = [ np.median(p.astype(f8)) for p in planes ]      # EXATA
+target        = (beforeMedians[0] + beforeMedians[1] + beforeMedians[2]) / 3.0
+offsets       = [ m - target for m in beforeMedians ]
+for c in range(3):
+    if offsets[c] != 0.0:
+        planes[c] = (planes[c].astype(f8) - offsets[c]).astype(np.float32)
+```
+
+⚠ **Aditivo, e antes dos ganhos.** Invertido, o ganho escala o offset junto.
+
+⚠ **Sem clampear.** Negativos sobrevivem até o quantise.
+
+⚠ A mediana aqui é **exata**, não por histograma. Motivo medido: o `measure()`
+do JS tem resolução 1/65535 = 1,526e-5, e os offsets do M 31 são 1,00 / 0,70 /
+0,31 bin — a correção é menor que o instrumento em dois canais de três.
+
+### 2b — pedestal
+
+```python
+pedestals = [target, target, target]     # porque a neutralização rodou
+```
+
+Se `backgroundNeutralise` estiver desligado, `pedestals[c]` é a mediana exata do
+canal `c` sobre o quadro inteiro. Nos goldens ela sempre roda, então os três são
+o `target`.
+
+### 2c — luminância da seleção
+
+⚠ **Aqui a luminância é a média simples, `(R+G+B)/3`, e não os pesos Rec. 709.**
+Os pesos aparecem só no esticamento (§3). São duas luminâncias diferentes no
+mesmo pipeline, de propósito: esta é um critério de brilho, aquela é fotométrica.
+
+```python
+L = ((R.astype(f8) + G.astype(f8) + B.astype(f8)) / 3.0).astype(np.float32)
+
+lumMedian = np.median(L[np.isfinite(L)].astype(f8))
+
+# ⚠ os desvios são arredondados para float32 ANTES da mediana.
+dev       = np.abs(L.astype(f8) - lumMedian).astype(np.float32)
+lumMadn   = 1.4826 * np.median(dev[np.isfinite(dev)].astype(f8))
+```
+
+O arredondamento do `dev` não é enfeite: o JS acumula num `Float32Array`
+reaproveitado, e a mediana sai desses float32.
+
+### 2d — seleção, com os dois cortes
+
+```python
+thresholdLow  = lumMedian + starSigma * lumMadn
+thresholdHigh = starMax
+
+finite = np.isfinite(L)
+mask   = finite & (L > thresholdLow) & (L < thresholdHigh)    # AMBOS estritos
+selectedRaw = int(mask.sum())
+
+# contado sobre a seleção ANTES da rejeição de extenso
+rejectedSaturated = int((finite & (L > thresholdLow) & ~(L < thresholdHigh)).sum())
+```
+
+### 2e — rejeição de fonte extensa
+
+⚠ Roda sobre a máscara **depois** do corte superior, nunca antes.
+
+```python
+r = extendedWindow // 2                      # 25 // 2 = 12
+# soma de caixa exata sobre a máscara binária, via imagem integral em int64
+I = np.zeros((h+1, w+1), dtype=np.int64)
+I[1:,1:] = np.cumsum(np.cumsum(mask.astype(np.int64), axis=0), axis=1)
+
+y  = np.arange(h)[:, None]; x = np.arange(w)[None, :]
+yl = np.maximum(y - r, 0);  yh = np.minimum(y + r, h - 1)
+xl = np.maximum(x - r, 0);  xh = np.minimum(x + r, w - 1)
+box = I[yh+1, xh+1] - I[yl, xh+1] - I[yh+1, xl] + I[yl, xl]
+n   = (yh - yl + 1) * (xh - xl + 1)          # ⚠ janela CLIPADA na borda
+
+reject = mask & (box > extendedFrac * n)     # ⚠ estritamente maior
+rejectedExtended = int(reject.sum())
+mask = mask & ~reject
+count = selectedRaw - rejectedExtended
+```
+
+⚠ O denominador é o número de pixels **realmente olhados**, não a janela
+nominal 25×25. Dividir pela nominal faria todo pixel de borda parecer esparso e
+deixaria passar um objeto encostado na borda — que é onde uma galáxia mal
+enquadrada fica.
+
+### 2f — medianas estelares e ganhos
+
+```python
+starMedians = [ np.median(p[mask & np.isfinite(p)].astype(f8)) for p in planes ]
+above       = [ starMedians[c] - pedestals[c] for c in range(3) ]
+ratios      = { 'rOverG': above[0]/above[1], 'bOverG': above[2]/above[1] }
+gains       = [ above[1] / above[c] for c in range(3) ]        # referência = verde
+for c in range(3):
+    if gains[c] != 1.0:
+        planes[c] = (planes[c].astype(f8) * gains[c]).astype(np.float32)
+```
+
+⚠ **A razão é acima do pedestal.** O pedestal é comum aos três canais depois da
+neutralização, então deixá-lo dentro arrasta toda razão para 1.
+
+⚠ A máscara de cada canal é `mask & isfinite(canal)`, então os três podem ter
+contagens diferentes se houver NaN. Nos fixtures não há.
+
+### 2g — salvaguardas, **nesta ordem**
+
+A ordem importa porque a primeira que dispara é a que escreve o motivo.
+
+| # | condição | resultado |
+|---|---|---|
+| 1 | `count < minStarPixels` | ganhos não rodam |
+| 2 | `min(starMedians) < 3.0 * max(pedestals)` | ganhos não rodam |
+| 3 | `above[1] <= 0` | ganhos não rodam |
+| 4 | algum `gain` fora de `[0.25, 4.0]` | ganhos não rodam |
+
+⚠ A regra 2 compara a **mediana estelar crua** contra o pedestal, não a acima
+dele. E usa o **mínimo** das três contra o **máximo** dos pedestais.
+
+Quando os ganhos não rodam, a neutralização **já rodou e fica** — o quadro sai
+neutralizado e sem ganhos, e `applied` do registro é `True` mesmo assim.
+
+---
+
+## 3. Esticamento ligado — `stretch_linked(planes, params)`
+
+```python
+linked   = True
+operator = 'mtf'          # 'asinh' no golden asinh-fixture
+target        = 0.085     # ⚠ mudou de 0.25
+shadowSigma   = -2.80
+blackPct      = 0.0005
+```
+
+### 3a — luminância, agora Rec. 709
+
+```python
+Y = (0.2126*R.astype(f8) + 0.7152*G.astype(f8) + 0.0722*B.astype(f8)).astype(np.float32)
+```
+
+### 3b — parâmetros, um conjunto só, da luminância
+
+⚠ **Aqui o JS usa o histograma de 65536 bins (`analysePlane`), não a mediana
+exata.** Reporte as estatísticas exatas da luminância como o `reference.py` já
+faz para os canais; a tolerância da §7 do Módulo 0 absorve a diferença, que é a
+mesma situação que já valia no caminho por canal.
+
+```python
+median, madn = stats_exact(Y)          # como reference.py já calcula
+if nonLinear:
+    shadows = percentile(Y, blackPct)
+    tgt     = min(0.6, max(0.02, median))
+else:
+    shadows = median + shadowSigma * madn
+    tgt     = target
+
+if not (shadows >= 0):      shadows = 0.0
+if shadows >= median:       shadows = max(0.0, median * 0.5)
+if shadows >= 1:            shadows = 0.0
+
+scale   = 1.0 / (1.0 - shadows)
+xMedian = (median - shadows) * scale
+midtones = MTF(xMedian, tgt) if (madn > 0 and 0 < xMedian < 1) else 0.5
+if not (0 < midtones < 1):  midtones = 0.5
+
+hiCut = percentile(Y, 0.99)
+```
+
+```python
+def MTF(x, m):
+    if x <= 0: return 0.0
+    if x >= 1: return 1.0
+    if m == 0.5: return x
+    return ((m - 1.0)*x) / (((2.0*m - 1.0)*x) - m)
+```
+
+### 3c — a transferência, por pixel
+
+```python
+y = Y[i];  y = 0.0 if isnan(y) else float(y)      # ⚠ o ÚNICO NaN→0 do pipeline
+R, G, B = float(planes[0][i]), float(planes[1][i]), float(planes[2][i])
+isHi = (y >= hiCut)
+
+u = (y - shadows) * scale
+if   u <= 0: yo = 0.0; low  += 1
+elif u >= 1: yo = 1.0; high += 1
+else:        yo = MTF(u, midtones)
+
+r  = (yo / y) if y > 1e-8 else 1.0
+Ro, Go, Bo = R*r, G*r, B*r                        # float64
+
+mx = max(Ro, Go, Bo)
+if mx > 1.0:
+    Ro /= mx; Go /= mx; Bo /= mx; rescaled += 1   # ⚠ os TRÊS, nunca clampear um
+
+planes[0][i] = np.float32(Ro); planes[1][i] = np.float32(Go); planes[2][i] = np.float32(Bo)
+```
+
+⚠ **`Ro`, `Go`, `Bo` continuam float64 quando entram em `colourFidelity`
+abaixo.** O arredondamento para float32 acontece só na escrita. É por isso que a
+deriva medida é 4,4e-16 (dois épsilons de double) e não épsilon de float32 — se
+a referência medir a deriva sobre os valores já armazenados, vai dar ~1e-7 e
+parecer que a implementação está errada quando não está.
+
+### 3d — `colourFidelity`, medido na mesma passada
+
+```python
+# razões nas altas luzes: razão de SOMAS (fluxo), não mediana de razões
+if isHi:
+    sumRb += R;  sumGb += G;  sumBb += B
+    sumRa += Ro; sumGa += Go; sumBa += Bo
+    hiCount += 1
+
+# deriva por pixel, o PIOR do quadro, não o típico
+if G > 1e-3 and Go > 1e-3:
+    maxDrift = max(maxDrift, abs(Ro/Go - R/G), abs(Bo/Go - B/G))
+    driftSamples += 1
+
+ratiosBefore = { 'rOverG': sumRb/sumGb, 'bOverG': sumBb/sumGb }
+ratiosAfter  = { 'rOverG': sumRa/sumGa, 'bOverG': sumBa/sumGa }
+```
+
+### 3e — asinh, só para o golden `asinh-fixture`
+
+```python
+def ASINH(x, s):
+    if x <= 0: return 0.0
+    if x >= 1: return 1.0
+    return math.asinh(s*x) / math.asinh(s)
+
+def solve_asinh(x, target):
+    if not (0 < x < 1) or not (0 < target < 1): return None
+    if target <= x:                             return None
+    lo, hi = 1e-6, 1e7
+    if ASINH(x, hi) < target:                   return None
+    for _ in range(40):                         # ⚠ 40, e média GEOMÉTRICA
+        mid = math.sqrt(lo*hi)
+        if ASINH(x, mid) < target: lo = mid
+        else:                      hi = mid
+    return math.sqrt(lo*hi)
+```
+
+`solvedStretch = solve_asinh(xMedian, tgt)`, e a transferência vira
+`ASINH(u, solvedStretch)`. Se der `None`, a transferência é a identidade e o
+registro marca `stretchUnreachable`.
+
+---
+
+## 4. O JSON que eu preciso de volta
+
+Mesma forma de hoje, com dois blocos novos por fixture:
+
+```jsonc
+"fixtures": {
+  "colour": {
+    "decode": { ... como hoje ... },
+    "fundo":  { ... como hoje ... },
+    "calibracaoCor": {
+      "aplicado": true,
+      "neutralizacao": { "medianasAntes": [r,g,b], "alvo": t, "offsets": [dr,dg,db] },
+      "pedestais": [p,p,p],
+      "luminanciaSelecao": { "mediana": m, "madn": mn },
+      "limiares": { "baixo": lo, "alto": 0.85 },
+      "selecionados": 276145,
+      "rejeitados": { "saturado": 302053, "extenso": 1646 },
+      "pixels": 274499,
+      "medianasEstelares": [r,g,b],
+      "acimaDoPedestal": [r,g,b],
+      "razoes": { "rOverG": x, "bOverG": y },
+      "ganhos": [gr, gg, gb],
+      "motivoRecusa": null
+    },
+    "esticamento": {
+      "ligado": true,
+      "operador": "mtf",
+      "luminancia": { "mediana": m, "madn": mn },
+      "shadows": s, "midtones": mid, "target": 0.085,
+      "solvedStretch": null,
+      "clipLow": 0, "clipHigh": 0,
+      "highlightCut": hc,
+      "colourFidelity": {
+        "ratiosBefore": {...}, "ratiosAfter": {...},
+        "maxRatioDrift": d, "driftSamples": n,
+        "highlightPixels": n, "pixelsRescaled": n
+      }
+    },
+    "canais": { "R": { "saida": { "median": ..., "mean": ..., "clipLow": ..., "clipHigh": ... } }, ... }
+  }
+}
+```
+
+E no topo, como hoje: `geradoPor`, `proposito`, `cadeia`, e o bloco `cobertura`
+com `porCanalAindaNA` e `motivo` — a referência continua declarando ela mesma o
+que não cobre, em vez de eu manter a lista do lado de cá.
+
+**Fixtures a cobrir:** `seestar`, `rice`, `nonlinear`, `gradient`, `colour`.
+O `asinh` é o mesmo quadro do `gradient` com `operator='asinh'` — se der para
+emitir os dois, ótimo; se não, o `gradient` já fecha as 7 N/A.
+
+---
+
+## 5. Números para conferir antes de me mandar
+
+Se estes baterem, o resto bate. Se algum não bater, o erro está no passo que ele
+mede e não adianta olhar os outros.
+
+### `colour-fixture` — a calibração roda inteira
+
+```
+neutralização  alvo      0.015217204578220844
+               offsets   +0.0006394730880856514
+                         +0.001999109983444214
+                         -0.0026385830715298653
+seleção        lumMed    0.014729655347764492
+               lumMadn   0.0031653492129407822
+               thrLow    0.05271384590305388
+               selecionados     276145
+               rej. saturado    302053
+               rej. extenso       1646
+               pixels           274499
+estrelas       medianas  0.22911791503429413
+                         0.18618783354759216
+                         0.15188860893249512
+               acima     0.21390071045607328
+                         0.17097062896937132
+                         0.13667140435427427
+ganhos                   0.7992990233872174
+                         1.0
+                         1.2509612363840787
+esticamento    lumMed    0.014572365911345083     (histograma; tolerância §7)
+               lumMadn   0.0036483292696452008
+               shadows   0.004357043956338522
+               midtones  0.10038860889501716
+               hiCut     0.9767452506294346
+               clip      0 / 0
+fidelidade     maxDrift  8.88178419700125e-16
+               rescaled  302040
+               hiPixels  19489
+```
+
+### `gradient-fixture` — a calibração RECUSA, e é isso que tem que ser reproduzido
+
+```
+neutralização  alvo      0.01682377342755596      (roda, e fica)
+               offsets   +0.0016671426904698201
+                         -0.0000665012436608485
+                         -0.001600641446808975
+seleção        lumMed    0.016749536618590355
+               lumMadn   0.0008336659418419003
+               thrLow    0.02675352792069316
+               selecionados      61143
+               rej. extenso      46129            (75% da seleção: o objeto extenso)
+               pixels            15014
+estrelas       medianas  0.04470996558666229
+                         0.045081574469804764
+                         0.045550307258963585
+ganhos                   NÃO RODAM
+               motivo    salvaguarda 2: min(medianas) = 0.04471 < 3 x 0.016824 = 0.050471
+esticamento    lumMed    0.016769665064469367
+               lumMadn   0.0010589015610251832
+               shadows   0.013804740693598855
+               midtones  0.03144031631393108
+               hiCut     0.040283817807278556
+               clip      1677 / 0
+fidelidade     maxDrift  4.44089209850063e-16
+               rescaled  405
+               hiPixels  19220
+```
+
+⚠ O `gradient` é o caso mais valioso dos dois, porque exercita a recusa. Se a
+referência produzir ganhos ali, uma das duas implementações está com a
+salvaguarda errada — e essa é a discordância que eu quero que apareça.
+
+O `nonlinear` também recusa, pela mesma salvaguarda 2.
+
+---
+
+## 6. Tolerâncias
+
+Valem as da §7 do Módulo 0 como estão, mais as da §5 do Módulo 2/3:
+
+| grandeza | tolerância | por quê |
+|---|---|---|
+| ganhos | `max(1e-4·|ref|, 4/65535)` | §5 |
+| razões estelares na saída | 1e-6 absoluto | §3.2 |
+| `maxRatioDrift` | **≤ 1e-6, e é asserção, não comparação** | acima disso a implementação está errada |
+| contagem de pixels estelares | **exata** | inteiro contado |
+| `rejeitados.saturado` / `.extenso` | **exata** | inteiro contado |
+| `pixelsRescaled` | **exata** | inteiro contado |
+| `clipLow` / `clipHigh` | **exata** | inteiro contado |
+| medianas exatas (§2) | `max(1e-4·|ref|, 4/65535)` | unidade |
+| estatísticas da luminância (§3b) | `max(1e-4·|ref|, 8·span/65535 + 1.4826·|Δmediana|)` | histograma vs exata |
+
+⚠ As contagens inteiras são **exatas** porque são coisas contadas, não grandezas
+medidas — a regra já gravada. Se uma delas divergir por um, é diferença de
+critério, e eu quero saber qual.

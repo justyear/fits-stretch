@@ -573,6 +573,93 @@ Consequência operacional: o asset do release **não** acompanha o master, e iss
 é de propósito. Quando um release novo sair, o `index.html` anexado tem que ser
 o do commit que o release marca — não "o mais recente".
 
+## Classe: duas medições certas que leem como contradição
+
+**Toda frase do log que cita uma contagem tem que dizer o que ela conta.**
+
+Achado no passo 4 do Módulo 3. O log imprimia, com oito linhas de distância:
+
+> 307,796 pixels came out above 1.0 in one channel.
+
+> 0.000% of pixels land on pure black or pure white after the transfer.
+
+As duas eram **verdadeiras**. A primeira conta o estouro — pixels cujo canal mais
+forte passou de 1 e que foram divididos pelo próprio máximo. A segunda conta o
+corte da curva sobre a **luminância**, e nenhum pixel foi cortado ali. São
+grandezas diferentes com unidades parecidas, e nada no texto dizia isso.
+
+Num produto cujo argumento inteiro é "o log é auditável", isto custa mais que um
+erro. Um erro numérico o leitor atribui a um bug e reporta. Uma contradição
+aparente ele atribui a **desonestidade**, e a única defesa disponível — "as duas
+estão certas, são coisas diferentes" — é exatamente o que alguém diria se não
+estivessem.
+
+A frase agora diz o que conta e diz que é outra contagem. A regra geral: número
+no log sem o predicado dele é um número que vai ser lido contra outro número.
+
+Vale também para o record e para o diagnóstico, mas ali é menos grave — quem lê
+JSON lê o nome do campo. O log é prosa e a prosa é onde a ambiguidade mora.
+
+## `JSON.stringify` descarta `undefined`, e foi uma âncora concreta que pegou
+
+Um campo que deixa de ser escrito **desaparece do JSON sem erro nenhum**.
+
+No passo 4 do Módulo 3 o caminho ligado não escrevia `shadows`, `midtones`,
+`outLow` e `outHigh` em `before.perChannel` — a curva era uma só, derivada da
+luminância, e nada os punha lá. O `buildDiag` lia `s.outLow` e recebia
+`undefined`; `JSON.stringify` simplesmente **omite a chave**. Quatro campos por
+canal, doze no total, sumiram do diagnóstico sem erro, sem aviso, sem log.
+
+Nenhum comparador pegaria: `compare-golden` teria capturado o diag sem os campos
+e fixado a ausência como referência.
+
+**O que pegou, e isso decide uma discussão antiga.** Foi
+`negative-controls.ps1`, parando em:
+
+```
+pattern not found in nonlinear-fixture.diag.json: "pixelsBlack": 269
+```
+
+Um controle ancorado num **valor concreto lido do golden**, não numa asserção
+estrutural. Reclamei quatro vezes de ter que reancorar esses literais quando os
+goldens mudam — no passo 5 do Módulo 3 saiu o último deles, `"target": 0.25`.
+**Foi exatamente a reancoragem que achou o bug.** Uma asserção estrutural
+("existe um campo `pixelsBlack`") teria passado, porque a chave existia em algum
+lugar; a âncora concreta exigiu *aquele número naquele arquivo*, e ele não
+estava mais lá.
+
+Decidido, e não se revisita: **âncoras em valores reais, sempre.** O custo é
+reancorar quando o golden muda de propósito. O retorno é que uma mudança que
+ninguém pretendia para uma perda silenciosa. O custo é visível e o retorno é
+invisível, que é a razão de a decisão ser fácil de errar.
+
+## Uma salvaguarda escrita por precaução achou caso real no dia seguinte
+
+O Módulo 2 ganhou a regra dos 3×: se a menor mediana estelar não estiver pelo
+menos três vezes acima do pedestal, a calibração não roda, porque
+`(mediana − pedestal) / (referência − pedestal)` fica instável quando o
+numerador é uma diferença pequena de dois números grandes.
+
+Foi pedida por precaução, sem nenhum caso concreto na mão.
+
+No dia seguinte, no passo 4 do Módulo 3, ela disparou sozinha num fixture que
+existia desde o Módulo 0:
+
+```
+Stellar gains: the faintest star median is 0.407718, less than 3x the sky
+pedestal (0.246154); a ratio taken above the sky is unstable when the star is
+barely above it.
+```
+
+O `fixture-nonlinear` já vem esticado — mediana perto de 0,25 — então o pedestal
+é enorme em relação a tudo e não existe população estelar separável. A
+salvaguarda leu isso corretamente e recusou, com o número medido na frase.
+
+**O argumento para escrever a próxima:** salvaguarda barata, com mensagem que
+carrega a medição, encontra caso real antes de a spec descobrir que ele existe.
+O custo é uma condição e uma frase; o retorno é a etapa recusando em vez de
+produzir um número que ninguém saberia questionar.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
