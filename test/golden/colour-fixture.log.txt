@@ -15,11 +15,11 @@ Processing log — fixture-colour.fit
     The ratio was taken above the sky, not against the raw pixel: the sky is a level common to all three channels and leaving it in drags every ratio toward 1. Star medians R 0.22912, G 0.18619, B 0.15189; above a sky of 0.01522 that is R 0.21390, G 0.17097, B 0.13667.
     Nothing here was a preference: the numbers came from the stars you photographed. Star colour is the reference because sky has no colour of its own to measure against. No catalogue was consulted, no astrometry was solved, and nothing left this machine.
     Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
-• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.01216  MADN 0.00374  →  shadows 0.00169  midtones 0.03082
-    G  median 0.01521  MADN 0.00446  →  shadows 0.00272  midtones 0.03667
-    B  median 0.01903  MADN 0.00532  →  shadows 0.00413  midtones 0.04357
-    5.790% of pixels land on pure black or pure white after the transfer.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.250 — that is 64 of 255. Applied LINKED: one curve, derived from the luminance, and every channel multiplied by the same number. Highlights untouched at 1.000.
+    Luminance  median 0.01457  MADN 0.00365  →  shadows 0.00436  midtones 0.03016
+    Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 1,920,000 pixels — float rounding, nothing else. In the highlights, R/G 0.8004 → 0.8004 and B/G 1.2566 → 1.2566.
+    307,796 pixels came out above 1.0 in one channel. All three were divided by their own maximum rather than the bright channel being clipped on its own: clipping one channel changes the colour of the pixel, dividing takes it to white and keeps it.
+    0.000% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
 • Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
 

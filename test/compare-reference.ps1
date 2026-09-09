@@ -467,7 +467,31 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         }
         $recs2 = Get-Content -LiteralPath $recPath2 -Raw | ConvertFrom-Json
         $bgRec = $recs2 | Where-Object { $_.id -eq 'background' }  | Select-Object -First 1
-        $stRec = $recs2 | Where-Object { $_.id -eq 'stretch-mtf' } | Select-Object -First 1
+        $stRec = $recs2 | Where-Object { $_.id -eq 'stretch-mtf' -or $_.id -eq 'stretch-asinh' } | Select-Object -First 1
+        $ccRec = $recs2 | Where-Object { $_.id -eq 'colour-cal' } | Select-Object -First 1
+
+        # A CADEIA MUDOU E A REFERENCIA AINDA NAO. Escrito uma vez, com o motivo,
+        # em vez de 78 linhas reprovando.
+        #
+        # O chain.py modela decode -> fundo -> autostretch POR CANAL. A cadeia
+        # agora roda calibracao de cor e esticamento LIGADO, e as duas coisas
+        # mudam todo numero por canal depois do fundo: os ganhos multiplicam cada
+        # canal por um numero diferente, e uma curva unica derivada da luminancia
+        # substitui as tres curvas que a referencia reproduz.
+        #
+        # Comparar assim nao mede discordancia entre duas implementacoes da mesma
+        # coisa -- mede duas implementacoes deixando de descrever a mesma coisa.
+        # Mesmo raciocinio do passo 6 do Modulo 1, e mesma saida: N/A com
+        # pre-condicao explicita, ate o passo 7 da secao 6 estender a referencia.
+        $chainDiverged = @()
+        if ($ccRec -and $ccRec.applied) { $chainDiverged += 'calibracao de cor' }
+        if ($stRec -and $stRec.linked)  { $chainDiverged += 'esticamento ligado' }
+        if ($chainDiverged.Count) {
+            $rows += New-Row $name 'cadeia' '(todos)' '-' '-' 'N/A' `
+                     ("chain.py nao modela " + ($chainDiverged -join ' nem ') +
+                      " - passo 7 da secao 6 do Modulo 2/3")
+            continue
+        }
         if (-not $stRec) {
             $rows += New-Row $name 'cadeia' '-' '-' '-' 'NO RECORD' 'nenhum record de stretch-mtf'
             continue

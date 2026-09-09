@@ -111,7 +111,9 @@ $diagTxt = [System.IO.File]::ReadAllText((Join-Path $gold $ART_DIAG))
 $logTxt  = [System.IO.File]::ReadAllText((Join-Path $gold $ART_LOG))
 $recJson = $recTxt | ConvertFrom-Json
 $sti = 0
-for ($k9 = 0; $k9 -lt @($recJson).Count; $k9++) { if (@($recJson)[$k9].id -eq 'stretch-mtf') { $sti = $k9 } }
+for ($k9 = 0; $k9 -lt @($recJson).Count; $k9++) {
+    if (@($recJson)[$k9].id -eq 'stretch-mtf' -or @($recJson)[$k9].id -eq 'stretch-asinh') { $sti = $k9 }
+}
 $b9 = @($recJson)[$sti].before.perChannel[0]
 $a9 = @($recJson)[$sti].after.perChannel[0]
 
@@ -144,8 +146,22 @@ $MAD_OUT = [string]::Format($inv9, '{0:G17}', ($madV + 2.77 * $mLim9))
 $CLIPHI  = '"clipHigh": ' + $a9.clipHigh
 $CLIPLO  = '"clipLow": '  + $a9.clipLow
 $PXBLACK = '"pixelsBlack": ' + $a9.clipLow
-$LOGMED  = 'median ' + ([double]$b9.median).ToString('0.00000', $inv9)
-$LOGMED2 = 'median ' + ([double]$b9.median + 0.00001).ToString('0.00000', $inv9)
+# A ancora do log tem que sair de onde o log de HOJE imprime um numero.
+#
+# Ela era a mediana por canal, e o Modulo 3 a tirou do log: com o esticamento
+# ligado ha UMA curva, derivada da luminancia, e a linha por canal deixou de
+# existir. O script parou com a mensagem dizendo qual padrao nao achou, que e o
+# comportamento certo -- um controle negativo que se auto-desativasse em
+# silencio seria pior que nao existir. Reancorado na mediana da luminancia, que
+# esta no record em `linked` e no log na linha "Luminance median ...".
+$stretchRec9 = @($recJson)[$sti]
+if ($stretchRec9 -and $stretchRec9.linked) {
+    $logMedV = [double]$stretchRec9.linked.luminanceMedian
+} else {
+    $logMedV = [double]$b9.median
+}
+$LOGMED  = 'median ' + $logMedV.ToString('0.00000', $inv9)
+$LOGMED2 = 'median ' + ($logMedV + 0.00001).ToString('0.00000', $inv9)
 if (-not $logTxt.Contains($LOGMED)) { throw "ancora do log nao encontrada: $LOGMED" }
 # The numbers are read off the current goldens. Each pair sits just inside and
 # just outside one specific limit, so a limit that silently widened shows up as

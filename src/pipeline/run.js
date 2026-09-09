@@ -68,6 +68,10 @@ function plainRecords(records){
       // Carried even when the step refused, because a refusal with its reason
       // is the part a reader most needs.
       neutralise: r.neutralise || null,
+      // O esticamento ligado: os parametros unicos derivados da luminancia, e a
+      // medicao de fidelidade de cor que e a razao de existir do Modulo 3.
+      linked: r.linked || null,
+      colourFidelity: r.colourFidelity || null,
       stars: r.stars || null,
       gains: r.gains || null,
       reference: r.reference || null,
@@ -272,13 +276,19 @@ async function openFile(buffer, fileName, opts, post){
     bgSmoothing: 0.10,
     bgCorrection: 'subtract',
     bgPedestal: 'model-median',
-    // Colour calibration. Off by default in this delivery: Module 2 lands
-    // measured and verified, and the switch that turns it on for everyone waits
-    // for Module 3, because calibrating and then stretching each channel by its
-    // own curve undoes the calibration - modulo-2-3-spec.md section 3.1 measured
-    // exactly that. Shipping it on now would mean shipping a step whose effect
-    // the next step removes.
-    colourCal: false,
+    // Stretch. `linked` is what stops the curve eating the colour. `operator`
+    // stays 'mtf' in this delivery — asinh is implemented and verified beside
+    // it, waiting for a real frame to compare against before it could become a
+    // default. `stretch` null means "derive it from the data".
+    linked: true,
+    operator: 'mtf',
+    stretch: null,
+    // Colour calibration, ON, and it is on in the same delivery as the linked
+    // stretch because neither works without the other. Calibrate and then
+    // stretch each channel by its own curve and the calibration is undone;
+    // stretch linked without calibrating and the cast that is there gets locked
+    // in. Only the pair changes the image - modulo-2-3-spec.md, first paragraph.
+    colourCal: true,
     ccNeutralise: true,
     ccStarSigma: 12.0,
     ccStarMax: 0.85,
@@ -432,7 +442,10 @@ async function runChain(params, mode, post){
 
   var stretchBefore = copyMeasurement(lastMeasured);
 
-  work = stepStretchMTF(work, {
+  work = stepStretch(work, {
+    linked: params.linked,
+    operator: params.operator,
+    stretch: params.stretch,
     shadowSigma: params.shadowSigma,
     target: params.target,
     blackPct: params.blackPct,
@@ -461,7 +474,10 @@ async function runChain(params, mode, post){
   // worked only while the stretch was the whole chain, and would have silently
   // started reporting another step's measurement the moment one landed in
   // front of it.
-  var stretchRecord = recordById(records, 'stretch-mtf');
+  // Either operator, by id. The asinh path reports 'stretch-asinh', and looking
+  // for one name would have made switching operator produce a log about a run
+  // that did not happen -- or no log at all.
+  var stretchRecord = recordById(records, 'stretch-mtf') || recordById(records, 'stretch-asinh');
   if (!stretchRecord) throw FitsError('unknown', 'the chain produced no stretch record');
 
   var channels = stretchRecord.before.perChannel;
@@ -484,13 +500,24 @@ async function runChain(params, mode, post){
         nonLinear: params.nonLinear, globalMedian: SESSION.globalMedian,
         historyHits: SESSION.historyHits,
         shadowSigma: params.shadowSigma, target: params.target,
-        blackPercentile: params.blackPct
+        blackPercentile: params.blackPct,
+        // The two the log needs to describe a linked run, taken from the record
+        // rather than from `params`: what ran is what the record says ran, and
+        // a mono frame gets the per-channel path whatever `linked` was asked
+        // for.
+        linked: stretchRecord.linked || null,
+        colourFidelity: stretchRecord.colourFidelity || null,
+        operator: stretchRecord.params.operator || 'mtf'
       }
     };
     log = buildLog(ctx);
 
     timings.total = (SESSION.autoRunDone ? 0 : SESSION.openMs) + (Date.now() - runStart);
-    diag = buildDiag(channels, view, timings, params);
+    diag = buildDiag(channels, view, timings, params, {
+      linked: stretchRecord.linked || null,
+      operator: stretchRecord.params.operator || null,
+      colourFidelity: stretchRecord.colourFidelity || null
+    });
   }
   SESSION.autoRunDone = true;
 
@@ -565,7 +592,7 @@ function cfaSummary(cfa, planes){
   };
 }
 
-function buildDiag(channels, view, timings, params){
+function buildDiag(channels, view, timings, params, STRETCH_DIAG){
   var S = SESSION;
   return {
     file: S.fileName,
@@ -590,6 +617,16 @@ function buildDiag(channels, view, timings, params){
         totalPixels: s.totalPixels, statSamples: s.sampled, statStride: s.stride, nonFinite: s.nan
       };
     }),
+    // What kind of stretch ran, and — when it was linked — the single curve and
+    // the colour-fidelity measurement. Present rather than inferable: a reader
+    // of the diagnostics should not have to notice that three channels happen to
+    // carry identical `shadows` to work out that the run was linked.
+    stretchMode: {
+      linked: !!STRETCH_DIAG.linked,
+      operator: STRETCH_DIAG.operator,
+      luminance: STRETCH_DIAG.linked || null,
+      colourFidelity: STRETCH_DIAG.colourFidelity || null
+    },
     view: { width: view.w, height: view.h, downscaleFactor: view.factor },
     timingsMs: timings,
     historyCards: S.hdu.history,
