@@ -1025,6 +1025,8 @@
     ],
     "clamped": null,
     "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
     "stars": null,
     "gains": null,
     "reference": null,
@@ -1122,25 +1124,80 @@
     }
   },
   {
-    "id": "stretch-mtf",
-    "name": "Autostretch",
+    "id": "colour-cal",
+    "name": "Colour calibration",
     "applied": true,
     "skipReason": null,
     "params": {
-      "shadowSigma": -2.8,
-      "target": 0.25,
-      "blackPct": 0.0005,
-      "nonLinear": false
+      "backgroundNeutralise": true,
+      "starSigma": 12,
+      "starMax": 0.85,
+      "minStarPixels": 2000,
+      "extendedWindow": 25,
+      "extendedFrac": 0.5,
+      "reference": "green"
     },
-    "notes": [],
+    "notes": [
+      "Stellar gains: the faintest star median is 0.016673, less than 3x the sky pedestal (0.010989); a ratio taken above the sky is unstable when the star is barely above it.",
+      "Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one."
+    ],
     "samples": null,
     "surface": null,
     "correction": null,
     "clamped": null,
-    "neutralise": null,
-    "stars": null,
+    "neutralise": {
+      "applied": true,
+      "skipReason": null,
+      "beforeMedians": [
+        0.012234319932758808,
+        0.010915959253907204,
+        0.00981569942086935
+      ],
+      "target": 0.010988659535845121,
+      "offsets": [
+        0.0012456603969136868,
+        -0.00007270028193791765,
+        -0.001172960114975771
+      ]
+    },
+    "linked": null,
+    "colourFidelity": null,
+    "stars": {
+      "applied": false,
+      "skipReason": "the faintest star median is 0.016673, less than 3x the sky pedestal (0.010989); a ratio taken above the sky is unstable when the star is barely above it",
+      "pixels": 29252,
+      "pctFrame": 1.4106867283950617,
+      "selected": 30070,
+      "rejected": {
+        "saturated": 0,
+        "extended": 818
+      },
+      "thresholdLow": 0.012535505735874176,
+      "thresholdHigh": 0.85,
+      "luminanceMedian": 0.010986636392772198,
+      "luminanceMADN": 0.0001290724452584982,
+      "pedestals": [
+        0.010988659535845121,
+        0.010988659535845121,
+        0.010988659535845121
+      ],
+      "medians": [
+        0.016673032194375992,
+        0.01671002246439457,
+        0.017046497203409672
+      ],
+      "abovePedestal": [
+        0.0056843726585308705,
+        0.005721362928549448,
+        0.0060578376675645505
+      ],
+      "ratios": {
+        "rOverG": 0.9935347100890949,
+        "bOverG": 1.0588102421078904
+      }
+    },
     "gains": null,
-    "reference": null,
+    "reference": "green",
     "before": {
       "perChannel": [
         {
@@ -1155,13 +1212,7 @@
           "nan": 0,
           "p001": 0.011749446860456245,
           "p999": 0.059159227893492025,
-          "totalPixels": 2073600,
-          "shadows": 0.011633017729554987,
-          "midtones": 0.0017870585177437442,
-          "target": 0.25,
-          "scale": 1.0117699376225944,
-          "outLow": 0,
-          "outHigh": 0
+          "totalPixels": 2073600
         },
         {
           "median": 0.010910200656137941,
@@ -1175,13 +1226,7 @@
           "nan": 0,
           "p001": 0.010437170977340352,
           "p999": 0.059693293659876405,
-          "totalPixels": 2073600,
-          "shadows": 0.010312619719304894,
-          "midtones": 0.0018092384659451042,
-          "target": 0.25,
-          "scale": 1.0104200780213848,
-          "outLow": 0,
-          "outHigh": 0
+          "totalPixels": 2073600
         },
         {
           "median": 0.009811551079575799,
@@ -1195,12 +1240,167 @@
           "nan": 0,
           "p001": 0.00933852140077821,
           "p999": 0.05955596246280613,
+          "totalPixels": 2073600
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.0002104029432693914,
+          "mad": 0.00014191484100188278,
+          "span": 0.0008697642481116982,
+          "q1": 0.010833905546654459,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010498207064927139,
+          "p999": 0.05790798809796292,
+          "totalPixels": 2073600
+        },
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.00021345283162689215,
+          "mad": 0.0001439719625164523,
+          "span": 0.0008697642481116982,
+          "q1": 0.010833905546654459,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010513466086823835,
+          "p999": 0.05975432974746319,
+          "totalPixels": 2073600
+        },
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.00020971218757008658,
+          "mad": 0.00014144893266564588,
+          "span": 0.000823987182421609,
+          "q1": 0.010849164568551155,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010513466086823835,
+          "p999": 0.06073090714885176,
+          "totalPixels": 2073600
+        }
+      ]
+    }
+  },
+  {
+    "id": "stretch-mtf",
+    "name": "Autostretch",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "linked": true,
+      "operator": "mtf",
+      "applyVia": "luminance",
+      "shadowSigma": -2.8,
+      "target": 0.25,
+      "blackPct": 0.0005,
+      "nonLinear": false,
+      "stretch": null
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": {
+      "luminanceMedian": 0.010986495765621425,
+      "luminanceMADN": 0.0001630318080405971,
+      "shadows": 0.010530006703107752,
+      "midtones": 0.001382765280762891,
+      "target": 0.25,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 40,
+      "clipHigh": 0,
+      "highlightCut": 0.01454184786755169
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 0.9826250709009308,
+        "bOverG": 1.0159077911341379
+      },
+      "ratiosAfter": {
+        "rOverG": 0.9909156912673345,
+        "bOverG": 1.016044990481463
+      },
+      "maxRatioDrift": 3.552713678800501e-15,
+      "driftSamples": 2073553,
+      "highlightPixels": 20744,
+      "pixelsRescaled": 7299
+    },
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.0002104029432693914,
+          "mad": 0.00014191484100188278,
+          "span": 0.0008697642481116982,
+          "q1": 0.010833905546654459,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010498207064927139,
+          "p999": 0.05790798809796292,
           "totalPixels": 2073600,
-          "shadows": 0.009224513539479612,
-          "midtones": 0.0017754054123005718,
+          "shadows": 0.010530006703107752,
+          "midtones": 0.001382765280762891,
           "target": 0.25,
-          "scale": 1.0093103974265991,
-          "outLow": 0,
+          "scale": 1.0106420677478274,
+          "outLow": 40,
+          "outHigh": 0
+        },
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.00021345283162689215,
+          "mad": 0.0001439719625164523,
+          "span": 0.0008697642481116982,
+          "q1": 0.010833905546654459,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010513466086823835,
+          "p999": 0.05975432974746319,
+          "totalPixels": 2073600,
+          "shadows": 0.010530006703107752,
+          "midtones": 0.001382765280762891,
+          "target": 0.25,
+          "scale": 1.0106420677478274,
+          "outLow": 40,
+          "outHigh": 0
+        },
+        {
+          "median": 0.010986495765621425,
+          "madn": 0.00020971218757008658,
+          "mad": 0.00014144893266564588,
+          "span": 0.000823987182421609,
+          "q1": 0.010849164568551155,
+          "q3": 0.011123826962691692,
+          "sampled": 2073600,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010513466086823835,
+          "p999": 0.06073090714885176,
+          "totalPixels": 2073600,
+          "shadows": 0.010530006703107752,
+          "midtones": 0.001382765280762891,
+          "target": 0.25,
+          "scale": 1.0106420677478274,
+          "outLow": 40,
           "outHigh": 0
         }
       ]
@@ -1208,55 +1408,55 @@
     "after": {
       "perChannel": [
         {
-          "median": 0.2537422751201648,
-          "madn": 0.0662330636251444,
-          "mad": 0.044673589386985305,
-          "span": 0.2689402609292745,
-          "q1": 0.20695811398489355,
-          "q3": 0.29660486762798505,
+          "median": 0.25018692301823453,
+          "madn": 0.06501598211582563,
+          "mad": 0.04385267915541996,
+          "span": 0.26436255436026557,
+          "q1": 0.20393682764934767,
+          "q3": 0.29205767910276953,
           "sampled": 2073600,
           "stride": 1,
           "nan": 0,
-          "p001": 0.06587319752803845,
-          "p999": 0.9657740138857099,
+          "p001": 0.04209964141298543,
+          "p999": 1,
           "totalPixels": 2073600,
-          "clipLow": 0,
+          "clipLow": 40,
           "clipHigh": 0,
-          "clipPct": 0
+          "clipPct": 0.0019290123456790122
         },
         {
-          "median": 0.25178912031738765,
-          "madn": 0.06666340339019564,
-          "mad": 0.044963849581947685,
-          "span": 0.2705882352941177,
-          "q1": 0.20479133287556267,
-          "q3": 0.29498741130693523,
+          "median": 0.2503395132372015,
+          "madn": 0.0677873022663629,
+          "mad": 0.045721908988508635,
+          "span": 0.2750743877317464,
+          "q1": 0.20267032883192188,
+          "q3": 0.2943617914091707,
           "sampled": 2073600,
           "stride": 1,
           "nan": 0,
-          "p001": 0.06761272602426184,
-          "p999": 0.9666285191119249,
+          "p001": 0.04158083466849775,
+          "p999": 0.950942244602121,
           "totalPixels": 2073600,
-          "clipLow": 0,
+          "clipLow": 40,
           "clipHigh": 0,
-          "clipPct": 0
+          "clipPct": 0.0019290123456790122
         },
         {
-          "median": 0.25131609063859006,
-          "madn": 0.06666979313931815,
-          "mad": 0.04496815940868619,
-          "span": 0.2708628976882582,
-          "q1": 0.20415045395590142,
-          "q3": 0.29443808651865416,
+          "median": 0.25014114595254444,
+          "madn": 0.06388428712435945,
+          "mad": 0.04308936134113008,
+          "span": 0.25978484779125666,
+          "q1": 0.20457770656900892,
+          "q3": 0.29117265583276114,
           "sampled": 2073600,
           "stride": 1,
           "nan": 0,
-          "p001": 0.06411841000991836,
-          "p999": 0.967833981841764,
+          "p001": 0.042801556420233464,
+          "p999": 1,
           "totalPixels": 2073600,
-          "clipLow": 0,
+          "clipLow": 40,
           "clipHigh": 0,
-          "clipPct": 0
+          "clipPct": 0.0019290123456790122
         }
       ]
     }
@@ -1287,6 +1487,8 @@
       "highPct": 0
     },
     "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
     "stars": null,
     "gains": null,
     "reference": null,

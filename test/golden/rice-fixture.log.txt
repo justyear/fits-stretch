@@ -11,11 +11,14 @@ Processing log — fixture-rice.fit.fz
 • Background extraction: measured the sky in 60 boxes of 25 pixels on a 12 × 5 grid and used 53 of them (7 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01701, G 0.01548, B 0.01424), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
-• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
-    R  median 0.01700  MADN 0.00037  →  shadows 0.01597  midtones 0.00312
-    G  median 0.01547  MADN 0.00037  →  shadows 0.01444  midtones 0.00312
-    B  median 0.01422  MADN 0.00037  →  shadows 0.01320  midtones 0.00311
-    0.023% of pixels land on pure black or pure white after the transfer.
+• Colour calibration: the sky background was levelled between channels (R 0.001434, G -0.000093, B -0.001340 subtracted, additively, so only the floor moved).
+    Stellar gains: the faintest star median is 0.028998, less than 3x the sky pedestal (0.015570); a ratio taken above the sky is unstable when the star is barely above it.
+    Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.250 — that is 64 of 255. Applied LINKED: one curve, derived from the luminance, and every channel multiplied by the same number. Highlights untouched at 1.000.
+    Luminance  median 0.01555  MADN 0.00027  →  shadows 0.01480  midtones 0.00228
+    Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 2,598,424 pixels — float rounding, nothing else. In the highlights, R/G 1.0135 → 1.0171 and B/G 1.0072 → 1.0024.
+    56,965 pixels came out above 1.0 in one channel. All three were divided by their own maximum rather than the bright channel being clipped on its own: clipping one channel changes the colour of the pixel, dividing takes it to white and keeps it.
+    0.059% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
 • Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
 

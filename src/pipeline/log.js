@@ -208,27 +208,93 @@ function buildLog(ctx){
   }
 
   // --- stretch ----------------------------------------------------
-  L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
-         (st.nonLinear
-            ? 'target background held at each channel’s own median'
-            : 'shadow clip ' + fx(st.shadowSigma, 2) + 'σ, target background ' + fx(st.target, 2)) +
-         ', applied per channel (unlinked). Highlights untouched at 1.000.');
-
+  var i, clipped = 0, total = 0;
   var names = ctx.outChannels === 3 ? ['R', 'G', 'B'] : ['L'];
-  for (var i = 0; i < ch.length; i++){
-    var c = ch[i];
-    L.push('    ' + names[i] +
-           '  median ' + pad(fx(c.median, 5), 9) +
-           'MADN ' + pad(fx(c.madn, 5), 9) +
-           '→  shadows ' + pad(fx(c.shadows, 5), 9) +
-           'midtones ' + fx(c.midtones, 5));
+
+  if (st.linked){
+    var lk = st.linked, cf = st.colourFidelity;
+    var opName = st.operator === 'asinh'
+      ? 'asinh transfer, f(x) = asinh(' + (lk.solvedStretch === null ? 'stretch' : fx(lk.solvedStretch, 1)) +
+        '·x) / asinh(' + (lk.solvedStretch === null ? 'stretch' : fx(lk.solvedStretch, 1)) + ')'
+      : 'midtones transfer function (PixInsight STF / Siril autostretch)';
+
+    L.push('• Autostretch — ' + opName + ', ' +
+           (st.nonLinear
+              ? 'target background held at the luminance median'
+              : 'shadow clip ' + fx(st.shadowSigma, 2) + 'σ, target background ' + fx(st.target, 3) +
+                ' — that is ' + Math.round(st.target * 255) + ' of 255') +
+           '. Applied LINKED: one curve, derived from the luminance, and every ' +
+           'channel multiplied by the same number. Highlights untouched at 1.000.');
+
+    L.push('    Luminance  median ' + pad(fx(lk.luminanceMedian, 5), 9) +
+           'MADN ' + pad(fx(lk.luminanceMADN, 5), 9) +
+           '→  shadows ' + pad(fx(lk.shadows, 5), 9) +
+           (st.operator === 'asinh'
+              ? 'stretch ' + (lk.solvedStretch === null ? 'n/a' : fx(lk.solvedStretch, 1))
+              : 'midtones ' + fx(lk.midtones, 5)));
+    if (lk.stretchUnreachable){
+      L.push('    The asinh stretch could not reach that target — the median already sits ' +
+             'above it — so the transfer was left as the identity and the black point ' +
+             'alone was applied. Nothing was silently approximated.');
+    }
+
+    // WHY THIS SENTENCE IS IN THE LOG AND NOT ONLY IN THE RECORD.
+    //
+    // "Colour is preserved" is exactly the kind of claim a tool makes about
+    // itself and nobody can check. Here it is a number, measured on this frame,
+    // on this run: the largest change to any channel ratio, over the pixels
+    // where a ratio means anything.
+    if (cf){
+      L.push('    Because one curve governs all three channels, the ratio between them ' +
+             'is unchanged by construction. Measured on this frame, the largest change ' +
+             'to any channel ratio was ' + cf.maxRatioDrift.toExponential(1) +
+             ' across ' + grp(cf.driftSamples) + ' pixels — float rounding, nothing else. ' +
+             'In the highlights, R/G ' + fx(cf.ratiosBefore.rOverG, 4) + ' → ' + fx(cf.ratiosAfter.rOverG, 4) +
+             ' and B/G ' + fx(cf.ratiosBefore.bOverG, 4) + ' → ' + fx(cf.ratiosAfter.bOverG, 4) + '.');
+      if (cf.pixelsRescaled){
+        L.push('    ' + grp(cf.pixelsRescaled) + ' pixels came out above 1.0 in one channel. ' +
+               'All three were divided by their own maximum rather than the bright channel ' +
+               'being clipped on its own: clipping one channel changes the colour of the ' +
+               'pixel, dividing takes it to white and keeps it.');
+      }
+    }
+    // TWO DIFFERENT COUNTS, AND THEY HAVE TO SAY SO.
+    //
+    // The line above reports pixels that overflowed and were divided down; this
+    // one reports pixels the transfer itself clipped, on the luminance. On a
+    // frame with saturated stars the first is large and the second is zero, and
+    // the old wording — "% of pixels land on pure black or pure white" — read as
+    // a flat contradiction of the line before it. Both numbers are true; the
+    // sentence now says which is which.
+    var lkTotal = ch.length ? ch[0].totalPixels : 0;
+    if (lkTotal > 0){
+      L.push('    ' + fx(100 * (lk.clipLow + lk.clipHigh) / lkTotal, 3) +
+             '% of pixels were clipped by the transfer itself — luminance at or below the ' +
+             'black point, or at or above 1.0. That is a different count from the line ' +
+             'above: this one is the curve, that one is the overflow.');
+    }
+    clipped = 0; total = 0;
+  } else {
+    L.push('• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), ' +
+           (st.nonLinear
+              ? 'target background held at each channel’s own median'
+              : 'shadow clip ' + fx(st.shadowSigma, 2) + 'σ, target background ' + fx(st.target, 2)) +
+           ', applied per channel (unlinked). Highlights untouched at 1.000.');
+
+    for (i = 0; i < ch.length; i++){
+      var c = ch[i];
+      L.push('    ' + names[i] +
+             '  median ' + pad(fx(c.median, 5), 9) +
+             'MADN ' + pad(fx(c.madn, 5), 9) +
+             '→  shadows ' + pad(fx(c.shadows, 5), 9) +
+             'midtones ' + fx(c.midtones, 5));
+    }
+    for (i = 0; i < ch.length; i++){
+      clipped += ch[i].outLow + ch[i].outHigh;
+      total += ch[i].totalPixels;
+    }
   }
 
-  var clipped = 0, total = 0;
-  for (i = 0; i < ch.length; i++){
-    clipped += ch[i].outLow + ch[i].outHigh;
-    total += ch[i].totalPixels;
-  }
   if (total > 0){
     L.push('    ' + fx(100 * clipped / total, 3) + '% of pixels land on pure black or pure white after the transfer.');
   }
