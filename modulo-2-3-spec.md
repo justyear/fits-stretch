@@ -203,14 +203,44 @@ um campo estelar muito denso pode ser rejeitado como extenso por engano.
 1. Menos de `minStarPixels` selecionados **depois** da rejeição: a etapa não
    roda. A mensagem distingue "não havia estrelas" de "foram rejeitadas como
    extensas", porque a segunda é um erro do filtro e não uma propriedade do céu.
-2. A menor mediana estelar abaixo de **3× o pedestal**: a etapa não roda. A
-   razão `(mediana − pedestal) / (referência − pedestal)` fica instável quando o
-   numerador é uma diferença pequena de dois números grandes.
+2. **Estabilidade, medida e não estipulada.** Perturbe o pedestal em
+   `±pedestalProbe` (10%) e refaça os ganhos. Se qualquer um se mover mais que
+   `sensitivityMax` (5%), a etapa não roda. O número medido vai no record como
+   `gainSensitivity` e no log, para que o leitor saiba **por que** confiou.
 3. Qualquer ganho fora de [0,25 ; 4,0]: a etapa não roda. Ganho fora dessa faixa
    significa que a seleção pegou outra coisa, e aplicar um ganho de 8× cria uma
    cor que não existe no dado.
-### 2.3 — O record
 
+> ### A salvaguarda 2 já foi outra coisa, e a outra coisa estava errada
+>
+> Era **"a menor mediana estelar tem que estar 3× acima do pedestal"**. O `3`
+> não foi medido; foi escolhido, e a justificativa — "a razão fica instável
+> quando o numerador é pequeno" — é verdadeira em geral e não diz onde fica o
+> limite.
+>
+> Ela bloqueou um empilhamento de 60 horas com cor boa: razão 1,87×, ganhos
+> recusados **R 1,038 · G 1,000 · B 1,341**, confirmados por outro caminho
+> contra o arquivo cru. E a razão não estava instável — perturbando o pedestal:
+> 2% de erro move o azul 0,60%, 10% move 3,29%, e o erro **real** do pedestal
+> entre duas implementações é 0,048%, onde o azul se move menos de 0,02%.
+>
+> A regra defendia contra um erro quatrocentas vezes maior que o que acontece.
+>
+> **Uma salvaguarda mede a grandeza que ela alega proteger, ou é palpite com
+> aparência de rigor.** A regra atual é derivável: propaga um erro plausível e
+> olha para onde os ganhos vão.
+>
+> **Efeito colateral, e ele é da outra classe:** depois da troca nenhum fixture
+> faz a regra disparar — todos entre 0,03% e 1,3%. `test/compare-safeguards.ps1`
+> sobe o céu até ela recusar, e afirma também que **os ganhos não derivam
+> enquanto ela ainda aceita** (0,266%): uma regra que recusasse por *diferença*
+> em vez de por *não-confiabilidade* estaria medindo outra coisa com o nome
+> certo.
+>
+> **E as duas defesas podem brigar.** O que produziu o 1,87× foi a rejeição de
+> fonte extensa removendo 385 mil pixels — a galáxia inteira — deixando estrelas
+> de campo fracas. Uma remove o objeto brilhante, a outra reclama que o resto
+> está fraco. Salvaguarda nova entra medindo o que faz com as que já existem.
 ```js
 {
   id: 'colour-cal',

@@ -171,6 +171,64 @@ window.__rerun = function (over) {
   });
 };
 
+
+/* ------------------------------------------------------------------ *
+ * A salvaguarda de estabilidade, exercitada nos dois lados
+ *
+ * A regra dos ganhos e: um erro de 10% no ceu pode mover qualquer ganho em no
+ * maximo 5%. Depois que ela substituiu a regra dos 3x, NENHUM fixture a faz
+ * disparar -- todos ficam entre 0,03% e 1,3%. Uma salvaguarda que nunca
+ * dispara e uma salvaguarda que ninguem verificou, e isso ja custou uma
+ * sessao aqui com os quatro zeros do `rejected-edge`.
+ *
+ * Somar uma constante ao quadro nao muda `above` (o pedestal e a mediana
+ * estelar sobem juntos) mas AUMENTA a sondagem, que e 10% do pedestal. E o
+ * caso fisico exato que a regra existe para pegar: ceu alto contra estrela
+ * fraca. A varredura tem que passar de APLICA para RECUSA, e a sensibilidade
+ * tem que crescer monotonicamente ate la.
+ * ------------------------------------------------------------------ */
+window.__captureSafeguards = async function () {
+  var src = document.getElementById('pipeline-src').textContent;
+  var shim = { onmessage: null, postMessage: function () {} };
+  new Function('self', src + ';self.__S={findImageHDU:findImageHDU,' +
+    'toNormalisedFloat:toNormalisedFloat,Image:Image,' +
+    'stepBackground:stepBackground,stepColourCal:stepColourCal};')(shim);
+  var S = shim.__S;
+
+  var passos = [0, 0.05, 0.10, 0.15, 0.20, 0.30];
+  var casos = [];
+  for (var i = 0; i < passos.length; i++) {
+    var C = passos[i];
+    var buf = await fetch('/f/test/fixtures/fixture-gradient.fit').then(function (r) { return r.arrayBuffer(); });
+    var hdu = S.findImageHDU(buf);
+    var d = S.toNormalisedFloat(buf, hdu, function () {});
+    var dat = new Float32Array(d.data);
+    for (var k = 0; k < dat.length; k++) dat[k] += C;
+    var img = new S.Image(dat, d.w, d.h, d.planes);
+    var r1 = [];
+    var bg = S.stepBackground(img, { samplesPerRow: 12, boxSize: 25, tolerance: 1.0,
+      edgeMargin: 0.02, smoothing: 0.10, correction: 'subtract',
+      pedestal: 'model-median', scale: 1, stride: 1 }, function (x) { r1.push(x); });
+    var r2 = [];
+    S.stepColourCal(bg, { backgroundNeutralise: true, starSigma: 12.0, starMax: 0.85,
+      minStarPixels: 2000, extendedWindow: 25, extendedFrac: 0.50,
+      reference: 'green', stride: 1 }, function (x) { r2.push(x); });
+    var st = r2[0].stars;
+    casos.push({
+      ceuAdicionado: C,
+      pedestal: st.pedestals ? st.pedestals[1] : null,
+      sensibilidade: st.gainSensitivity,
+      canal: st.gainSensitivityChannel,
+      veredito: st.applied ? 'aplica' : 'recusa',
+      ganhos: r2[0].gains || null
+    });
+  }
+  var body = new Blob([JSON.stringify({ casos: casos }, null, 2)]);
+  var ab = await body.arrayBuffer();
+  await fetch('/save/safeguards.results.json', { method: 'POST', body: ab });
+  return { casos: casos.length, arquivo: 'safeguards.results.json' };
+};
+
 window.__captureAll = async function () {
   var out = {};
   for (var i = 0; i < window.__GOLDEN.length; i++) {
@@ -181,5 +239,6 @@ window.__captureAll = async function () {
     out[name] = await window.__capture(name);
   }
   out['malformed'] = await window.__captureMalformed();
+  out['safeguards'] = await window.__captureSafeguards();
   return out;
 };

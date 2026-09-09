@@ -1457,7 +1457,10 @@
       "ratios": {
         "rOverG": 1.251096236502661,
         "bOverG": 0.7993852814260769
-      }
+      },
+      "pedestalProbe": 0.1,
+      "gainSensitivity": 0.00225882527130489,
+      "gainSensitivityChannel": "blue"
     },
     "gains": [
       0.7992990233872174,

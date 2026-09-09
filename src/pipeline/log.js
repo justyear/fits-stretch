@@ -194,6 +194,19 @@ function buildLog(ctx){
              '; above a sky of ' + fx(sr.pedestals[1], 5) + ' that is ' +
              'R ' + fx(sr.abovePedestal[0], 5) + ', G ' + fx(sr.abovePedestal[1], 5) +
              ', B ' + fx(sr.abovePedestal[2], 5) + '.');
+      // WHY IT TRUSTED, not just that it did. The gains are a ratio taken above
+      // the sky, so the question that decides whether they mean anything is how
+      // far they move when the sky estimate moves. That is measured on every
+      // run, and printing it lets the reader judge the answer instead of taking
+      // it — which is the difference this whole log exists to make.
+      if (sr.gainSensitivity !== null && sr.gainSensitivity !== undefined){
+        L.push('    Checked for stability before applying: a ' +
+               Math.round(sr.pedestalProbe * 100) + '% error in the sky estimate would move ' +
+               'the gains by at most ' + fx(100 * sr.gainSensitivity, 2) + '%' +
+               (sr.gainSensitivityChannel ? ' (in ' + sr.gainSensitivityChannel + ')' : '') +
+               '. A ratio taken above the sky is only worth applying if it barely ' +
+               'moves when the sky estimate does.');
+      }
       L.push('    Nothing here was a preference: the numbers came from the stars you ' +
              'photographed. Star colour is the reference because sky has no colour of ' +
              'its own to measure against. No catalogue was consulted, no astrometry was ' +
