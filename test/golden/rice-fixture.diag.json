@@ -131,6 +131,7 @@
       "shadows": 0.014799506725814676,
       "midtones": 0.008128275960563234,
       "target": 0.085,
+      "luminanceSpan": 0.0010528725108720494,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 1536,
@@ -158,17 +159,17 @@
     "downscaleFactor": 2
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 390,
+    "header": 0,
+    "decode": 325,
     "roworder": 3,
-    "preview": 54,
-    "stats": 142,
-    "background": 560,
-    "colour": 885,
-    "transfer": 1187,
-    "quantise": 139,
-    "downscale": 38,
-    "total": 2530
+    "preview": 44,
+    "stats": 115,
+    "background": 472,
+    "colour": 798,
+    "transfer": 1127,
+    "quantise": 138,
+    "downscale": 35,
+    "total": 2291
   },
   "historyCards": [],
   "allCards": [

@@ -101,6 +101,10 @@ def madn_exact(v):
     return m, 1.4826 * float(np.median(np.abs(v - m)))
 
 
+BG_CLIP_LEVEL = 1 - 1e-6
+BG_CLIP_FRACTION = 0.05
+
+
 def sample_grid(planes, samples_per_row=12, box=25, edge_margin=0.02):
     """Grade regular; valor da amostra = mediana da caixa, por canal."""
     h, w = planes[0].shape
@@ -126,12 +130,29 @@ def sample_grid(planes, samples_per_row=12, box=25, edge_margin=0.02):
                 or x1 > w - margin or y1 > h - margin):
             rec['state'] = 'rejected-edge'
             rec['reason'] = 'box crosses the edge margin'
+
+        worst_nan = 0
+        worst_clip = 0
+        npx = 0
         for pl in planes:
             b = pl[max(0, y0):min(h, y1), max(0, x0):min(w, x1)]
+            npx = b.size
             rec['medians'].append(float(np.median(b)))
-            if not np.all(np.isfinite(b)) and rec['state'] == 'accepted':
+            worst_nan = max(worst_nan, int(np.count_nonzero(~np.isfinite(b))))
+            worst_clip = max(worst_clip, int(np.count_nonzero(b >= BG_CLIP_LEVEL)))
+
+        # A ordem importa: a primeira que dispara nomeia o motivo. E
+        # worst_* e o MAXIMO entre canais, enquanto 'bright' (em
+        # reject_bright) e o PRIMEIRO canal que passa -- assimetria de
+        # proposito, para o motivo nomear o pior canal nos dois primeiros.
+        if rec['state'] == 'accepted':
+            if worst_nan > 0:
                 rec['state'] = 'rejected-nan'
                 rec['reason'] = 'box contains non-finite pixels'
+            elif worst_clip > BG_CLIP_FRACTION * npx:
+                rec['state'] = 'rejected-clipped'
+                rec['reason'] = ('%d of %d pixels at the top of the range'
+                                 % (worst_clip, npx))
         out.append(rec)
     return out
 

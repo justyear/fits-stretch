@@ -105,6 +105,7 @@
       "shadows": 0.004357043956338522,
       "midtones": 0.10038860889501716,
       "target": 0.085,
+      "luminanceSpan": 0.3373769741359579,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 0,
@@ -133,15 +134,15 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 78,
-    "preview": 52,
-    "stats": 108,
-    "background": 408,
-    "colour": 592,
-    "transfer": 832,
-    "quantise": 101,
+    "decode": 71,
+    "preview": 46,
+    "stats": 93,
+    "background": 387,
+    "colour": 555,
+    "transfer": 761,
+    "quantise": 88,
     "downscale": 0,
-    "total": 1341
+    "total": 1236
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",
