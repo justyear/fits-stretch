@@ -714,52 +714,56 @@
         326,
         126
       ],
-      "maxInterpErrorLevels": 0.00008751004151756614,
+      "maxInterpErrorLevels": 0.0000875100415131426,
       "interpProbes": 1000,
       "interpLimitLevels": 0.5,
       "correction": "subtract",
       "perChannel": [
         {
-          "modelMin": 0.013200552564017368,
-          "modelMax": 0.020494275591937325,
-          "modelMedian": 0.01700619053646686,
-          "pedestal": 0.01700619053646686
+          "modelMin": 0.013200552564017344,
+          "modelMax": 0.020494275591937273,
+          "modelMedian": 0.017006190536466823,
+          "pedestal": 0.017006190536466823
         },
         {
-          "modelMin": 0.012018821512126972,
-          "modelMax": 0.018631989473581183,
-          "modelMedian": 0.01548016233433845,
-          "pedestal": 0.01548016233433845
+          "modelMin": 0.012018821512127005,
+          "modelMax": 0.01863198947358121,
+          "modelMedian": 0.01548016233433848,
+          "pedestal": 0.01548016233433848
         },
         {
-          "modelMin": 0.011046920443376776,
-          "modelMax": 0.017175218470664017,
-          "modelMedian": 0.014240070798447886,
-          "pedestal": 0.014240070798447886
+          "modelMin": 0.011046920443376773,
+          "modelMax": 0.017175218470663965,
+          "modelMedian": 0.014240070798447857,
+          "pedestal": 0.014240070798447857
         }
       ]
     },
     "correction": [
       {
-        "pedestal": 0.01700619053646686,
+        "pedestal": 0.017006190536466823,
         "negatives": 0,
         "guarded": 0,
         "negativePct": 0
       },
       {
-        "pedestal": 0.01548016233433845,
+        "pedestal": 0.01548016233433848,
         "negatives": 0,
         "guarded": 0,
         "negativePct": 0
       },
       {
-        "pedestal": 0.014240070798447886,
+        "pedestal": 0.014240070798447857,
         "negatives": 0,
         "guarded": 0,
         "negativePct": 0
       }
     ],
     "clamped": null,
+    "neutralise": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
     "before": {
       "perChannel": [
         {
@@ -869,6 +873,10 @@
     "surface": null,
     "correction": null,
     "clamped": null,
+    "neutralise": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
     "before": {
       "perChannel": [
         {
@@ -1014,6 +1022,10 @@
       "lowPct": 0,
       "highPct": 0
     },
+    "neutralise": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
     "before": null,
     "after": null
   }

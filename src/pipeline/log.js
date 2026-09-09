@@ -13,6 +13,10 @@ function fx(v, n){
   return v.toFixed(n === undefined ? 4 : n);
 }
 function pad(s, n){ s = String(s); while (s.length < n) s += ' '; return s; }
+// Thousands separators, matching how the decode and Rice lines already print
+// counts. A six-digit pixel count read as one run of digits is a number nobody
+// checks, and these are the counts the calibration's whole claim rests on.
+function grp(v){ return Number(v).toLocaleString('en-US'); }
 
 function buildLog(ctx){
   var L = [];
@@ -141,6 +145,66 @@ function buildLog(ctx){
            '), so the background level is preserved and only its variation was removed.');
     L.push('    The ratio between channels is therefore unchanged: no colour grading, ' +
            'no white balance, nothing was decided about the colour of the sky.');
+  }
+
+  // --- colour calibration -----------------------------------------
+  //
+  // THIS BLOCK IS A PRECONDITION FOR THE STEP RUNNING AT ALL, not a decoration
+  // on top of it. `colour-cal` is registered with `announce: false`, so the
+  // "Not applied" sentence neither denies nor mentions it — which means that
+  // without these lines a frame could come back with its colour changed and the
+  // log would say nothing whatsoever about colour having been touched. That is
+  // the silent operation section 7 forbids, arrived at by omission instead of
+  // by intent. The step is off by default until this exists, and the order of
+  // those two facts is deliberate.
+  //
+  // Every number below is read from the record. None is recomputed here.
+  var cc = null;
+  for (var ci = 0; ci < ctx.records.length; ci++){
+    if (ctx.records[ci].id === 'colour-cal') cc = ctx.records[ci];
+  }
+  if (cc && cc.applied){
+    var nt = cc.neutralise, sr = cc.stars;
+    var parts = [];
+    if (nt && nt.applied){
+      parts.push('the sky background was levelled between channels (R ' +
+                 fx(nt.offsets[0], 6) + ', G ' + fx(nt.offsets[1], 6) + ', B ' +
+                 fx(nt.offsets[2], 6) + ' subtracted, additively, so only the floor moved)');
+    }
+    if (sr && sr.applied){
+      parts.push('and the colour balance was measured from ' + grp(sr.pixels) +
+                 ' star pixels in your own frame — red ×' + fx(cc.gains[0], 3) +
+                 ', green ×' + fx(cc.gains[1], 3) + ', blue ×' + fx(cc.gains[2], 3));
+    }
+    L.push('• Colour calibration: ' + parts.join(', ') + '.');
+
+    if (sr && sr.applied){
+      L.push('    Pixels between ' + fx(sr.thresholdLow, 5) + ' and ' + fx(sr.thresholdHigh, 2) +
+             ' in luminance were taken as stars' +
+             (sr.rejected.saturated ? '; ' + grp(sr.rejected.saturated) +
+                ' brighter than the upper cut were left out, because a saturated star ' +
+                'is 1.0 in all three channels and carries no colour' : '') +
+             (sr.rejected.extended ? '; ' + grp(sr.rejected.extended) +
+                ' were left out as extended source, being pixels whose neighbourhood ' +
+                'is also mostly lit — a galaxy body, not stars' : '') + '.');
+      L.push('    The ratio was taken above the sky, not against the raw pixel: the sky ' +
+             'is a level common to all three channels and leaving it in drags every ' +
+             'ratio toward 1. Star medians ' +
+             'R ' + fx(sr.medians[0], 5) + ', G ' + fx(sr.medians[1], 5) + ', B ' + fx(sr.medians[2], 5) +
+             '; above a sky of ' + fx(sr.pedestals[1], 5) + ' that is ' +
+             'R ' + fx(sr.abovePedestal[0], 5) + ', G ' + fx(sr.abovePedestal[1], 5) +
+             ', B ' + fx(sr.abovePedestal[2], 5) + '.');
+      L.push('    Nothing here was a preference: the numbers came from the stars you ' +
+             'photographed. Star colour is the reference because sky has no colour of ' +
+             'its own to measure against. No catalogue was consulted, no astrometry was ' +
+             'solved, and nothing left this machine.');
+    }
+    for (var cn = 0; cn < cc.notes.length; cn++) L.push('    ' + cc.notes[cn]);
+  } else if (cc && !cc.applied){
+    // A refusal is an outcome, and it gets said. Colour calibration is not in
+    // the "Not applied" sentence, so if this line were missing the reader would
+    // have no way to learn that the step existed, tried, and declined.
+    L.push('• Colour calibration: not applied. ' + cc.skipReason + '.');
   }
 
   // --- stretch ----------------------------------------------------

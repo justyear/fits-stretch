@@ -1,0 +1,26 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-colour.fit
+1600 × 1200 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00176 to 1.00000.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is linear: median 0.01634, no stretch recorded in the header. Full autostretch applied.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 49 of them (1 brighter than the background, 58 saturated were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01476, G 0.01618, B 0.01155), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Colour calibration: the sky background was levelled between channels (R 0.000639, G 0.001999, B -0.002639 subtracted, additively, so only the floor moved), and the colour balance was measured from 274,499 star pixels in your own frame — red ×0.799, green ×1.000, blue ×1.251.
+    Pixels between 0.05271 and 0.85 in luminance were taken as stars; 302,053 brighter than the upper cut were left out, because a saturated star is 1.0 in all three channels and carries no colour; 1,646 were left out as extended source, being pixels whose neighbourhood is also mostly lit — a galaxy body, not stars.
+    The ratio was taken above the sky, not against the raw pixel: the sky is a level common to all three channels and leaving it in drags every ratio toward 1. Star medians R 0.22912, G 0.18619, B 0.15189; above a sky of 0.01522 that is R 0.21390, G 0.17097, B 0.13667.
+    Nothing here was a preference: the numbers came from the stars you photographed. Star colour is the reference because sky has no colour of its own to measure against. No catalogue was consulted, no astrometry was solved, and nothing left this machine.
+    Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.25, applied per channel (unlinked). Highlights untouched at 1.000.
+    R  median 0.01216  MADN 0.00374  →  shadows 0.00169  midtones 0.03082
+    G  median 0.01521  MADN 0.00446  →  shadows 0.00272  midtones 0.03667
+    B  median 0.01903  MADN 0.00532  →  shadows 0.00413  midtones 0.04357
+    5.790% of pixels land on pure black or pure white after the transfer.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

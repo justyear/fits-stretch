@@ -15,6 +15,7 @@
 !test/fixtures/fixture-nonlinear.fit
 !test/fixtures/fixture-gradient.fit
 !test/fixtures/fixture-edge.fit
+!test/fixtures/fixture-colour.fit
 
 # Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
 !.claude/notfits.fit

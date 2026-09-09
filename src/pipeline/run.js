@@ -62,6 +62,15 @@ function plainRecords(records){
       surface: r.surface || null,
       correction: r.correction || null,
       clamped: r.clamped || null,
+      // Colour calibration's audit trail, same argument: the offsets, the
+      // thresholds, how many pixels were selected and what the gains came out
+      // at are the evidence that the colour was measured and not chosen.
+      // Carried even when the step refused, because a refusal with its reason
+      // is the part a reader most needs.
+      neutralise: r.neutralise || null,
+      stars: r.stars || null,
+      gains: r.gains || null,
+      reference: r.reference || null,
       before: plainMeasurement(r.before),
       after: plainMeasurement(r.after)
     });
@@ -72,6 +81,18 @@ function plainRecords(records){
 // A run must not inherit the fields a previous run's step wrote onto the shared
 // source measurement. The percentile closure is copied by reference on purpose:
 // it reads a histogram that is finished and never changes.
+// A record is found by its id, never by its position. `records[0]` was a real
+// bug once: a step inserted ahead of another silently handed the wrong
+// measurement downstream, and it only surfaced because the shapes happened to
+// differ enough to crash. With a third step in the chain the positions move
+// again, which is exactly when this has to already be by name.
+function recordById(records, id){
+  for (var i = 0; i < records.length; i++){
+    if (records[i] && records[i].id === id) return records[i];
+  }
+  return null;
+}
+
 function copyMeasurement(m){
   var out = [];
   for (var i = 0; i < m.perChannel.length; i++){
@@ -251,6 +272,24 @@ async function openFile(buffer, fileName, opts, post){
     bgSmoothing: 0.10,
     bgCorrection: 'subtract',
     bgPedestal: 'model-median',
+    // Colour calibration. Off by default in this delivery: Module 2 lands
+    // measured and verified, and the switch that turns it on for everyone waits
+    // for Module 3, because calibrating and then stretching each channel by its
+    // own curve undoes the calibration - modulo-2-3-spec.md section 3.1 measured
+    // exactly that. Shipping it on now would mean shipping a step whose effect
+    // the next step removes.
+    colourCal: false,
+    ccNeutralise: true,
+    ccStarSigma: 12.0,
+    ccStarMax: 0.85,
+    ccMinStarPixels: 2000,
+    // Extended-source rejection. 25 px is the same window the background sampler
+    // uses for its boxes, and 0.50 was stable between 0.25 and 0.60 on real data
+    // - a plateau that wide means a real population is being separated, not an
+    // artefact of where the threshold happens to sit.
+    ccExtendedWindow: 25,
+    ccExtendedFrac: 0.50,
+    ccReference: 'green',
     dither: true
   };
 
@@ -360,9 +399,38 @@ async function runChain(params, mode, post){
   // pixel moved. The background step already measured the corrected frame as
   // its own `after`, so the right number is free; what is not free is
   // remembering to use it.
-  var bgRecord = records[records.length - 1];
-  var stretchBefore = bgRecord.after ? copyMeasurement(bgRecord.after)
-                                     : copyMeasurement(measured);
+  var bgRecord = recordById(records, 'background');
+  var lastMeasured = bgRecord.after ? bgRecord.after : measured;
+
+  // Colour calibration ------------------------------------------------
+  //
+  // Between the background and the stretch, and in that order for a reason the
+  // spec states and the arithmetic enforces: neutralisation is additive, gains
+  // are multiplicative, and the background step is what makes a per-channel
+  // median mean anything (a gradient biases it, and the neutralisation would be
+  // measuring the slope instead of the cast).
+  if (params.colourCal){
+    await yieldNow();
+    step = Date.now();
+    stage('Measuring colour from the stars', 64);
+    work = stepColourCal(work, {
+      backgroundNeutralise: params.ccNeutralise,
+      starSigma: params.ccStarSigma,
+      starMax: params.ccStarMax,
+      minStarPixels: params.ccMinStarPixels,
+      extendedWindow: params.ccExtendedWindow,
+      extendedFrac: params.ccExtendedFrac,
+      reference: params.ccReference,
+      stride: full ? SESSION.statStride : 1,
+      before: copyMeasurement(lastMeasured)
+    }, report);
+    mark('colour', step);
+
+    var ccRecord = recordById(records, 'colour-cal');
+    if (ccRecord && ccRecord.after) lastMeasured = ccRecord.after;
+  }
+
+  var stretchBefore = copyMeasurement(lastMeasured);
 
   work = stepStretchMTF(work, {
     shadowSigma: params.shadowSigma,
@@ -393,10 +461,7 @@ async function runChain(params, mode, post){
   // worked only while the stretch was the whole chain, and would have silently
   // started reporting another step's measurement the moment one landed in
   // front of it.
-  var stretchRecord = null;
-  for (var ri = 0; ri < records.length; ri++){
-    if (records[ri].id === 'stretch-mtf') stretchRecord = records[ri];
-  }
+  var stretchRecord = recordById(records, 'stretch-mtf');
   if (!stretchRecord) throw FitsError('unknown', 'the chain produced no stretch record');
 
   var channels = stretchRecord.before.perChannel;

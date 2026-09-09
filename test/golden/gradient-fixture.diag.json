@@ -102,15 +102,15 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 28,
-    "preview": 24,
-    "stats": 76,
-    "background": 322,
-    "transfer": 106,
-    "quantise": 93,
+    "header": 0,
+    "decode": 65,
+    "preview": 45,
+    "stats": 89,
+    "background": 462,
+    "transfer": 152,
+    "quantise": 112,
     "downscale": 0,
-    "total": 658
+    "total": 937
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",
