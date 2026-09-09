@@ -500,6 +500,79 @@ contrário do que a spec afirma.
   log só nomeia a ferramenta. Link morto num post público é pior que link
   nenhum. Preencher quando a página tiver endereço.
 
+## Classe: etapa cujo modo de falha é virar identidade
+
+**Uma etapa que pode degradar até não fazer nada precisa de um teste que
+desligue as defesas dela e EXIJA que o resultado mude.**
+
+Achado no Módulo 2, na calibração de cor, e é a pior forma de falha que este
+projeto encontrou até agora — pior que travar, pior que mensagem errada, pior
+que aceitar arquivo corrompido. Todas essas aparecem. Esta não.
+
+O mecanismo: os ganhos saem de razões entre canais medidas numa população de
+pixels. Se a população selecionada for errada — saturada, ou o corpo de uma
+galáxia — as razões convergem para 1 e os ganhos viram 1,000. Aí:
+
+- a etapa **roda**, não pula
+- o record **preenche**, com números plausíveis
+- o log **imprime**, e imprime a verdade: os números vieram das estrelas
+- `applied: true`, então a linha de negação retira a promessa certa
+- e **a cor nunca foi medida**
+
+Nenhum comparador pega isso, porque nada está errado: está tudo igual. Um golden
+capturado com o defeito presente fixa o defeito como referência, e a partir daí
+a suíte defende o bug.
+
+**O teste que pega é a tabela dos quatro modos**, no `fixture-colour`:
+
+| configuração | R/G | ganho R |
+|---|---|---|
+| tudo ligado | 1,2511 | 0,7993 |
+| sem rejeição de extenso | 1,2513 | 0,7992 |
+| sem corte superior | 1,2521 | 0,7987 |
+| **sem os dois** | **1,0027** | **0,9973** |
+
+A última linha é a asserção. Não é "o resultado continua certo com as defesas
+ligadas" — isso um golden já dá. É **"o resultado fica errado quando eu as
+desligo"**, e o valor errado é conhecido: identidade. Se um dia essa linha
+passar a dar 0,799 também, ou a etapa parou de depender das defesas (improvável)
+ou a seleção parou de acontecer.
+
+As duas linhas do meio não são enfeite: mostram que as duas defesas se cobrem —
+o filtro de extenso também rejeita aglomerado saturado, porque borrão saturado
+tem vizinhança cheia. Sem elas eu teria concluído que uma das defesas é
+dispensável.
+
+**A regra geral.** Para toda etapa cujo resultado *pode* ser a identidade:
+existe um controle que desativa o que faz a etapa funcionar e afirma um valor
+**diferente** do valor correto. É a mesma família dos controles negativos de
+`negative-controls.ps1` — "a checagem ainda consegue reprovar?" — aplicada ao
+que a etapa mede em vez de ao que o comparador compara.
+
+Candidatos já visíveis para o mesmo tratamento: a extração de fundo (uma
+superfície que virasse constante seria invisível), e o esticamento ligado
+(`applyVia: 'luminance'` com deriva de razão zero é o resultado certo **e**
+também o que sai se a transferência não for aplicada — ver `colourFidelity`, que
+por isso mede a deriva **e** as razões, não só a deriva).
+
+## Regra de publicação: release só quando a saída muda para o usuário
+
+**Commit no master é histórico. Release é anúncio.**
+
+Um release novo só sai quando o que a pessoa baixa **se comporta** diferente. Se
+o `index.html` cresceu mas o resultado de processar um arquivo é o mesmo —
+etapa nova desligada por padrão, refatoração, comentário, teste — o release
+anterior continua correto para quem baixa, e publicar um novo gasta a atenção
+das pessoas à toa.
+
+Concreto, e é o caso que gerou a regra: o Módulo 2 acrescentou a calibração de
+cor com `colourCal: false`. O `index.html` foi de 160.544 para 189.367 bytes e
+**nenhum pixel de saída mudou**. `master` recebeu o commit; o `v1.0.0` ficou.
+
+Consequência operacional: o asset do release **não** acompanha o master, e isso
+é de propósito. Quando um release novo sair, o `index.html` anexado tem que ser
+o do commit que o release marca — não "o mais recente".
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
