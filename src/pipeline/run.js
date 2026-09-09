@@ -266,7 +266,19 @@ async function openFile(buffer, fileName, opts, post){
   // names inside a step and ambiguous the moment two steps share a namespace.
   var defaults = {
     shadowSigma: -2.80,
-    target: 0.25,
+    // 0.085, nao 0.25.
+    //
+    // O 0.25 vem do autostretch do Siril e do STF do PixInsight e e um
+    // esticamento DE INSPECAO: serve para olhar dado linear numa tela. 0,25 x
+    // 255 = 64, e fundo em 64 e cinza claro -- a imagem sai lavada.
+    //
+    // A metrica de entrega registrada neste projeto e fundo entre 13 e 25 de
+    // 255, o que sao alvos entre 0,051 e 0,098. Medido nos fixtures lineares,
+    // este alvo poe o fundo em 22 de 255 contra 64 antes.
+    //
+    // Nao toca o ramo nao-linear, que segura o alvo na mediana do proprio
+    // quadro e ignora este numero: o fixture-nonlinear sai em 63 nos dois.
+    target: 0.085,
     blackPct: 0.0005,
     nonLinear: nonLinear,
     bgSamplesPerRow: 12,

@@ -1433,7 +1433,7 @@
       "operator": "mtf",
       "applyVia": "luminance",
       "shadowSigma": -2.8,
-      "target": 0.25,
+      "target": 0.085,
       "blackPct": 0.0005,
       "nonLinear": true,
       "stretch": null

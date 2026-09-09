@@ -80,8 +80,8 @@
       "q1": 0.015320057984283207,
       "q3": 0.015808346684977492,
       "shadows": 0.014799506725814676,
-      "midtones": 0.0022786168079245122,
-      "target": 0.25,
+      "midtones": 0.008128275960563234,
+      "target": 0.085,
       "pixelsBlack": 1536,
       "pixelsWhite": 0,
       "totalPixels": 2600000,
@@ -96,8 +96,8 @@
       "q1": 0.015320057984283207,
       "q3": 0.015808346684977492,
       "shadows": 0.014799506725814676,
-      "midtones": 0.0022786168079245122,
-      "target": 0.25,
+      "midtones": 0.008128275960563234,
+      "target": 0.085,
       "pixelsBlack": 1536,
       "pixelsWhite": 0,
       "totalPixels": 2600000,
@@ -112,8 +112,8 @@
       "q1": 0.015320057984283207,
       "q3": 0.015808346684977492,
       "shadows": 0.014799506725814676,
-      "midtones": 0.0022786168079245122,
-      "target": 0.25,
+      "midtones": 0.008128275960563234,
+      "target": 0.085,
       "pixelsBlack": 1536,
       "pixelsWhite": 0,
       "totalPixels": 2600000,
@@ -129,8 +129,8 @@
       "luminanceMedian": 0.015548943312733654,
       "luminanceMADN": 0.00026765592389963507,
       "shadows": 0.014799506725814676,
-      "midtones": 0.0022786168079245122,
-      "target": 0.25,
+      "midtones": 0.008128275960563234,
+      "target": 0.085,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 1536,
@@ -143,13 +143,13 @@
         "bOverG": 1.0072289035582076
       },
       "ratiosAfter": {
-        "rOverG": 1.017093712466759,
-        "bOverG": 1.0023553526370739
+        "rOverG": 1.0171219794341515,
+        "bOverG": 1.0023798199346219
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 2598424,
+      "driftSamples": 2598308,
       "highlightPixels": 26004,
-      "pixelsRescaled": 56965
+      "pixelsRescaled": 32961
     }
   },
   "view": {
@@ -159,16 +159,16 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 316,
+    "decode": 338,
     "roworder": 3,
-    "preview": 45,
-    "stats": 115,
-    "background": 503,
-    "colour": 740,
-    "transfer": 1017,
-    "quantise": 125,
-    "downscale": 34,
-    "total": 2178
+    "preview": 49,
+    "stats": 131,
+    "background": 555,
+    "colour": 874,
+    "transfer": 1163,
+    "quantise": 135,
+    "downscale": 40,
+    "total": 2449
   },
   "historyCards": [],
   "allCards": [

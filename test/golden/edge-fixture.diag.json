@@ -54,8 +54,8 @@
       "q1": 0.015106431677729458,
       "q3": 0.016006713969634545,
       "shadows": 0.01412299685175539,
-      "midtones": 0.004234268575928246,
-      "target": 0.25,
+      "midtones": 0.015028846560691193,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 120000,
@@ -70,8 +70,8 @@
       "q1": 0.015106431677729458,
       "q3": 0.016006713969634545,
       "shadows": 0.01412299685175539,
-      "midtones": 0.004234268575928246,
-      "target": 0.25,
+      "midtones": 0.015028846560691193,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 120000,
@@ -86,8 +86,8 @@
       "q1": 0.015106431677729458,
       "q3": 0.016006713969634545,
       "shadows": 0.01412299685175539,
-      "midtones": 0.004234268575928246,
-      "target": 0.25,
+      "midtones": 0.015028846560691193,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 120000,
@@ -103,8 +103,8 @@
       "luminanceMedian": 0.015518425268940261,
       "luminanceMADN": 0.0004983672918517394,
       "shadows": 0.01412299685175539,
-      "midtones": 0.004234268575928246,
-      "target": 0.25,
+      "midtones": 0.015028846560691193,
+      "target": 0.085,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 0,
@@ -117,13 +117,13 @@
         "bOverG": 0.9962393260515331
       },
       "ratiosAfter": {
-        "rOverG": 1.0214101848544148,
-        "bOverG": 0.9970194847842464
+        "rOverG": 1.0214779165361008,
+        "bOverG": 0.996999705099839
       },
       "maxRatioDrift": 4.440892098500626e-16,
       "driftSamples": 120000,
       "highlightPixels": 1201,
-      "pixelsRescaled": 3272
+      "pixelsRescaled": 1769
     }
   },
   "view": {
@@ -132,16 +132,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 9,
+    "header": 0,
+    "decode": 11,
     "preview": 0,
-    "stats": 15,
-    "background": 83,
-    "colour": 77,
-    "transfer": 102,
-    "quantise": 26,
+    "stats": 18,
+    "background": 95,
+    "colour": 83,
+    "transfer": 112,
+    "quantise": 24,
     "downscale": 0,
-    "total": 246
+    "total": 277
   },
   "historyCards": [
     "Small frame: the default edge margin reaches the sample grid.",
