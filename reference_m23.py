@@ -40,7 +40,8 @@ def box_sum(a, size):
 def colour_calibrate(planes, params=None):
     """Neutralizacao aditiva, depois ganhos multiplicativos do fluxo estelar."""
     p = dict(starSigma=12.0, starMax=0.85, minStarPixels=2000,
-             extendedWindow=25, extendedMax=0.50, pedestalRatio=3.0,
+             extendedWindow=25, extendedMax=0.50,
+             pedestalProbe=0.10, sensitivityMax=0.05,
              gainMin=0.25, gainMax=4.0, backgroundNeutralise=True)
     p.update(params or {})
     rec = {'params': p}
@@ -101,12 +102,48 @@ def colour_calibrate(planes, params=None):
     sm = [med_exact(c[sel]) for c in planes]
     rec['medianasEstelares'] = sm
 
-    # salvaguarda 2: a razao fica instavel quando o numerador e pequeno
+    # Salvaguarda 2: mede a instabilidade em vez de usar um multiplo
+    # escolhido. Um multiplo fixo bloqueou um empilhamento de 60 h com cor
+    # boa; a sondagem mede a grandeza que a salvaguarda alega proteger.
     ped = rec['pedestais']
-    if min(sm) < p['pedestalRatio'] * max(ped):
-        rec['motivoRecusa'] = (f'the faintest star median is {min(sm):.6f}, less '
-                               f'than {p["pedestalRatio"]:.0f}x the sky pedestal '
-                               f'({max(ped):.6f})')
+
+    def gains_at(scale):
+        ref = sm[1] - ped[1] * scale
+        if not ref > 0:
+            return None
+        out = []
+        for k in range(3):
+            a = sm[k] - ped[k] * scale
+            if not a > 0:
+                return None
+            out.append(ref / a)
+        return out
+
+    g0 = gains_at(1.0)
+    if g0 is None:
+        rec['motivoRecusa'] = 'a star median does not sit above the sky pedestal'
+        rec['gainSensitivity'] = float('inf')
+        return planes, dict(applied=p['backgroundNeutralise'],
+                            skipReason=rec['motivoRecusa'], **rec)
+
+    sens = 0.0
+    # Os dois sentidos: nao sao simetricos, e o lado que encolhe 'above'
+    # e onde a razao se desfaz.
+    for scale in (1 + p['pedestalProbe'], 1 - p['pedestalProbe']):
+        probe = gains_at(scale)
+        if probe is None:
+            sens = float('inf')
+            break
+        for k in range(3):
+            if g0[k] > 0:
+                sens = max(sens, abs(probe[k] - g0[k]) / g0[k])
+    rec['gainSensitivity'] = sens
+
+    if not (sens <= p['sensitivityMax']):
+        rec['motivoRecusa'] = (
+            f'a {p["pedestalProbe"]*100:.0f}% error in the sky pedestal would move '
+            f'a gain by {sens*100:.2f}%, over the {p["sensitivityMax"]*100:.0f}% '
+            f'limit -- the ratio is not reliable on this frame')
         return planes, dict(applied=p['backgroundNeutralise'],
                             skipReason=rec['motivoRecusa'], **rec)
 
