@@ -158,17 +158,17 @@
     "downscaleFactor": 2
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 338,
+    "header": 1,
+    "decode": 390,
     "roworder": 3,
-    "preview": 49,
-    "stats": 131,
-    "background": 555,
-    "colour": 874,
-    "transfer": 1163,
-    "quantise": 135,
-    "downscale": 40,
-    "total": 2449
+    "preview": 54,
+    "stats": 142,
+    "background": 560,
+    "colour": 885,
+    "transfer": 1187,
+    "quantise": 139,
+    "downscale": 38,
+    "total": 2530
   },
   "historyCards": [],
   "allCards": [
