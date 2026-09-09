@@ -602,12 +602,30 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 $rows += Compare-Threshold-Count $name 'cor' 'rejeitado.extenso' `
                          $ccRec.stars.rejected.extended $cr2ref.rejeitados.extenso ($dThr + $dLum) $rf2.densidadePorLimiar.selecaoEstelar
 
-                foreach ($ci in 0..2) {
-                    $rows += Compare-Value $name $CH3[$ci] 'estrela.mediana' $ccRec.stars.medians[$ci]       $cr2ref.medianasEstelares[$ci] 'unit' 0 0
-                    $rows += Compare-Value $name $CH3[$ci] 'acimaDoPedestal'  $ccRec.stars.abovePedestal[$ci] $cr2ref.acimaDoPedestal[$ci]   'unit' 0 0
+                # As medianas estelares so existem se a selecao chegou a
+                # produzi-las: uma recusa por minStarPixels acontece antes delas,
+                # e comparar contra ausente descreveria a falta de um campo como
+                # divergencia de numero. Que as duas pontas concordem sobre a
+                # AUSENCIA e comparado logo abaixo, junto com a recusa.
+                $temMed = ($null -ne $ccRec.stars.medians) -and ($null -ne $cr2ref.medianasEstelares)
+                $rows += Compare-Value $name 'cor' 'estrelas.medidas' `
+                         ($null -ne $ccRec.stars.medians) ($null -ne $cr2ref.medianasEstelares) 'exact' 0 0
+                # Cada sub-bloco e guardado pelo proprio campo: os tres nao
+                # nascem juntos, e uma recusa pode parar entre eles.
+                if ($temMed) {
+                    foreach ($ci in 0..2) {
+                        $rows += Compare-Value $name $CH3[$ci] 'estrela.mediana' $ccRec.stars.medians[$ci] $cr2ref.medianasEstelares[$ci] 'unit' 0 0
+                    }
                 }
-                $rows += Compare-Value $name 'cor' 'razao.rOverG' $ccRec.stars.ratios.rOverG $cr2ref.razoes.rOverG 'unit' 0 0
-                $rows += Compare-Value $name 'cor' 'razao.bOverG' $ccRec.stars.ratios.bOverG $cr2ref.razoes.bOverG 'unit' 0 0
+                if (($null -ne $ccRec.stars.abovePedestal) -and ($null -ne $cr2ref.acimaDoPedestal)) {
+                    foreach ($ci in 0..2) {
+                        $rows += Compare-Value $name $CH3[$ci] 'acimaDoPedestal' $ccRec.stars.abovePedestal[$ci] $cr2ref.acimaDoPedestal[$ci] 'unit' 0 0
+                    }
+                }
+                if (($null -ne $ccRec.stars.ratios) -and ($null -ne $cr2ref.razoes)) {
+                    $rows += Compare-Value $name 'cor' 'razao.rOverG' $ccRec.stars.ratios.rOverG $cr2ref.razoes.rOverG 'unit' 0 0
+                    $rows += Compare-Value $name 'cor' 'razao.bOverG' $ccRec.stars.ratios.bOverG $cr2ref.razoes.bOverG 'unit' 0 0
+                }
                 if ($ccRec.gains -and $cr2ref.ganhos) {
                     foreach ($ci in 0..2) {
                         $rows += Compare-Value $name $CH3[$ci] 'ganho' $ccRec.gains[$ci] $cr2ref.ganhos[$ci] 'unit' 0 0

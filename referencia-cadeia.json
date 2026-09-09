@@ -8,6 +8,12 @@
   ],
   "nota": "as estatisticas do esticamento aqui sao mediana EXATA; a implementacao JS usa analysePlane (histograma de 65536 bins). A diferenca e conhecida, medida e coberta pela cota de densidade -- ver densidadePorLimiar.",
   "cotaDeContagem": "Delta e a discordancia da GRANDEZA comparada com o limiar e do proprio limiar, nao a dos pixels do passo anterior. pixelsRescaled compara max(R,G,B)*r, e r carrega midtones -- o Delta ali e multiplicativo e tres ordens acima do por-pixel.",
+  "cobertura": {
+    "porCanalAindaNA": [
+      "seestar"
+    ],
+    "motivo": "a referencia nao faz debayer: num mosaico ela mede o padrao Bayer, nao o quadro demosaicado"
+  },
   "fixtures": {
     "seestar": {
       "sha256": "6d0acf7bbd4ce595d926ccc9bbf8e239447cda8ed7207c682fe598f5534cb28b",
@@ -22,6 +28,7 @@
       },
       "calibracaoCor": {
         "applied": false,
+        "ganhos": null,
         "skipReason": "colour calibration needs 3 channels",
         "params": {
           "starSigma": 12.0,
@@ -41,15 +48,18 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": false,
         "luminancia": {
           "mediana": 0.010926285292953253,
           "madn": 0.0009514298083260655
         },
         "shadows": 0.00826228182964027,
+        "luminanceSpan": 0.003972508013248444,
         "clipLow": 0,
         "clipHigh": 0,
         "midtones": 0.028177045041412652,
@@ -100,7 +110,7 @@
         "aceitas": 53
       },
       "calibracaoCor": {
-        "applied": false,
+        "applied": true,
         "skipReason": "the faintest star median is 0.028999, less than 3x the sky pedestal (0.015570)",
         "params": {
           "starSigma": 12.0,
@@ -158,15 +168,18 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": false,
         "luminancia": {
           "mediana": 0.015559970401227474,
           "madn": 0.00026835989244282247
         },
         "shadows": 0.01480856270238757,
+        "luminanceSpan": 0.0010869260877370834,
         "clipLow": 1716,
         "clipHigh": 0,
         "midtones": 0.00814957066136749,
@@ -259,7 +272,7 @@
         "aceitas": 81
       },
       "calibracaoCor": {
-        "applied": false,
+        "applied": true,
         "skipReason": "the faintest star median is 0.407710, less than 3x the sky pedestal (0.246155)",
         "params": {
           "starSigma": 12.0,
@@ -317,35 +330,38 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": true,
         "luminancia": {
           "mediana": 0.24593912810087204,
           "madn": 0.004410240782797337
         },
-        "shadows": 0.23359045390903949,
-        "clipLow": 0,
+        "shadows": 0.23743277788162231,
+        "luminanceSpan": 0.01784639060497284,
+        "clipLow": 270,
         "clipHigh": 31,
-        "midtones": 0.14986610690817467,
+        "midtones": 0.03343093489186612,
         "solvedStretch": null,
-        "target": 0.085,
+        "target": 0.24593912810087204,
         "colourFidelity": {
           "ratiosBefore": {
-            "rOverG": 0.9996636840118787,
-            "bOverG": 1.0003321512365035
+            "rOverG": 0.999650611749062,
+            "bOverG": 1.0003232856964825
           },
           "ratiosAfter": {
-            "rOverG": 0.9996636840118786,
-            "bOverG": 1.0003321512365035
+            "rOverG": 0.9996506117490621,
+            "bOverG": 1.0003232856964823
           },
           "maxRatioDrift": 2.220446049250313e-16,
-          "driftSamples": 540000,
-          "highlightPixels": 2064,
-          "pixelsRescaled": 2064
+          "driftSamples": 539730,
+          "highlightPixels": 8428,
+          "pixelsRescaled": 8428
         },
-        "highlightCut": 2064
+        "highlightCut": 8428
       },
       "densidadePorLimiar": {
         "selecaoEstelar": {
@@ -363,17 +379,17 @@
           }
         },
         "clipLow": {
-          "count": 0,
+          "count": 270,
           "threshold": 0.0,
           "density": {
-            "1.0e-07": 0,
-            "1.0e-06": 0,
-            "2.4e-06": 0,
-            "6.1e-06": 0,
-            "1.0e-05": 0,
-            "1.0e-04": 0,
-            "1.0e-03": 0,
-            "1.0e-02": 62958
+            "1.0e-07": 1,
+            "1.0e-06": 1,
+            "2.4e-06": 2,
+            "6.1e-06": 5,
+            "1.0e-05": 10,
+            "1.0e-04": 114,
+            "1.0e-03": 1655,
+            "1.0e-02": 229821
           }
         },
         "clipHigh": {
@@ -391,17 +407,17 @@
           }
         },
         "pixelsRescaled": {
-          "count": 2064,
+          "count": 8428,
           "threshold": 1.0,
           "density": {
             "1.0e-07": 0,
-            "1.0e-06": 0,
+            "1.0e-06": 1,
             "2.4e-06": 1,
-            "6.1e-06": 2,
-            "1.0e-05": 2,
-            "1.0e-04": 16,
-            "1.0e-03": 162,
-            "1.0e-02": 1527
+            "6.1e-06": 5,
+            "1.0e-05": 8,
+            "1.0e-04": 77,
+            "1.0e-03": 629,
+            "1.0e-02": 4981
           }
         }
       }
@@ -418,7 +434,7 @@
         "aceitas": 92
       },
       "calibracaoCor": {
-        "applied": false,
+        "applied": true,
         "skipReason": "the faintest star median is 0.044727, less than 3x the sky pedestal (0.016824)",
         "params": {
           "starSigma": 12.0,
@@ -476,15 +492,18 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": false,
         "luminancia": {
           "mediana": 0.01678128819912672,
           "madn": 0.0010608082048594951
         },
         "shadows": 0.013811025225520135,
+        "luminanceSpan": 0.004333209246397018,
         "clipLow": 1717,
         "clipHigh": 0,
         "midtones": 0.0314955049444274,
@@ -648,15 +667,18 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": false,
         "luminancia": {
           "mediana": 0.014574225526303053,
           "madn": 0.0036581478034146127
         },
         "shadows": 0.004331411676742138,
+        "luminanceSpan": 0.337417121976614,
         "clipLow": 0,
         "clipHigh": 0,
         "midtones": 0.10063176200891547,
@@ -749,7 +771,7 @@
         "aceitas": 64
       },
       "calibracaoCor": {
-        "applied": false,
+        "applied": true,
         "skipReason": "the faintest star median is 0.040498, less than 3x the sky pedestal (0.015563)",
         "params": {
           "starSigma": 12.0,
@@ -807,15 +829,18 @@
           "operator": "mtf",
           "target": 0.085,
           "shadowSigma": -2.8,
-          "applyVia": "luminance"
+          "applyVia": "luminance",
+          "blackPct": 0.0005
         },
         "ligado": true,
         "operador": "mtf",
+        "nonLinear": false,
         "luminancia": {
           "mediana": 0.01552900206297636,
           "madn": 0.0004990852765738964
         },
         "shadows": 0.014131563288569451,
+        "luminanceSpan": 0.0020287558436393738,
         "clipLow": 0,
         "clipHigh": 0,
         "midtones": 0.015050331625502799,
