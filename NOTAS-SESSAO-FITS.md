@@ -752,6 +752,49 @@ continuado pulando em silêncio e o buraco ficaria invisível.
 Mesma família da regra dos hashes do MANIFEST e do `Test-Tracked`: **o dado mora
 num lugar só, e quem precisa dele lê de lá.**
 
+## Alimentar uma fórmula com as entradas da outra separa fórmula de entrada
+
+**Quando duas implementações divergem, isso é a primeira medição, não a última.**
+
+Recomputar a grandeza com a **minha fórmula** e as **entradas da outra ponta**, e
+comparar o resultado com o valor dela, responde uma pergunta sozinha: *a fórmula
+é a mesma?* A outra — *as entradas são as mesmas?* — já está respondida nas
+linhas que comparam as entradas.
+
+Custa uma linha de código e decide para que lado investigar.
+
+**Onde funcionou.** `midtones` divergia no `fixture-colour` e no `nonlinear`.
+Alimentada com as entradas deles, a minha fórmula reproduziu os valores deles a
+**2,8e-17** nos dois. Fórmula idêntica, então o defeito estava numa entrada — e a
+entrada era o `target`, que no ramo não-linear é a mediana do próprio quadro e
+não o parâmetro. A referência não tinha o ramo não-linear. Localizado em uma
+medição.
+
+**Onde não foi feito, e quase custou.** No mesmo dia, o `shadows` do mesmo
+fixture divergia em 252 bins, e a hipótese levantada foi *convenção de
+percentil* — nearest-rank contra interpolado, `>=` contra `>`. Eu ia investigar
+o mecanismo do `cumulativeAt`. Não era nada disso: era **a mesma causa do
+`target`**, o ramo não-linear ausente. Quando ele entrou, o `shadows` andou de
+0,233590454 para 0,237432778 sozinho, contra os 0,237430381 daqui — **0,16
+bins**. Nada foi tocado do lado do percentil e não precisava.
+
+**A assimetria que torna isso barato:** a propagação AMPLIFICA. No
+`fixture-colour`, 1,9e-6 de diferença na mediana vira 2,4e-4 em `midtones` —
+131× — porque a MTF é íngreme onde `midtones` vale 0,10. Um valor derivado
+divergindo muito **não** significa que o método divergiu muito; pode ser uma
+entrada divergindo pouco. Sem separar as duas perguntas não há como saber, e a
+tentação é alargar a tolerância até caber, o que esconderia uma divergência de
+fórmula junto.
+
+**A regra:** divergência num valor **derivado** não se investiga pelo mecanismo
+antes de recomputá-lo com as entradas do outro lado. Se bater, o defeito está
+numa entrada e o mecanismo está certo — e a entrada tem nome, aparece numa linha
+própria do comparador, e é onde a investigação começa.
+
+É a versão local da classe "[a cascata começa antes de onde o sintoma
+aparece]": lá a causa estava uma etapa a montante, aqui está uma variável a
+montante. Mesmo erro de foco, mesma correção.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
