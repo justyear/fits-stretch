@@ -21,7 +21,15 @@ var CATALOGUE = [
   { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
   { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
   { id: 'background',    label: 'background extraction' },
-  { id: 'colour-cal',    label: 'colour grading' },        // MIS-PAIRED, see below
+  // The debt below came due in Module 2. `colour-cal` no longer answers for the
+  // word "grading": it has its own id with an honest label and does not
+  // announce, because the log gives it a section with the measured numbers, and
+  // `colour-grade` stays here as a separate entry that nothing retracts.
+  //
+  // The sentence therefore keeps saying "colour grading" after a frame has been
+  // colour calibrated, which is the whole point: calibration is measurement,
+  // grading is taste, and only one of them happened.
+  { id: 'colour-grade',  label: 'colour grading',            neverImplemented: true },
   { id: 'ai',            label: 'any AI or generative step', neverImplemented: true },
 
   // Declared so a step can claim the id, but not enumerated in the sentence.
@@ -35,26 +43,32 @@ var CATALOGUE = [
   { id: 'stretch-mtf',   label: 'autostretch',               announce: false },
   { id: 'stretch-asinh', label: 'asinh stretch',             announce: false },
 
+  // Colour calibration, with `announce: false` on the same argument as the
+  // stretch family: the log dedicates a block to it, with the gains and the
+  // pixel count, so a denial elsewhere in the sentence would be a warning about
+  // something the reader can already see was handled and measured.
+  { id: 'colour-cal',    label: 'colour calibration',        announce: false },
+
   // Not in the sentence today, and not implemented. Whoever writes the step
   // decides whether it announces — flipping this changes a sentence people
   // have already pasted, so it is a decision, not a detail.
   { id: 'multiscale',    label: 'multiscale enhancement',    announce: false }
 ];
 
-/* TWO ENTRIES ARE MIS-PAIRED AND HAVE TO BE SPLIT BEFORE THEIR STEP LANDS.
+/* ONE ENTRY IS STILL MIS-PAIRED AND HAS TO BE SPLIT BEFORE ITS STEP LANDS.
  *
  * The label names what the reader is worried about; the id names what we would
- * actually build. For these two those are not the same thing, and the sentence
- * comes out wrong in opposite directions.
+ * actually build. When those are not the same thing, the sentence comes out
+ * wrong — and it comes out wrong in two opposite directions.
  *
- *   colour-cal -> "colour grading"   (split in Module 2)
+ *   colour-cal -> "colour grading"   SPLIT, Module 2, done above
  *
  * Colour calibration is measurement — stellar flux ratios decide the gains.
- * Grading is taste. As wired, calibrating retracts the promise about grading,
- * so the tool would stop claiming something that stayed true the whole time.
- * "We did not colour grade" is the sentence that separates this tool from the
- * manufacturer's app; giving it away for free, in exchange for nothing, is the
- * worst trade in the catalogue.
+ * Grading is taste. Wired together, calibrating retracted the promise about
+ * grading, so the tool would have stopped claiming something that stayed true
+ * the whole time. "We did not colour grade" is the sentence that separates this
+ * tool from the manufacturer's app; giving it away for free, in exchange for
+ * nothing, would have been the worst trade in the catalogue.
  *
  *   star-split -> "star removal"     (split in Module 4)
  *

@@ -18,8 +18,8 @@ ganchos. Os dois:
 
 | arquivo | bytes | sha256 |
 |---|---|---|
-| `index.html` | 160544 | `2b733b41507ddd25b04abbab05043e7cf3cfd59411b0cc1a07731b2313138fd9` |
-| `.claude/index-test.html` | 162237 | `b43f58551cb3cc349137af14324a33bdb72c70233167fdc00b734b83a77dd10b` |
+| `index.html` | 189367 | `d575ad0b0f192ab3154f414ae2a48511086268388a7e177a02a36d8327f57456` |
+| `.claude/index-test.html` | 191060 | `7d8e3a6b47378ce89dfbdc5a2d26d1f3ca82b77fea3de7d397236ce92f0abf90` |
 
 <!--/BUILD_HASHES-->
 
@@ -731,6 +731,64 @@ além do fim é `badheader`, o byte exato passa e decodifica.
 A correção não mexeu em nenhuma saída legítima — os 20 goldens saíram
 byte-idênticos sem recaptura, incluindo o `rice-fixture`, que é o que prova que
 o teto de `ZTILE` e a validação de heap não tocam um `.fz` válido.
+
+## `fixture-colour` — a cor conhecida por construção
+
+1600×1200×3, float32, TOP-DOWN. É o único golden capturado com parâmetros que
+**não** são os defaults: `colourCal` fica desligado até o Módulo 3, então
+capturar com os defaults não exercitaria nada da calibração. Os parâmetros vão
+pelo mesmo `requestRun` que a interface usaria — não há caminho de teste
+separado.
+
+Três populações, três razões, **nenhuma perto de outra**, e é isso que faz o
+resultado dizer *qual* população foi medida em vez de só "o número é plausível":
+
+| população | R/G | B/G | papel |
+|---|---|---|---|
+| fundo | 0,8571 | 0,5714 | o que a §2.1 nivela |
+| **estrelas** | **1,2500** | **0,8000** | o que a §2.2 tem que achar |
+| objeto extenso | 0,9500 | 1,1000 | o que contamina a §2.2 |
+
+Medido, com tudo ligado: **1,2511 / 0,7994** — 0,09% e 0,08% da verdade
+injetada. Ganhos 0,7993 · 1,0000 · 1,2510 contra 0,8000 · 1,0000 · 1,2500.
+
+### As quatro configurações, e o que cada uma prova
+
+| configuração | R/G | ganho R |
+|---|---|---|
+| tudo ligado | 1,2511 | 0,7993 |
+| sem rejeição de extenso | 1,2513 | 0,7992 |
+| sem corte superior | 1,2521 | 0,7987 |
+| **sem os dois** | **1,0027** | **0,9973** |
+
+A última linha é o modo de falha inteiro: com as duas defesas desligadas o ganho
+vermelho vira **0,9973 — identidade**. A etapa roda, o record preenche, o log
+imprime, e a cor nunca foi medida. As duas linhas do meio mostram que as defesas
+se cobrem: o filtro de extenso também rejeita os aglomerados saturados, porque
+um borrão saturado tem vizinhança cheia.
+
+### Três construções, e a primeira reprovou
+
+Registrado porque a reprovação foi a parte útil.
+
+1. **Objeto 240×150, pico 0,060; 40 estrelas saturadas.** A etapa devolveu
+   1,127/0,798 — a razão do **objeto**, quase exata. Medido: 29,8% dos pixels
+   selecionados estavam dentro da elipse do objeto. Um fixture que não separa
+   essas duas respostas certificaria um passo que mede a população errada.
+2. **Saturadas com amplitude 3,0 e brilho igual nos três canais.** As asas
+   ficavam cinzas, o que não é o que uma estrela saturada real faz — e o núcleo
+   totalmente preso era menor que o anel parcialmente preso, cuja razão é *maior*
+   que a estelar. Desligar o corte movia a resposta para o lado errado.
+3. **A atual:** objeto restaurado, saturadas com a mesma razão das estrelas e
+   amplitude 30,0, para que o núcleo cinza domine o anel.
+
+### O que este fixture ainda não prova
+
+A rejeição de extenso remove **1.646 pixels** aqui, contra 39% da seleção no
+empilhamento real de M 31. O limiar de brilho sobe muito com 900 estrelas
+saturadas no quadro e o objeto acaba quase todo abaixo dele. O filtro está
+exercitado, não estressado; a evidência forte para ele é a medição real
+registrada na §0 da spec, não este fixture.
 
 ## Cobertura que ainda falta
 

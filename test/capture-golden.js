@@ -76,7 +76,13 @@ window.__GOLDEN = [
   // 400x300, o unico pequeno o bastante para a margem padrao alcancar a
   // grade de amostras. Existe para que rejected-edge seja exercitado e nao
   // apenas alcancavel.
-  ['edge-fixture',      '/f/test/fixtures/fixture-edge.fit']
+  ['edge-fixture',      '/f/test/fixtures/fixture-edge.fit'],
+  // Modulo 2. O unico fixture com cor conhecida por construcao, e o unico
+  // capturado com parametros que nao sao os defaults: colourCal esta desligado
+  // por padrao ate o Modulo 3, entao capturar com os defaults nao exercitaria
+  // nada da calibracao. Os parametros vao pelo mesmo requestRun que a interface
+  // usaria; nao ha caminho de teste separado.
+  ['colour-fixture',    '/f/test/fixtures/fixture-colour.fit', { colourCal: true }]
 ];
 
 /* ------------------------------------------------------------------ *
@@ -135,12 +141,37 @@ window.__captureMalformed = async function () {
   return { casos: names.length, arquivo: 'malformed.results.json', bytes: ab.byteLength };
 };
 
+// Re-runs the chain with parameters that are not the defaults, through the same
+// requestRun the interface uses. Waits on the result panel rather than on a
+// promise, because requestRun is fire-and-forget by design: the host is a UI and
+// its answer arrives as a repainted screen.
+window.__rerun = function (over) {
+  var params = {}, k;
+  for (k in window.__state.defaults) params[k] = window.__state.defaults[k];
+  for (k in over) params[k] = over[k];
+  window.__state.diag = null;
+  requestRun(params, 'full');
+  return new Promise(function (resolve, reject) {
+    var waited = 0;
+    var iv = setInterval(function () {
+      if (window.__state.diag) { clearInterval(iv); resolve('ok'); return; }
+      if (document.getElementById('err').classList.contains('on')) {
+        clearInterval(iv);
+        reject(new Error(document.getElementById('errtitle').textContent));
+        return;
+      }
+      if ((waited += 250) > 120000) { clearInterval(iv); reject(new Error('rerun timed out')); }
+    }, 250);
+  });
+};
+
 window.__captureAll = async function () {
   var out = {};
   for (var i = 0; i < window.__GOLDEN.length; i++) {
-    var name = window.__GOLDEN[i][0], url = window.__GOLDEN[i][1];
+    var name = window.__GOLDEN[i][0], url = window.__GOLDEN[i][1], over = window.__GOLDEN[i][2];
     var r = await window.__loadFromURL(url, { now: window.__GOLDEN_DATE });
     if (r !== 'ok') throw new Error(name + ': ' + url + ' failed to load');
+    if (over) await window.__rerun(over);
     out[name] = await window.__capture(name);
   }
   out['malformed'] = await window.__captureMalformed();

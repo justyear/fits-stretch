@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -329,6 +329,120 @@ public static class FitsFixture
                     double f = Math.Exp(-(dx * dx + dy * dy) / twoSigmaSq);
                     img[c * N + y * W + x] += (float)(amps[c] * f);
                 }
+    }
+
+    /* ----------------------------------------------------------------
+     * ColourScene — a frame whose colour is known by construction.
+     *
+     * Three populations with three DIFFERENT channel ratios, and that is the
+     * whole design:
+     *
+     *   background   bgR : bgG : bgB        what 2a levels
+     *   stars        starRatio[]            what 2b measures
+     *   object       objTint[]              what contaminates 2b
+     *
+     * They have to differ. If the background and the stars carried the same
+     * ratio, a step that measured the background instead of the stars would
+     * produce the right answer for the wrong reason, and the fixture would
+     * certify the bug. Section 4 of modulo-2-3-spec.md asks for exactly this
+     * separation and it is the fixture's main job.
+     *
+     * The gradient is added as the SAME absolute ramp to all three channels.
+     * That is deliberate: a light-pollution gradient adds sky, and adding the
+     * same amount to each channel keeps the channel DIFFERENCES constant across
+     * the frame. The neutralisation corrects a difference, so its correct answer
+     * is then one number per channel, independent of where it is measured -
+     * which is what makes the expected offsets computable by hand.
+     *
+     * Build order is fixed: background+gradient, object, calibration stars,
+     * saturated stars, field stars, noise. Noise last, and the clip to [0,1]
+     * happens in that same final pass so a saturated star is genuinely 1.0 in
+     * all three channels rather than merely bright.
+     * ---------------------------------------------------------------- */
+    public static float[] ColourScene(
+        int W, int H, ulong seed,
+        double[] bg,            // R, G, B background level
+        double[] ramp,          // A1*u + A2*v, same absolute amount in each channel
+        double[] obj,           // cx, cy, a, b, peak, k
+        double[] objTint,
+        double[] starRatio,     // R, G, B multipliers on every calibration star
+        int nStar, double starAmpMin, double starAmpMax, double starSigma, ulong starSeed,
+        int nSat, double satAmp, double satSigma, ulong satSeed,
+        double noiseSigma)
+    {
+        int N = W * H;
+        var img = new float[N * 3];
+
+        // 1. Background plus the shared ramp.
+        for (int c = 0; c < 3; c++)
+            for (int y = 0; y < H; y++)
+            {
+                double v = (double)y / (H - 1);
+                for (int x = 0; x < W; x++)
+                {
+                    double u = (double)x / (W - 1);
+                    img[c * N + y * W + x] = (float)(bg[c] + ramp[0] * u + ramp[1] * v);
+                }
+            }
+
+        // 2. Extended object, with a tint of its own so its contribution to the
+        //    star measurement can be told apart from the stars'.
+        double cx = obj[0], cy = obj[1], oa = obj[2], ob = obj[3], peak = obj[4], kk = obj[5];
+        int bx0 = Math.Max(0, (int)(cx - 3.0 * oa)), bx1 = Math.Min(W - 1, (int)(cx + 3.0 * oa));
+        int by0 = Math.Max(0, (int)(cy - 3.0 * ob)), by1 = Math.Min(H - 1, (int)(cy + 3.0 * ob));
+        for (int y = by0; y <= by1; y++)
+            for (int x = bx0; x <= bx1; x++)
+            {
+                double dx = (x - cx) / oa, dy = (y - cy) / ob;
+                double R = Math.Sqrt(dx * dx + dy * dy);
+                double I = peak * Math.Exp(-kk * R);
+                for (int c = 0; c < 3; c++) img[c * N + y * W + x] += (float)(I * objTint[c]);
+            }
+
+        // 3. Calibration stars. Every one of them carries the SAME channel
+        //    ratio; only the overall amplitude varies. That is what makes the
+        //    ratio a property of the population and not of which stars the
+        //    threshold happened to catch.
+        var rnd = new Lcg(starSeed);
+        for (int k = 0; k < nStar; k++)
+        {
+            double amp = starAmpMin + (starAmpMax - starAmpMin) * rnd.Next();
+            double sx = rnd.Next() * W, sy = rnd.Next() * H;
+            AddStar(img, W, H, sx, sy, starSigma,
+                    amp * starRatio[0], amp * starRatio[1], amp * starRatio[2]);
+        }
+
+        // 4. Saturated stars. Amplitude far above 1 so the core clips to 1.0 in
+        //    all three channels in step 6, which is what a real saturated star
+        //    is: three equal values and no colour information at all.
+        //
+        //    They are the fixture's trap for the upper cut. Let them into the
+        //    selection and every ratio is pulled toward 1, so the gains drift
+        //    toward identity and the calibration quietly becomes a no-op that
+        //    still reports success.
+        //    They carry the SAME channel ratio as the calibration stars, not
+        //    equal amplitudes. That matters: a real saturated star loses its
+        //    colour only where it is pinned at 1.0, and its wings stay coloured.
+        //    Giving them flat grey wings would have biased the measurement even
+        //    with the cut working, and the fixture would then be testing the
+        //    wrong thing while appearing to pass.
+        var srnd = new Lcg(satSeed);
+        for (int k = 0; k < nSat; k++)
+        {
+            double sx = srnd.Next() * W, sy = srnd.Next() * H;
+            AddStar(img, W, H, sx, sy, satSigma,
+                    satAmp * starRatio[0], satAmp * starRatio[1], satAmp * starRatio[2]);
+        }
+
+        // 5. Noise and the clip, in one pass, last.
+        var nrnd = new Lcg(seed);
+        for (int i = 0; i < img.Length; i++)
+        {
+            double val = img[i] + nrnd.Gauss() * noiseSigma;
+            if (val < 0) val = 0; else if (val > 1) val = 1;
+            img[i] = (float)val;
+        }
+        return img;
     }
 
     // The same midtones transfer the tool applies, used here to make the
@@ -918,6 +1032,112 @@ if ($Only -eq 'all' -or $Only -eq 'gradient') {
                                         $probeAmp, $probeSig, $nField, $fieldSeed)
 
     Write-Fits (Join-Path $outDir 'fixture-gradient.fit') $cards `
+               ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+}
+
+# ----------------------------------------------------------------- colour
+if ($Only -eq 'all' -or $Only -eq 'colour') {
+    $W = 1600; $H = 1200; $planes = 3
+    Write-Host "fixture-colour.fit    ($W x $H x $planes, float32, TOP-DOWN, known colour)"
+
+    # ---- the truth ------------------------------------------------------
+    #
+    # Three ratios, all different, and the differences are the test.
+    #
+    #   background  R/G 0.8571   B/G 0.5714      what 2a levels
+    #   stars       R/G 1.2500   B/G 0.8000      what 2b must find
+    #   object      R/G 0.9500   B/G 1.1000      what contaminates 2b
+    #
+    # No two of the six numbers are close, and that is the point: the answer
+    # says WHICH population was measured, not merely whether the number is
+    # plausible. Measuring the background would report gains near 1.167 and
+    # 1.750; measuring the object, near 1.053 and 0.909; measuring the stars,
+    # 0.800 and 1.250.
+    #
+    # The first build of this fixture failed that test and the failure was the
+    # useful part: the object was 240x150 at peak 0.060 and supplied 29.8% of
+    # the selected pixels, so the step returned 1.127/0.798 - the OBJECT's
+    # ratio, almost exactly. A fixture that cannot tell those apart would have
+    # certified a step that measures the wrong population.
+    $bg        = @(0.0090, 0.0105, 0.0060)
+    $ramp      = @(0.0060, 0.0035)          # same absolute ramp in all channels
+    $starRatio = @(1.2500, 1.0000, 0.8000)  # => expected gains 0.8 / 1.0 / 1.25
+    $objTint   = @(0.9500, 1.0000, 1.1000)
+
+    # cx, cy, a, b, peak, k
+    $obj = @(1150.0, 400.0, 240.0, 150.0, 0.060, 3.2)
+
+    # Calibration stars. Amplitudes stay well under the upper cut: the brightest
+    # is 0.30 in green and 0.375 in red, so a whole star is below starMax 0.85
+    # and none of them is excluded by the cut meant for the saturated ones.
+    $nStar = 1400; $starAmpMin = 0.150; $starAmpMax = 0.600
+    $starSigma = 2.0; $starSeed = 20260910
+
+    # Saturated stars. satAmp is deliberately far above 1, not just above it: at
+    # 3.0 the fully-clipped core was only 4.5 px across and the partially-clipped
+    # annulus around it - red pinned, blue not - was BIGGER than the core and had
+    # a ratio ABOVE the star ratio, so turning the cut off moved the answer the
+    # wrong way and the fixture proved nothing. At 30.0 the grey core is 10 px and
+    # the annulus is 0.7 px wide, so the population is what it is meant to be:
+    # pixels with no colour information at all.
+    $nSat = 900; $satAmp = 30.0; $satSigma = 4.0; $satSeed = 20260911
+
+    $noiseSig = 0.0012
+    $noiseSeed = 20260912
+
+    function Fmt6c([double]$v) { return $v.ToString('0.000000000', [cultureinfo]::InvariantCulture) }
+    function Histc([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+    function R4([double]$v) { return $v.ToString('0.0000', [cultureinfo]::InvariantCulture) }
+
+    $bgRG = $bg[0] / $bg[1]; $bgBG = $bg[2] / $bg[1]
+    $tgt  = ($bg[0] + $bg[1] + $bg[2]) / 3.0
+
+    $cards = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Colour probe' '' -AsString)
+        (New-Card 'EXPTIME'  '600.' 'seconds')
+        (Histc 'COLOUR synthetic frame with three DIFFERENT channel ratios.')
+        (Histc 'COLOUR background, stars and object each carry their own, so a')
+        (Histc 'COLOUR calibration that measured the wrong one is distinguishable.')
+        (Histc ("BG level R=" + (Fmt6c $bg[0]) + " G=" + (Fmt6c $bg[1]) + " B=" + (Fmt6c $bg[2])))
+        (Histc ("BG ratios R/G=" + (R4 $bgRG) + " B/G=" + (R4 $bgBG)))
+        (Histc ("BG neutralise target = mean = " + (Fmt6c $tgt)))
+        (Histc ("BG offsets to apply R=" + (Fmt6c ($bg[0]-$tgt)) + " G=" + (Fmt6c ($bg[1]-$tgt)) + " B=" + (Fmt6c ($bg[2]-$tgt))))
+        (Histc ("RAMP added equally to all channels: " + (Fmt6c $ramp[0]) + "*u + " + (Fmt6c $ramp[1]) + "*v"))
+        (Histc 'RAMP equal in all channels, so channel DIFFERENCES are constant.')
+        (Histc ("STAR ratios R/G=" + (R4 ($starRatio[0]/$starRatio[1])) + " B/G=" + (R4 ($starRatio[2]/$starRatio[1]))))
+        (Histc ("STAR expected gains R=" + (R4 ($starRatio[1]/$starRatio[0])) + " G=1.0000 B=" + (R4 ($starRatio[1]/$starRatio[2]))))
+        (Histc ("STAR $nStar gaussians sigma=$starSigma amp $starAmpMin..$starAmpMax seed $starSeed"))
+        (Histc 'STAR every one carries the same ratio; only amplitude varies.')
+        (Histc ("SAT $nSat saturated stars, amp=$satAmp sigma=$satSigma seed $satSeed"))
+        (Histc 'SAT their cores clip to 1.0 in all three channels: no colour.')
+        (Histc 'SAT they exist to test the upper cut. If they enter the star')
+        (Histc 'SAT selection, every ratio is pulled toward 1 and the gains')
+        (Histc 'SAT drift to identity while the step still reports success.')
+        (Histc ("OBJ tint R/G=" + (R4 ($objTint[0]/$objTint[1])) + " B/G=" + (R4 ($objTint[2]/$objTint[1])) + ", contaminates the star measurement"))
+        (Histc ("OBJ CX=$($obj[0]) CY=$($obj[1]) A=$($obj[2]) B=$($obj[3]) PEAK=" + (Fmt6c $obj[4]) + " K=$($obj[5])"))
+        (Histc ("NOISE gaussian sigma=" + (Fmt6c $noiseSig) + ", seed $noiseSeed, added last"))
+        (Histc 'TRUTH these rows came from neither implementation.')
+    )
+
+    $img = [FitsFixture]::ColourScene($W, $H, $noiseSeed,
+                                      $bg, $ramp, $obj, $objTint, $starRatio,
+                                      $nStar, $starAmpMin, $starAmpMax, $starSigma, $starSeed,
+                                      $nSat, $satAmp, $satSigma, $satSeed,
+                                      $noiseSig)
+
+    Write-Fits (Join-Path $outDir 'fixture-colour.fit') $cards `
                ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
 }
 
