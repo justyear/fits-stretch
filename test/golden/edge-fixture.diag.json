@@ -134,14 +134,14 @@
   "timingsMs": {
     "header": 0,
     "decode": 11,
-    "preview": 0,
-    "stats": 18,
-    "background": 95,
-    "colour": 83,
-    "transfer": 112,
-    "quantise": 24,
+    "preview": 1,
+    "stats": 22,
+    "background": 106,
+    "colour": 91,
+    "transfer": 123,
+    "quantise": 29,
     "downscale": 0,
-    "total": 277
+    "total": 301
   },
   "historyCards": [
     "Small frame: the default edge margin reaches the sample grid.",

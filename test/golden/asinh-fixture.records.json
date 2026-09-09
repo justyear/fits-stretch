@@ -1,0 +1,1762 @@
+[
+  {
+    "id": "background",
+    "name": "Background extraction",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "samplesPerRow": 12,
+      "boxSize": 25,
+      "tolerance": 1,
+      "edgeMargin": 0.02,
+      "smoothing": 0.1,
+      "correction": "subtract",
+      "pedestal": "model-median"
+    },
+    "notes": [
+      "Placed 108 samples on a 12 x 9 grid, 25 px boxes, 92 accepted and 16 rejected.",
+      "Rejected: 16 brighter than the background estimate, 0 on the edge margin, 0 clipped, 0 non-finite.",
+      "Every rejected sample is still in the record, with the reason it was rejected.",
+      "Thin-plate spline through the 92 accepted samples, smoothing 0.1, per channel and unlinked.",
+      "Evaluated on every 8th pixel and interpolated between; measured against direct evaluation at 1000 pixels, worst case 0.00040 of one 8-bit level.",
+      "Corrected by subtraction, returning each channel its own model median as the pedestal (R 0.01831, G 0.01658, B 0.01505). The background LEVEL is preserved and only the variation is removed, so the ratio between channels is unchanged and no colour grading happened.",
+      "0 pixels came out below zero, which is expected: noise that sat under the model stays under it, and nothing is clamped until the 8-bit step."
+    ],
+    "samples": {
+      "generated": 108,
+      "accepted": 92,
+      "rejected": {
+        "bright": 16,
+        "edge": 0,
+        "clipped": 0,
+        "nan": 0
+      },
+      "forced": 0,
+      "moved": 0,
+      "boxSizeEffective": 25,
+      "minimum": 8,
+      "grid": {
+        "cols": 12,
+        "rows": 9,
+        "marginPx": 24,
+        "spacingX": 133.33333333333334,
+        "spacingY": 133.33333333333334
+      },
+      "points": [
+        {
+          "x": 67,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.012660656124353409,
+            0.011499135755002499,
+            0.010600165463984013
+          ]
+        },
+        {
+          "x": 200,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.013197056017816067,
+            0.012000092305243015,
+            0.010990496724843979
+          ]
+        },
+        {
+          "x": 333,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.013658182695508003,
+            0.012526010163128376,
+            0.01135284174233675
+          ]
+        },
+        {
+          "x": 467,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014288575388491154,
+            0.012851650826632977,
+            0.01172932330518961
+          ]
+        },
+        {
+          "x": 600,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01467414665967226,
+            0.013315711170434952,
+            0.011961173266172409
+          ]
+        },
+        {
+          "x": 733,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015108094550669193,
+            0.01373373530805111,
+            0.012411737814545631
+          ]
+        },
+        {
+          "x": 867,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015612936578691006,
+            0.013931076973676682,
+            0.012621141970157623
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015929490327835083,
+            0.014277172274887562,
+            0.012876146472990513
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016102660447359085,
+            0.014663252048194408,
+            0.013184736482799053
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016547517850995064,
+            0.014709035865962505,
+            0.013402141630649567
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016836604103446007,
+            0.015077551826834679,
+            0.01366365421563387
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 67,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017053697258234024,
+            0.015382899902760983,
+            0.013755923137068748
+          ]
+        },
+        {
+          "x": 67,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.013121195137500763,
+            0.011965242214500904,
+            0.010906945914030075
+          ]
+        },
+        {
+          "x": 200,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.013775542378425598,
+            0.012589072808623314,
+            0.011450180783867836
+          ]
+        },
+        {
+          "x": 333,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014182209968566895,
+            0.01296385657042265,
+            0.011719465255737305
+          ]
+        },
+        {
+          "x": 467,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014720742590725422,
+            0.0133104482665658,
+            0.012125215493142605
+          ]
+        },
+        {
+          "x": 600,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015259313397109509,
+            0.013850522227585316,
+            0.012570839375257492
+          ]
+        },
+        {
+          "x": 733,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015794401988387108,
+            0.014261174947023392,
+            0.012871767394244671
+          ]
+        },
+        {
+          "x": 867,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016029197722673416,
+            0.014489532448351383,
+            0.013150052167475224
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016473382711410522,
+            0.014965450391173363,
+            0.013619312085211277
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016826441511511803,
+            0.014924636110663414,
+            0.013655686751008034
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017414873465895653,
+            0.015571247786283493,
+            0.014230269938707352
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017255447804927826,
+            0.01571735367178917,
+            0.014138076454401016
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 200,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017618967220187187,
+            0.015862857922911644,
+            0.014293654821813107
+          ]
+        },
+        {
+          "x": 67,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.013763399794697762,
+            0.012407470494508743,
+            0.011470448225736618
+          ]
+        },
+        {
+          "x": 200,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014375202357769012,
+            0.012955093756318092,
+            0.01176102738827467
+          ]
+        },
+        {
+          "x": 333,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01480929460376501,
+            0.013457910157740116,
+            0.012298079207539558
+          ]
+        },
+        {
+          "x": 467,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015321724116802216,
+            0.013903996907174587,
+            0.012606414034962654
+          ]
+        },
+        {
+          "x": 600,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015817459672689438,
+            0.014387933537364006,
+            0.013073978014290333
+          ]
+        },
+        {
+          "x": 733,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01628475822508335,
+            0.014647822827100754,
+            0.013271493837237358
+          ]
+        },
+        {
+          "x": 867,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016644036397337914,
+            0.015053031966090202,
+            0.013687845319509506
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0170366782695055,
+            0.015387335792183876,
+            0.01388532854616642
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017321933060884476,
+            0.015661228448152542,
+            0.01410492230206728
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017695622518658638,
+            0.015928052365779877,
+            0.01443439070135355
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018057985231280327,
+            0.01631496101617813,
+            0.014717583544552326
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 333,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0182686448097229,
+            0.016373319551348686,
+            0.014826127327978611
+          ]
+        },
+        {
+          "x": 67,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.014236331917345524,
+            0.012992937117815018,
+            0.011784958653151989
+          ]
+        },
+        {
+          "x": 200,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015279575251042843,
+            0.01406500767916441,
+            0.012842413038015366
+          ]
+        },
+        {
+          "x": 333,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015486028045415878,
+            0.01406039297580719,
+            0.012878001667559147
+          ]
+        },
+        {
+          "x": 467,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016006508842110634,
+            0.014531746506690979,
+            0.013239714317023754
+          ]
+        },
+        {
+          "x": 600,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016484459862113,
+            0.015028029680252075,
+            0.013659672811627388
+          ]
+        },
+        {
+          "x": 733,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01689184084534645,
+            0.01530249509960413,
+            0.013949145562946796
+          ]
+        },
+        {
+          "x": 867,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017248937860131264,
+            0.01561064925044775,
+            0.014140650629997253
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01773068867623806,
+            0.0160942655056715,
+            0.014370120130479336
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018151387572288513,
+            0.016263214871287346,
+            0.01468892302364111
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01848650351166725,
+            0.016621030867099762,
+            0.014910521917045116
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018714675679802895,
+            0.016732919961214066,
+            0.01521656196564436
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 467,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018943333998322487,
+            0.017148742452263832,
+            0.015365793369710445
+          ]
+        },
+        {
+          "x": 67,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.015210811048746109,
+            0.013773306272923946,
+            0.012718958780169487
+          ]
+        },
+        {
+          "x": 200,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.016026897355914116,
+            0.014478674158453941,
+            0.013307410292327404
+          ]
+        },
+        {
+          "x": 333,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01697099581360817,
+            0.015417901799082756,
+            0.014108309522271156
+          ]
+        },
+        {
+          "x": 467,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01763126067817211,
+            0.016031118109822273,
+            0.014475247822701931
+          ]
+        },
+        {
+          "x": 600,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.017795894294977188,
+            0.016153212636709213,
+            0.014771553687751293
+          ]
+        },
+        {
+          "x": 733,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01789196766912937,
+            0.016203511506319046,
+            0.01481388695538044
+          ]
+        },
+        {
+          "x": 867,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018199114128947258,
+            0.016514185816049576,
+            0.014969178475439548
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018397297710180283,
+            0.016732946038246155,
+            0.015131919644773006
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018808558583259583,
+            0.016974441707134247,
+            0.015464830212295055
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01918708346784115,
+            0.017292091622948647,
+            0.015615527518093586
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019319038838148117,
+            0.0175468772649765,
+            0.015797078609466553
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 600,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019592396914958954,
+            0.017568692564964294,
+            0.01592349074780941
+          ]
+        },
+        {
+          "x": 67,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01656014658510685,
+            0.015191101469099522,
+            0.013984221033751965
+          ]
+        },
+        {
+          "x": 200,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019179683178663254,
+            0.017616931349039078,
+            0.016231194138526917
+          ]
+        },
+        {
+          "x": 333,
+          "y": 733,
+          "state": "rejected-bright",
+          "reason": "R median 0.02219 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.022185005247592926,
+            0.020588407292962074,
+            0.01878664828836918
+          ]
+        },
+        {
+          "x": 467,
+          "y": 733,
+          "state": "rejected-bright",
+          "reason": "R median 0.02380 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.02380286157131195,
+            0.02177739143371582,
+            0.02008088491857052
+          ]
+        },
+        {
+          "x": 600,
+          "y": 733,
+          "state": "rejected-bright",
+          "reason": "G median 0.01998 is above the background estimate 0.01669 + 1 x MADN 0.00327 = 0.01996",
+          "median": [
+            0.021868081763386726,
+            0.019978826865553856,
+            0.01830236427485943
+          ]
+        },
+        {
+          "x": 733,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02003539353609085,
+            0.018252331763505936,
+            0.016635162755846977
+          ]
+        },
+        {
+          "x": 867,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019295968115329742,
+            0.017441842705011368,
+            0.016010532155632973
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01926850713789463,
+            0.017484594136476517,
+            0.01593456044793129
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019414758309721947,
+            0.01757136546075344,
+            0.01588079333305359
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.019784383475780487,
+            0.01797257363796234,
+            0.015994081273674965
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02010304667055607,
+            0.01818258874118328,
+            0.016462169587612152
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 733,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.020333407446742058,
+            0.01844940334558487,
+            0.016611792147159576
+          ]
+        },
+        {
+          "x": 67,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01828930899500847,
+            0.016822705045342445,
+            0.0153286661952734
+          ]
+        },
+        {
+          "x": 200,
+          "y": 867,
+          "state": "rejected-bright",
+          "reason": "R median 0.02358 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.02357618696987629,
+            0.021842053160071373,
+            0.020331785082817078
+          ]
+        },
+        {
+          "x": 333,
+          "y": 867,
+          "state": "rejected-bright",
+          "reason": "R median 0.03945 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.03944510221481323,
+            0.036902472376823425,
+            0.03427237272262573
+          ]
+        },
+        {
+          "x": 467,
+          "y": 867,
+          "state": "rejected-bright",
+          "reason": "R median 0.05364 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.05364140495657921,
+            0.05035257339477539,
+            0.047173090279102325
+          ]
+        },
+        {
+          "x": 600,
+          "y": 867,
+          "state": "rejected-bright",
+          "reason": "R median 0.03007 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.030073972418904305,
+            0.027792148292064667,
+            0.025700697675347328
+          ]
+        },
+        {
+          "x": 733,
+          "y": 867,
+          "state": "rejected-bright",
+          "reason": "R median 0.02251 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.022508731111884117,
+            0.02054652012884617,
+            0.01887138932943344
+          ]
+        },
+        {
+          "x": 867,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.020483875647187233,
+            0.018617073073983192,
+            0.01690445840358734
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02050650492310524,
+            0.018577001988887787,
+            0.016861561685800552
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.020336801186203957,
+            0.01836240477859974,
+            0.016623826697468758
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02063141204416752,
+            0.01848367601633072,
+            0.01675289310514927
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021014723926782608,
+            0.019114507362246513,
+            0.017256561666727066
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 867,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02126237377524376,
+            0.019101619720458984,
+            0.017239661887288094
+          ]
+        },
+        {
+          "x": 67,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01822034642100334,
+            0.016743933781981468,
+            0.015364528633654118
+          ]
+        },
+        {
+          "x": 200,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021230492740869522,
+            0.019533267244696617,
+            0.017934560775756836
+          ]
+        },
+        {
+          "x": 333,
+          "y": 1000,
+          "state": "rejected-bright",
+          "reason": "R median 0.02608 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.026083929464221,
+            0.02404145523905754,
+            0.02222658134996891
+          ]
+        },
+        {
+          "x": 467,
+          "y": 1000,
+          "state": "rejected-bright",
+          "reason": "R median 0.02804 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.028044911101460457,
+            0.025851095095276833,
+            0.024040794000029564
+          ]
+        },
+        {
+          "x": 600,
+          "y": 1000,
+          "state": "rejected-bright",
+          "reason": "R median 0.02504 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.025044774636626244,
+            0.022870609536767006,
+            0.02116820588707924
+          ]
+        },
+        {
+          "x": 733,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021966977044939995,
+            0.019958898425102234,
+            0.018115242943167686
+          ]
+        },
+        {
+          "x": 867,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021008655428886414,
+            0.01902269758284092,
+            0.017256764695048332
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021151628345251083,
+            0.019220007583498955,
+            0.01741316169500351
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02101942151784897,
+            0.019076872617006302,
+            0.017243197187781334
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 1000,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021396765485405922,
+            0.01928928680717945,
+            0.01741345226764679
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 1000,
+          "state": "rejected-bright",
+          "reason": "R median 0.02201 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.0220066886395216,
+            0.019835157319903374,
+            0.017849089577794075
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 1000,
+          "state": "rejected-bright",
+          "reason": "R median 0.02201 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.02200721763074398,
+            0.019853444769978523,
+            0.017895128577947617
+          ]
+        },
+        {
+          "x": 67,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.01816658303141594,
+            0.01645621657371521,
+            0.015110675245523453
+          ]
+        },
+        {
+          "x": 200,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.018979961052536964,
+            0.017533330246806145,
+            0.01597735472023487
+          ]
+        },
+        {
+          "x": 333,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.020227797329425812,
+            0.018486373126506805,
+            0.0167392585426569
+          ]
+        },
+        {
+          "x": 467,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02097550593316555,
+            0.019145958125591278,
+            0.017347481101751328
+          ]
+        },
+        {
+          "x": 600,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02119663916528225,
+            0.019212814047932625,
+            0.017567375674843788
+          ]
+        },
+        {
+          "x": 733,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021088577806949615,
+            0.019079148769378662,
+            0.017343997955322266
+          ]
+        },
+        {
+          "x": 867,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02114679105579853,
+            0.019104335457086563,
+            0.017372816801071167
+          ]
+        },
+        {
+          "x": 1000,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.021457001566886902,
+            0.019477680325508118,
+            0.01758183166384697
+          ]
+        },
+        {
+          "x": 1133,
+          "y": 1133,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.02188432589173317,
+            0.019755017012357712,
+            0.017869990319013596
+          ]
+        },
+        {
+          "x": 1267,
+          "y": 1133,
+          "state": "rejected-bright",
+          "reason": "R median 0.02215 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.02215236984193325,
+            0.019997045397758484,
+            0.017937269061803818
+          ]
+        },
+        {
+          "x": 1400,
+          "y": 1133,
+          "state": "rejected-bright",
+          "reason": "R median 0.02262 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.0226210318505764,
+            0.020386019721627235,
+            0.018309419974684715
+          ]
+        },
+        {
+          "x": 1533,
+          "y": 1133,
+          "state": "rejected-bright",
+          "reason": "R median 0.02288 is above the background estimate 0.01845 + 1 x MADN 0.00355 = 0.02200",
+          "median": [
+            0.022880075499415398,
+            0.020657559856772423,
+            0.01849278435111046
+          ]
+        }
+      ]
+    },
+    "surface": {
+      "method": "thin-plate-spline",
+      "lambda": 0.012919065853094859,
+      "kernelScale": 0.12919065853094858,
+      "gridDivisor": 8,
+      "gridSize": [
+        201,
+        151
+      ],
+      "maxInterpErrorLevels": 0.0004046849109392084,
+      "interpProbes": 1000,
+      "interpLimitLevels": 0.5,
+      "correction": "subtract",
+      "perChannel": [
+        {
+          "modelMin": 0.012009740316543928,
+          "modelMax": 0.022963850907551975,
+          "modelMedian": 0.01830850764552651,
+          "pedestal": 0.01830850764552651
+        },
+        {
+          "modelMin": 0.01090399056340015,
+          "modelMax": 0.020592597235690735,
+          "modelMedian": 0.016582094043115368,
+          "pedestal": 0.016582094043115368
+        },
+        {
+          "modelMin": 0.010074813716465429,
+          "modelMax": 0.0185616621492217,
+          "modelMedian": 0.015052719068916583,
+          "pedestal": 0.015052719068916583
+        }
+      ]
+    },
+    "correction": [
+      {
+        "pedestal": 0.01830850764552651,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.016582094043115368,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.015052719068916583,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      }
+    ],
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.018448157473105974,
+          "madn": 0.0035493761855843495,
+          "mad": 0.0023940214390829285,
+          "span": 0.01437399862668802,
+          "q1": 0.016144045166704816,
+          "q3": 0.02093537804226749,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.010589761196307317,
+          "p999": 0.13449301899748226,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.016693369954985885,
+          "madn": 0.0032682790049811485,
+          "mad": 0.002204423988251146,
+          "span": 0.013229571984435792,
+          "q1": 0.01458762493324178,
+          "q3": 0.018997482261387044,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.009384298466468299,
+          "p999": 0.1342641336690318,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.01513694972152285,
+          "madn": 0.002984240675673262,
+          "mad": 0.002012842759795806,
+          "span": 0.012130922407873659,
+          "q1": 0.013214312962539101,
+          "q3": 0.017257953765163654,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.008377203021286335,
+          "p999": 0.1343404287785153,
+          "totalPixels": 1920000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.018478675516899367,
+          "madn": 0.0013917764218355033,
+          "mad": 0.0009387403357854467,
+          "span": 0.0056763561455710695,
+          "q1": 0.017593652246890974,
+          "q3": 0.01948577096208133,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.014602883955138476,
+          "p999": 0.13548485542076752,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.01675440604257267,
+          "madn": 0.0013864119322966734,
+          "mad": 0.0009351220371621971,
+          "span": 0.0056305790798809804,
+          "q1": 0.015869382772564278,
+          "q3": 0.017746242465857938,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012848096437018387,
+          "p999": 0.134355687800412,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.015213244831006332,
+          "madn": 0.0013845012212543694,
+          "mad": 0.0009338332802201332,
+          "span": 0.005630579079880986,
+          "q1": 0.01432822156099794,
+          "q3": 0.0162050812542916,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.011337453269245441,
+          "p999": 0.13417257953765163,
+          "totalPixels": 1920000
+        }
+      ]
+    }
+  },
+  {
+    "id": "colour-cal",
+    "name": "Colour calibration",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "backgroundNeutralise": true,
+      "starSigma": 12,
+      "starMax": 0.85,
+      "minStarPixels": 2000,
+      "extendedWindow": 25,
+      "extendedFrac": 0.5,
+      "reference": "green"
+    },
+    "notes": [
+      "Stellar gains: the faintest star median is 0.044710, less than 3x the sky pedestal (0.016824); a ratio taken above the sky is unstable when the star is barely above it.",
+      "Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": {
+      "applied": true,
+      "skipReason": null,
+      "beforeMedians": [
+        0.01849091611802578,
+        0.01675727218389511,
+        0.015223131980746984
+      ],
+      "target": 0.01682377342755596,
+      "offsets": [
+        0.0016671426904698201,
+        -0.0000665012436608485,
+        -0.001600641446808975
+      ]
+    },
+    "linked": null,
+    "colourFidelity": null,
+    "stars": {
+      "applied": false,
+      "skipReason": "the faintest star median is 0.044710, less than 3x the sky pedestal (0.016824); a ratio taken above the sky is unstable when the star is barely above it",
+      "pixels": 15014,
+      "pctFrame": 0.7819791666666667,
+      "selected": 61143,
+      "rejected": {
+        "saturated": 0,
+        "extended": 46129
+      },
+      "thresholdLow": 0.02675352792069316,
+      "thresholdHigh": 0.85,
+      "luminanceMedian": 0.016749536618590355,
+      "luminanceMADN": 0.0008336659418419003,
+      "pedestals": [
+        0.01682377342755596,
+        0.01682377342755596,
+        0.01682377342755596
+      ],
+      "medians": [
+        0.04470996558666229,
+        0.045081574469804764,
+        0.045550307258963585
+      ],
+      "abovePedestal": [
+        0.027886192159106333,
+        0.028257801042248804,
+        0.028726533831407625
+      ],
+      "ratios": {
+        "rOverG": 0.9868493347169204,
+        "bOverG": 1.0165877305335262
+      }
+    },
+    "gains": null,
+    "reference": "green",
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.018478675516899367,
+          "madn": 0.0013917764218355033,
+          "mad": 0.0009387403357854467,
+          "span": 0.0056763561455710695,
+          "q1": 0.017593652246890974,
+          "q3": 0.01948577096208133,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.014602883955138476,
+          "p999": 0.13548485542076752,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.01675440604257267,
+          "madn": 0.0013864119322966734,
+          "mad": 0.0009351220371621971,
+          "span": 0.0056305790798809804,
+          "q1": 0.015869382772564278,
+          "q3": 0.017746242465857938,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012848096437018387,
+          "p999": 0.134355687800412,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.015213244831006332,
+          "madn": 0.0013845012212543694,
+          "mad": 0.0009338332802201332,
+          "span": 0.005630579079880986,
+          "q1": 0.01432822156099794,
+          "q3": 0.0162050812542916,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.011337453269245441,
+          "p999": 0.13417257953765163,
+          "totalPixels": 1920000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013922900872430824,
+          "mad": 0.0009390867983563216,
+          "span": 0.0056763561455710695,
+          "q1": 0.015930418860151063,
+          "q3": 0.01782253757534142,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012939650568398567,
+          "p999": 0.13380636301213092,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013855202671435977,
+          "mad": 0.0009345206172559002,
+          "span": 0.0056305790798809804,
+          "q1": 0.015930418860151063,
+          "q3": 0.017807278553444723,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012909132524605172,
+          "p999": 0.13441672388799877,
+          "totalPixels": 1920000
+        },
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013847559827266755,
+          "mad": 0.0009340051144790743,
+          "span": 0.0056305790798809804,
+          "q1": 0.015930418860151063,
+          "q3": 0.017807278553444723,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012924391546501868,
+          "p999": 0.13577477683680475,
+          "totalPixels": 1920000
+        }
+      ]
+    }
+  },
+  {
+    "id": "stretch-asinh",
+    "name": "Asinh stretch",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "linked": true,
+      "operator": "asinh",
+      "applyVia": "luminance",
+      "shadowSigma": -2.8,
+      "target": 0.085,
+      "blackPct": 0.0005,
+      "nonLinear": false,
+      "stretch": null
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": {
+      "luminanceMedian": 0.016769665064469367,
+      "luminanceMADN": 0.0010589015610251832,
+      "shadows": 0.013804740693598855,
+      "midtones": 0.5,
+      "target": 0.085,
+      "solvedStretch": 171.99833884891805,
+      "stretchUnreachable": false,
+      "clipLow": 1677,
+      "clipHigh": 0,
+      "highlightCut": 0.040283817807278556
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0054164422591187,
+        "bOverG": 0.9994179330829253
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0098491256250526,
+        "bOverG": 0.9934020665389818
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 1918091,
+      "highlightPixels": 19220,
+      "pixelsRescaled": 1
+    },
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013922900872430824,
+          "mad": 0.0009390867983563216,
+          "span": 0.0056763561455710695,
+          "q1": 0.015930418860151063,
+          "q3": 0.01782253757534142,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012939650568398567,
+          "p999": 0.13380636301213092,
+          "totalPixels": 1920000,
+          "shadows": 0.013804740693598855,
+          "midtones": 0.5,
+          "target": 0.085,
+          "scale": 1.013997979166223,
+          "outLow": 1677,
+          "outHigh": 0
+        },
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013855202671435977,
+          "mad": 0.0009345206172559002,
+          "span": 0.0056305790798809804,
+          "q1": 0.015930418860151063,
+          "q3": 0.017807278553444723,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012909132524605172,
+          "p999": 0.13441672388799877,
+          "totalPixels": 1920000,
+          "shadows": 0.013804740693598855,
+          "midtones": 0.5,
+          "target": 0.085,
+          "scale": 1.013997979166223,
+          "outLow": 1677,
+          "outHigh": 0
+        },
+        {
+          "median": 0.016815442130159456,
+          "madn": 0.0013847559827266755,
+          "mad": 0.0009340051144790743,
+          "span": 0.0056305790798809804,
+          "q1": 0.015930418860151063,
+          "q3": 0.017807278553444723,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.012924391546501868,
+          "p999": 0.13577477683680475,
+          "totalPixels": 1920000,
+          "shadows": 0.013804740693598855,
+          "midtones": 0.5,
+          "target": 0.085,
+          "scale": 1.013997979166223,
+          "outLow": 1677,
+          "outHigh": 0
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.08455024032959488,
+          "madn": 0.0258529984783762,
+          "mad": 0.017437608578427223,
+          "span": 0.10496681162737469,
+          "q1": 0.06771953917753872,
+          "q3": 0.10270847638666361,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0012207217517357137,
+          "p999": 0.6356298161287861,
+          "totalPixels": 1920000,
+          "clipLow": 1677,
+          "clipHigh": 0,
+          "clipPct": 0.08734375
+        },
+        {
+          "median": 0.08546578164339666,
+          "madn": 0.029561999296212973,
+          "mad": 0.01993929535694926,
+          "span": 0.12030212863355458,
+          "q1": 0.06643778133821622,
+          "q3": 0.10653849088273441,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0010376134889753567,
+          "p999": 0.6406500343327993,
+          "totalPixels": 1920000,
+          "clipLow": 1677,
+          "clipHigh": 0,
+          "clipPct": 0.08734375
+        },
+        {
+          "median": 0.08430609597924774,
+          "madn": 0.024644406946902852,
+          "mad": 0.016622424758466783,
+          "span": 0.09997711146715497,
+          "q1": 0.06816205081254291,
+          "q3": 0.1014877546349279,
+          "sampled": 1920000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0013275349050125887,
+          "p999": 0.6537117570763714,
+          "totalPixels": 1920000,
+          "clipLow": 1677,
+          "clipHigh": 0,
+          "clipPct": 0.08734375
+        }
+      ]
+    }
+  },
+  {
+    "id": "quantise",
+    "name": "Quantise to 8-bit",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "dither": true,
+      "ditherSeed": 20260906,
+      "ditherAmplitudeLevels": 0.5
+    },
+    "notes": [
+      "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
+      "0 values below black and 0 above white were clamped here, out of 5760000."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": {
+      "low": 0,
+      "high": 0,
+      "nonFinite": 0,
+      "samples": 5760000,
+      "lowPct": 0,
+      "highPct": 0
+    },
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": null,
+    "after": null
+  }
+]

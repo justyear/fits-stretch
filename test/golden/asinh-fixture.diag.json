@@ -54,7 +54,7 @@
       "q1": 0.015930418860151063,
       "q3": 0.01782253757534142,
       "shadows": 0.013804740693598855,
-      "midtones": 0.03144031631393108,
+      "midtones": 0.5,
       "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
@@ -70,7 +70,7 @@
       "q1": 0.015930418860151063,
       "q3": 0.017807278553444723,
       "shadows": 0.013804740693598855,
-      "midtones": 0.03144031631393108,
+      "midtones": 0.5,
       "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
@@ -86,7 +86,7 @@
       "q1": 0.015930418860151063,
       "q3": 0.017807278553444723,
       "shadows": 0.013804740693598855,
-      "midtones": 0.03144031631393108,
+      "midtones": 0.5,
       "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
@@ -98,14 +98,14 @@
   ],
   "stretchMode": {
     "linked": true,
-    "operator": "mtf",
+    "operator": "asinh",
     "luminance": {
       "luminanceMedian": 0.016769665064469367,
       "luminanceMADN": 0.0010589015610251832,
       "shadows": 0.013804740693598855,
-      "midtones": 0.03144031631393108,
+      "midtones": 0.5,
       "target": 0.085,
-      "solvedStretch": null,
+      "solvedStretch": 171.99833884891805,
       "stretchUnreachable": false,
       "clipLow": 1677,
       "clipHigh": 0,
@@ -117,13 +117,13 @@
         "bOverG": 0.9994179330829253
       },
       "ratiosAfter": {
-        "rOverG": 1.0098430889306604,
-        "bOverG": 0.9934287974696537
+        "rOverG": 1.0098491256250526,
+        "bOverG": 0.9934020665389818
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 1918104,
+      "driftSamples": 1918091,
       "highlightPixels": 19220,
-      "pixelsRescaled": 405
+      "pixelsRescaled": 1
     }
   },
   "view": {
@@ -132,16 +132,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 2,
+    "header": 0,
     "decode": 74,
     "preview": 52,
-    "stats": 107,
-    "background": 517,
-    "colour": 693,
-    "transfer": 946,
-    "quantise": 108,
+    "stats": 108,
+    "background": 467,
+    "colour": 509,
+    "transfer": 819,
+    "quantise": 118,
     "downscale": 0,
-    "total": 1817
+    "total": 1407
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

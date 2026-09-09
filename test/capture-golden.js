@@ -82,7 +82,13 @@ window.__GOLDEN = [
   // por padrao ate o Modulo 3, entao capturar com os defaults nao exercitaria
   // nada da calibracao. Os parametros vao pelo mesmo requestRun que a interface
   // usaria; nao ha caminho de teste separado.
-  ['colour-fixture',    '/f/test/fixtures/fixture-colour.fit', { colourCal: true }]
+  ['colour-fixture',    '/f/test/fixtures/fixture-colour.fit', { colourCal: true }],
+  // Modulo 3 passo 6. O mesmo quadro do gradient, pelo outro operador, para que
+  // o asinh esteja verificado e nao apenas escrito. Nao e o padrao: a decisao de
+  // trocar espera haver imagem real para comparar. O que este golden fixa e a
+  // resolucao numerica de `stretch` contra o alvo -- 171.998 neste quadro, que e
+  // o numero que faz o asinh responder ao mesmo alvo que o MTF responde.
+  ['asinh-fixture',     '/f/test/fixtures/fixture-gradient.fit', { operator: 'asinh' }]
 ];
 
 /* ------------------------------------------------------------------ *

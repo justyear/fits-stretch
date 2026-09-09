@@ -160,18 +160,18 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 71,
+    "decode": 82,
     "roworder": 1,
-    "cfa": 42,
-    "debayer": 130,
-    "preview": 53,
-    "stats": 103,
-    "background": 475,
-    "colour": 661,
-    "transfer": 921,
-    "quantise": 119,
+    "cfa": 46,
+    "debayer": 154,
+    "preview": 56,
+    "stats": 109,
+    "background": 532,
+    "colour": 733,
+    "transfer": 1047,
+    "quantise": 132,
     "downscale": 0,
-    "total": 1956
+    "total": 2184
   },
   "historyCards": [],
   "allCards": [
