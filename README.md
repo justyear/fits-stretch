@@ -221,6 +221,7 @@ automated:
 | `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (249 comparisons across six test frames; the four that stay unanswered are the ones the Python declines to cover, and it declines them in its own output rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
+| `test\compare-safeguards.ps1` | can the colour calibration still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 

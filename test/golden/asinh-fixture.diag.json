@@ -49,14 +49,14 @@
   "channels": [
     {
       "channel": "R",
-      "median": 0.016815442130159456,
-      "madn": 0.0013922900872430824,
-      "q1": 0.015930418860151063,
-      "q3": 0.01782253757534142,
-      "shadows": 0.013804740693598855,
+      "median": 0.0170443274586099,
+      "madn": 0.001411673707069002,
+      "q1": 0.016144045166704816,
+      "q3": 0.018051422903791865,
+      "shadows": 0.013830851156798187,
       "midtones": 0.5,
       "target": 0.085,
-      "pixelsBlack": 1677,
+      "pixelsBlack": 1689,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
       "statSamples": 1920000,
@@ -69,10 +69,10 @@
       "madn": 0.0013855202671435977,
       "q1": 0.015930418860151063,
       "q3": 0.017807278553444723,
-      "shadows": 0.013804740693598855,
+      "shadows": 0.013830851156798187,
       "midtones": 0.5,
       "target": 0.085,
-      "pixelsBlack": 1677,
+      "pixelsBlack": 1689,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
       "statSamples": 1920000,
@@ -81,14 +81,14 @@
     },
     {
       "channel": "B",
-      "median": 0.016815442130159456,
-      "madn": 0.0013847559827266755,
-      "q1": 0.015930418860151063,
-      "q3": 0.017807278553444723,
-      "shadows": 0.013804740693598855,
+      "median": 0.01654077973601892,
+      "madn": 0.001362114315779294,
+      "q1": 0.015671015487907225,
+      "q3": 0.017517357137407492,
+      "shadows": 0.013830851156798187,
       "midtones": 0.5,
       "target": 0.085,
-      "pixelsBlack": 1677,
+      "pixelsBlack": 1689,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
       "statSamples": 1920000,
@@ -100,31 +100,31 @@
     "linked": true,
     "operator": "asinh",
     "luminance": {
-      "luminanceMedian": 0.016769665064469367,
-      "luminanceMADN": 0.0010589015610251832,
-      "shadows": 0.013804740693598855,
+      "luminanceMedian": 0.01680018310826276,
+      "luminanceMADN": 0.0010604756969516329,
+      "shadows": 0.013830851156798187,
       "midtones": 0.5,
       "target": 0.085,
-      "luminanceSpan": 0.004348821240558486,
-      "solvedStretch": 171.99833884891805,
+      "luminanceSpan": 0.004348821240558475,
+      "solvedStretch": 171.67952214404878,
       "stretchUnreachable": false,
-      "clipLow": 1677,
+      "clipLow": 1689,
       "clipHigh": 0,
-      "highlightCut": 0.040283817807278556
+      "highlightCut": 0.04036011291676204
     },
     "colourFidelity": {
       "ratiosBefore": {
-        "rOverG": 1.0054164422591187,
-        "bOverG": 0.9994179330829253
+        "rOverG": 1.018819097022733,
+        "bOverG": 0.9831173793991373
       },
       "ratiosAfter": {
-        "rOverG": 1.0098491256250526,
-        "bOverG": 0.9934020665389818
+        "rOverG": 1.0233040699486804,
+        "bOverG": 0.9772103036140856
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 1918091,
-      "highlightPixels": 19220,
-      "pixelsRescaled": 1
+      "driftSamples": 1918077,
+      "highlightPixels": 19207,
+      "pixelsRescaled": 0
     }
   },
   "view": {
@@ -134,15 +134,15 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 67,
-    "preview": 59,
-    "stats": 109,
-    "background": 441,
-    "colour": 519,
-    "transfer": 817,
-    "quantise": 93,
+    "decode": 73,
+    "preview": 57,
+    "stats": 96,
+    "background": 469,
+    "colour": 532,
+    "transfer": 838,
+    "quantise": 106,
     "downscale": 0,
-    "total": 1351
+    "total": 1415
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

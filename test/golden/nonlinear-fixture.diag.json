@@ -53,15 +53,15 @@
   "channels": [
     {
       "channel": "R",
-      "median": 0.24614328221561,
-      "madn": 0.005831664084560056,
-      "q1": 0.2421759365224689,
-      "q3": 0.25004959182116426,
-      "shadows": 0.2374303807125963,
-      "midtones": 0.033405301667266386,
-      "target": 0.24592965590905622,
+      "median": 0.2541237506675822,
+      "madn": 0.006019653196345125,
+      "q1": 0.25001907377737087,
+      "q3": 0.2581368734264134,
+      "shadows": 0.23855954833295187,
+      "midtones": 0.0333691499522445,
+      "target": 0.24708934157320517,
       "pixelsBlack": 269,
-      "pixelsWhite": 31,
+      "pixelsWhite": 52,
       "totalPixels": 540000,
       "statSamples": 540000,
       "statStride": 1,
@@ -73,11 +73,11 @@
       "madn": 0.006101650143877138,
       "q1": 0.24199282825970855,
       "q3": 0.2502174410620279,
-      "shadows": 0.2374303807125963,
-      "midtones": 0.033405301667266386,
-      "target": 0.24592965590905622,
+      "shadows": 0.23855954833295187,
+      "midtones": 0.0333691499522445,
+      "target": 0.24708934157320517,
       "pixelsBlack": 269,
-      "pixelsWhite": 31,
+      "pixelsWhite": 52,
       "totalPixels": 540000,
       "statSamples": 540000,
       "statStride": 1,
@@ -85,15 +85,15 @@
     },
     {
       "channel": "B",
-      "median": 0.24614328221561,
-      "madn": 0.0063155803943606694,
-      "q1": 0.24185549706263829,
-      "q3": 0.2503700312809949,
-      "shadows": 0.2374303807125963,
-      "midtones": 0.033405301667266386,
-      "target": 0.24592965590905622,
+      "median": 0.2388342107270924,
+      "madn": 0.006128314142362901,
+      "q1": 0.23466849774929427,
+      "q3": 0.24293888761730373,
+      "shadows": 0.23855954833295187,
+      "midtones": 0.0333691499522445,
+      "target": 0.24708934157320517,
       "pixelsBlack": 269,
-      "pixelsWhite": 31,
+      "pixelsWhite": 52,
       "totalPixels": 540000,
       "statSamples": 540000,
       "statStride": 1,
@@ -104,31 +104,31 @@
     "linked": true,
     "operator": "mtf",
     "luminance": {
-      "luminanceMedian": 0.24592965590905622,
-      "luminanceMADN": 0.004410076428001633,
-      "shadows": 0.2374303807125963,
-      "midtones": 0.033405301667266386,
-      "target": 0.24592965590905622,
+      "luminanceMedian": 0.24708934157320517,
+      "luminanceMADN": 0.0044116919885577284,
+      "shadows": 0.23855954833295187,
+      "midtones": 0.0333691499522445,
+      "target": 0.24708934157320517,
       "luminanceSpan": 0.017853055619134833,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 269,
-      "clipHigh": 31,
-      "highlightCut": 0.7736781872281987
+      "clipHigh": 52,
+      "highlightCut": 0.7774166475928893
     },
     "colourFidelity": {
       "ratiosBefore": {
-        "rOverG": 0.9804891474194828,
-        "bOverG": 1.0144805632561875
+        "rOverG": 1.0122669240759892,
+        "bOverG": 0.9843214100051518
       },
       "ratiosAfter": {
-        "rOverG": 0.9808390957013445,
-        "bOverG": 1.014122386507713
+        "rOverG": 1.012099390313881,
+        "bOverG": 0.984475910183311
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 539709,
+      "driftSamples": 539705,
       "highlightPixels": 5401,
-      "pixelsRescaled": 8434
+      "pixelsRescaled": 9281
     }
   },
   "view": {
@@ -137,16 +137,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 32,
+    "header": 1,
+    "decode": 37,
     "preview": 2,
-    "stats": 45,
-    "background": 236,
-    "colour": 239,
-    "transfer": 331,
-    "quantise": 45,
+    "stats": 63,
+    "background": 323,
+    "colour": 321,
+    "transfer": 421,
+    "quantise": 49,
     "downscale": 0,
-    "total": 721
+    "total": 908
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

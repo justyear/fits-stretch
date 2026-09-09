@@ -795,6 +795,86 @@ própria do comparador, e é onde a investigação começa.
 aparece]": lá a causa estava uma etapa a montante, aqui está uma variável a
 montante. Mesmo erro de foco, mesma correção.
 
+## Salvaguarda com constante escolhida sem medir é palpite com aparência de rigor
+
+A calibração de cor teve, por um dia, esta regra: **a menor mediana estelar tem
+que estar pelo menos 3× acima do pedestal, senão a etapa não roda.** A
+justificativa escrita era "a razão fica instável quando o numerador é uma
+diferença pequena de dois números grandes", que é verdade em geral e não diz
+nada sobre onde fica o limite.
+
+O `3` não foi medido. Foi escolhido.
+
+**O que ele bloqueou.** Um empilhamento de 60 horas com cor perfeitamente boa. A
+razão saiu em 1,87× e a regra recusou ganhos de **R 1,038 · G 1,000 · B 1,341**
+— valores confirmados por outro caminho contra o arquivo cru.
+
+**E a razão não estava instável.** Medido, perturbando o pedestal:
+
+| erro no pedestal | ganho azul se move |
+|---|---|
+| 2 % | 0,60 % |
+| 5 % | 1,55 % |
+| 10 % | 3,29 % |
+| 25 % | 10,2 % |
+
+O erro **real** do pedestal, entre duas implementações independentes, é
+**0,048 %** — onde o ganho azul se move menos de 0,02 %. A salvaguarda defendia
+contra um erro quatrocentas vezes maior que o que acontece.
+
+### A forma certa: medir a grandeza que a salvaguarda alega proteger
+
+```
+Perturbe o pedestal em ±10% e refaça a conta.
+Se qualquer ganho se mover mais que 5%, recuse.
+```
+
+Derivável, sem constante inventada no meio, e mede **instabilidade** em vez de
+usar um múltiplo como procuração dela. Onde a estrela está mesmo colada no céu,
+`above` é pequeno, a perturbação é uma fração grande dele, e o mesmo teste
+reprova sozinho.
+
+O número medido entra no record e no log: *"a 10% error in the sky estimate
+would move the gains by at most 0.23%"*. O leitor julga a resposta em vez de
+aceitá-la.
+
+### O efeito colateral, e ele é da outra classe já registrada
+
+Depois da troca, **nenhum** dos seis fixtures faz a regra disparar — todos ficam
+entre 0,03 % e 1,3 %. Isso é o resultado certo e cria o problema dos quatro
+zeros do `rejected-edge`: salvaguarda que nunca dispara é salvaguarda que
+ninguém verificou.
+
+Coberto por `test/compare-safeguards.ps1`, que soma céu ao quadro até a regra
+recusar. Somar uma constante não muda `above` — pedestal e mediana estelar sobem
+juntos — mas aumenta a sondagem, que é 10 % do pedestal. É o caso físico exato,
+não um número forçado:
+
+```
+ceu +0.00  sensibilidade 0.103%  aplica 1.0133/1.0000/0.9837
+ceu +0.05  sensibilidade 0.504%  aplica
+ceu +0.10  sensibilidade 1.140%  aplica
+ceu +0.15  sensibilidade 2.305%  aplica
+ceu +0.20  sensibilidade 5.088%  RECUSA
+ceu +0.30  sensibilidade inf     RECUSA
+```
+
+E a asserção que importa mais que o corte: **os ganhos derivam 0,266 % enquanto
+a regra ainda aceita.** Se derivassem junto com o céu, a regra estaria recusando
+por *diferença* e não por *não-confiabilidade* — mediria outra coisa com o nome
+certo.
+
+### As duas defesas podem brigar entre si
+
+O que produziu o 1,87× não foi o céu alto: foi a **rejeição de fonte extensa**
+removendo 385 mil pixels — a galáxia inteira — e deixando estrelas de campo
+fracas. Uma defesa remove o objeto brilhante, a outra reclama que o resto está
+fraco.
+
+Ninguém escreveu isso: as duas foram pedidas separadamente, cada uma com bom
+motivo, e a interação apareceu no dado. **Salvaguarda nova entra medindo o que
+ela faz com as que já existem**, não só o que faz sozinha.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril

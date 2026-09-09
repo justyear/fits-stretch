@@ -2269,12 +2269,43 @@ function exactMedian(a, n){
 var CC_GAIN_MIN = 0.25;
 var CC_GAIN_MAX = 4.0;
 
-// The selected star median has to stand this far above the sky before a ratio
-// taken against it means anything. Section 2.2: the ratio is
-// (median - pedestal) / (reference - pedestal), and as the numerator shrinks
-// toward the pedestal the quotient stops being a measurement and starts being
-// a division of two small differences of two large numbers.
-var CC_PEDESTAL_HEADROOM = 3.0;
+/* THE STABILITY TEST, AND WHY IT IS NOT A MULTIPLE OF THE PEDESTAL.
+ *
+ * What has to be true before a ratio taken above the sky can be trusted is that
+ * it does not move much when the sky estimate moves a little. That is a
+ * question about SENSITIVITY, and it is measurable: perturb the pedestal, redo
+ * the arithmetic, see how far the gains travel.
+ *
+ * This used to be "the faintest star median must be at least 3x the pedestal",
+ * and that rule is a guess wearing the costume of a criterion. It was written
+ * without measuring the thing it claims to protect, and it was wrong in the
+ * direction that costs most: on a 60-hour stack it refused gains of
+ * R 1.038 / G 1.000 / B 1.341 -- values independently confirmed against the raw
+ * file by another route -- because the ratio came out at 1.87x instead of 3x.
+ *
+ * The ratio was not unstable. Measured on that stack, perturbing the pedestal:
+ *
+ *     2% error  ->  blue gain moves 0.60%
+ *     5%        ->  1.55%
+ *    10%        ->  3.29%
+ *    25%        ->  10.2%
+ *
+ * and the pedestal's real disagreement between two independent implementations
+ * is 0.048%, where the blue gain moves less than 0.02%. The safeguard was
+ * defending against an error four hundred times larger than the one that
+ * happens.
+ *
+ * So: probe the pedestal by CC_PEDESTAL_PROBE in both directions and refuse if
+ * any gain moves by more than CC_SENSITIVITY_MAX. Where the stars really are
+ * buried in the sky, `above` is small, the perturbation is a large fraction of
+ * it, and the same test refuses on its own -- without a constant anyone had to
+ * pick.
+ *
+ * The measured number goes in the record either way, so the log can say why it
+ * trusted rather than only that it did.
+ */
+var CC_PEDESTAL_PROBE = 0.10;      // 10% error in the sky estimate
+var CC_SENSITIVITY_MAX = 0.05;     // ...may move any gain by at most 5%
 
 /* --- extended-source rejection -----------------------------------------
  *
@@ -2573,15 +2604,50 @@ function stepColourCal(img, params, report){
       bOverG: above[1] !== 0 ? above[2] / above[1] : null
     };
 
-    var lowest = Math.min(starMedians[0], starMedians[1], starMedians[2]);
-    var floor = CC_PEDESTAL_HEADROOM * Math.max(pedestals[0], pedestals[1], pedestals[2]);
     var refMedian = above[refIdx];
 
-    if (!(lowest >= floor)){
-      stars.skipReason = 'the faintest star median is ' + lowest.toFixed(6) +
-        ', less than ' + CC_PEDESTAL_HEADROOM + 'x the sky pedestal (' +
-        Math.max(pedestals[0], pedestals[1], pedestals[2]).toFixed(6) +
-        '); a ratio taken above the sky is unstable when the star is barely above it';
+    // The gains as they stand, and the gains with the sky estimate moved. The
+    // probe runs in both directions because the two are not symmetric: `above`
+    // shrinks in one and grows in the other, and the shrinking side is where a
+    // ratio comes apart.
+    function gainsAt(scale){
+      var out = [], ok = true;
+      var refAbove = starMedians[refIdx] - pedestals[refIdx] * scale;
+      if (!(refAbove > 0)) return null;
+      for (var k = 0; k < 3; k++){
+        var a = starMedians[k] - pedestals[k] * scale;
+        if (!(a > 0)) { ok = false; break; }
+        out.push(refAbove / a);
+      }
+      return ok ? out : null;
+    }
+    var gBase = gainsAt(1);
+    var sensitivity = Infinity, sensChannel = -1;
+    if (gBase){
+      sensitivity = 0;
+      for (var s = 0; s < 2; s++){
+        var probe = gainsAt(1 + (s === 0 ? CC_PEDESTAL_PROBE : -CC_PEDESTAL_PROBE));
+        if (!probe){ sensitivity = Infinity; sensChannel = -1; break; }
+        for (var k2 = 0; k2 < 3; k2++){
+          if (!(gBase[k2] > 0)) continue;
+          var move = Math.abs(probe[k2] - gBase[k2]) / gBase[k2];
+          if (move > sensitivity){ sensitivity = move; sensChannel = k2; }
+        }
+      }
+    }
+    stars.pedestalProbe = CC_PEDESTAL_PROBE;
+    stars.gainSensitivity = isFinite(sensitivity) ? sensitivity : null;
+    stars.gainSensitivityChannel = (sensChannel >= 0) ? ['red', 'green', 'blue'][sensChannel] : null;
+
+    if (!(sensitivity <= CC_SENSITIVITY_MAX)){
+      stars.skipReason = 'a ' + (100 * CC_PEDESTAL_PROBE).toFixed(0) +
+        '% error in the sky estimate would move the ' +
+        (sensChannel >= 0 ? ['red', 'green', 'blue'][sensChannel] + ' gain by ' +
+           (100 * sensitivity).toFixed(2) + '%'
+         : 'gains without limit') +
+        ', over the ' + (100 * CC_SENSITIVITY_MAX).toFixed(0) +
+        '% this step accepts; the stars are too close to the sky here for a ratio ' +
+        'taken above it to be stable';
     } else if (!(refMedian > 0)){
       stars.skipReason = 'the ' + effective.reference + ' star median is ' + refMedian +
                          ' above the sky, which cannot be a reference';
@@ -3423,6 +3489,19 @@ function buildLog(ctx){
              '; above a sky of ' + fx(sr.pedestals[1], 5) + ' that is ' +
              'R ' + fx(sr.abovePedestal[0], 5) + ', G ' + fx(sr.abovePedestal[1], 5) +
              ', B ' + fx(sr.abovePedestal[2], 5) + '.');
+      // WHY IT TRUSTED, not just that it did. The gains are a ratio taken above
+      // the sky, so the question that decides whether they mean anything is how
+      // far they move when the sky estimate moves. That is measured on every
+      // run, and printing it lets the reader judge the answer instead of taking
+      // it — which is the difference this whole log exists to make.
+      if (sr.gainSensitivity !== null && sr.gainSensitivity !== undefined){
+        L.push('    Checked for stability before applying: a ' +
+               Math.round(sr.pedestalProbe * 100) + '% error in the sky estimate would move ' +
+               'the gains by at most ' + fx(100 * sr.gainSensitivity, 2) + '%' +
+               (sr.gainSensitivityChannel ? ' (in ' + sr.gainSensitivityChannel + ')' : '') +
+               '. A ratio taken above the sky is only worth applying if it barely ' +
+               'moves when the sky estimate does.');
+      }
       L.push('    Nothing here was a preference: the numbers came from the stars you ' +
              'photographed. Star colour is the reference because sky has no colour of ' +
              'its own to measure against. No catalogue was consulted, no astrometry was ' +
