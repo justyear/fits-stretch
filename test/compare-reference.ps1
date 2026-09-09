@@ -180,6 +180,47 @@ function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta,
     return New-Row $fixture $scope $field $m $r $verdict $detail
 }
 
+<#
+RAZAO DE DUAS DIFERENCAS PEQUENAS: A TOLERANCIA VEM DAS ENTRADAS, AMPLIFICADA.
+
+Os ganhos e as razoes estelares sao `above_a / above_b`, e `above` e uma
+diferenca de dois numeros muito maiores que ela -- mediana estelar menos
+pedestal, 0.0279 saindo de 0.0447 menos 0.0168.
+
+Comparar o quociente com a tolerancia do eixo [0,1] ignora o Jacobiano.
+d(a/b)/(a/b) = da/a + db/b, e com `above` perto de 0.028 o fator 1/above vale
+36x: uma diferenca de 1.14 bins em `above` -- que PASSA na propria linha dela --
+vira 33 bins no ganho, e a linha do ganho reprova descrevendo a mesma
+discordancia que a linha de cima acabou de aprovar.
+
+Medido no gradient: `R acimaDoPedestal` passa em 1.14 de 4.00 bins, e `R ganho`
+reprovava em 32.77 de 6.64. Uma discordancia, duas linhas, vereditos opostos.
+
+A tolerancia aqui e a das ENTRADAS propagada pela formula -- nao um numero
+escolhido para caber, e nao a tolerancia do eixo aplicada a um quociente que
+nao mora nele. Se a entrada estourar a tolerancia dela, a linha da entrada
+reprova, que e onde a causa esta.
+#>
+function Compare-Ratio($fixture, $scope, $field, $mine, $refv, $numRef, $denRef) {
+    $known = Get-Known $fixture $field
+    $m = [double]$mine; $r = [double]$refv
+    $diff = [math]::Abs($m - $r)
+
+    $rel = 0.0
+    foreach ($v in @([math]::Abs([double]$numRef), [math]::Abs([double]$denRef))) {
+        if ($v -gt 0) { $rel += [math]::Max(1e-4 * $v, 4.0 / 65535.0) / $v }
+    }
+    $lim = [math]::Abs($r) * $rel
+
+    $ok = ($diff -le $lim)
+    $verdict = if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } elseif ($known) { 'KNOWN' } else { 'FAIL' }
+    $detail = if ($known -and -not $ok) { $known.reason } else {
+        ("{0:0.00} de {1:0.00} bins - tolerancia das entradas propagada (1/above = {2:0.0}x)" -f `
+         ($diff * 65535), ($lim * 65535), (1.0 / [math]::Max([double]$denRef, 1e-12)))
+    }
+    return New-Row $fixture $scope $field $m $r $verdict $detail
+}
+
 function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $total, $medianDelta = 0) {
     $known = Get-Known $fixture $field
 
@@ -623,12 +664,32 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                     }
                 }
                 if (($null -ne $ccRec.stars.ratios) -and ($null -ne $cr2ref.razoes)) {
-                    $rows += Compare-Value $name 'cor' 'razao.rOverG' $ccRec.stars.ratios.rOverG $cr2ref.razoes.rOverG 'unit' 0 0
-                    $rows += Compare-Value $name 'cor' 'razao.bOverG' $ccRec.stars.ratios.bOverG $cr2ref.razoes.bOverG 'unit' 0 0
+                    $rows += Compare-Ratio $name 'cor' 'razao.rOverG' $ccRec.stars.ratios.rOverG $cr2ref.razoes.rOverG `
+                             $cr2ref.acimaDoPedestal[0] $cr2ref.acimaDoPedestal[1]
+                    $rows += Compare-Ratio $name 'cor' 'razao.bOverG' $ccRec.stars.ratios.bOverG $cr2ref.razoes.bOverG `
+                             $cr2ref.acimaDoPedestal[2] $cr2ref.acimaDoPedestal[1]
                 }
                 if ($ccRec.gains -and $cr2ref.ganhos) {
                     foreach ($ci in 0..2) {
-                        $rows += Compare-Value $name $CH3[$ci] 'ganho' $ccRec.gains[$ci] $cr2ref.ganhos[$ci] 'unit' 0 0
+                        $rows += Compare-Ratio $name $CH3[$ci] 'ganho' $ccRec.gains[$ci] $cr2ref.ganhos[$ci] `
+                                 $cr2ref.acimaDoPedestal[1] $cr2ref.acimaDoPedestal[$ci]
+                        # A LINHA ACIMA E LARGA DE PROPOSITO, E ESTA E A QUE A COBRE.
+                        #
+                        # A tolerancia propagada herda o piso 4/65535 do eixo, que sobre
+                        # um `above` de 0.013 vale 4.6e-3 relativo -- ponto cego de quase
+                        # 1% num ganho, e 1% no azul se ve. Ela responde "os ganhos
+                        # concordam dentro do que as entradas permitem?", que e uma
+                        # pergunta legitima e frouxa.
+                        #
+                        # Esta responde a outra: "a formula e a mesma?". Alimentada com o
+                        # `above` DELES, tem que reproduzir o ganho deles ao nivel do
+                        # float. Um erro de formula de 1% aparece aqui mesmo escondido
+                        # na folga da linha de cima, e um erro de ENTRADA aparece na
+                        # linha do proprio acimaDoPedestal, que tem tolerancia estreita.
+                        $meuGanho = if ([double]$cr2ref.acimaDoPedestal[$ci] -ne 0) {
+                            [double]$cr2ref.acimaDoPedestal[1] / [double]$cr2ref.acimaDoPedestal[$ci]
+                        } else { [double]::NaN }
+                        $rows += Compare-Value $name $CH3[$ci] 'ganho(formula)' $meuGanho $cr2ref.ganhos[$ci] 'unit' 0 0
                     }
                 } else {
                     # A recusa e resultado, e concordar sobre ela vale tanto

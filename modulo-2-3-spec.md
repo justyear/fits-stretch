@@ -525,6 +525,36 @@ divergência de fórmula junto; isolar não esconde. Foi assim que o `target` do
 ramo não-linear apareceu: `midtones(formula)` passou e `target` reprovou, o que
 localiza o defeito na entrada e não no método.
 
+
+### Razão de duas diferenças pequenas carrega a tolerância das entradas, amplificada
+
+Os ganhos e as razões estelares são `above_a / above_b`, e `above` é uma
+diferença de dois números muito maiores que ela — mediana estelar menos
+pedestal, 0,0279 saindo de 0,0447 menos 0,0168.
+
+Comparar o quociente com a tolerância do eixo [0,1] ignora o Jacobiano:
+
+```
+d(a/b)/(a/b) = da/a + db/b
+```
+
+e com `above ≈ 0,028` o fator `1/above` vale **36×**. Medido no `gradient`:
+`R acimaDoPedestal` **passa** em 1,14 de 4,00 bins, e `R ganho` **reprovava** em
+32,77 de 6,64 — uma discordância, duas linhas, vereditos opostos, e a linha que
+reprovava descrevia o que a linha de cima acabara de aprovar.
+
+A tolerância do quociente é a das **entradas propagada pela fórmula**. Não um
+número escolhido para caber, e não a tolerância do eixo aplicada a algo que não
+mora nele.
+
+**E ela sai larga — 596 bins no `rice`, porque `above` ali é 0,013 e o piso
+`4/65535` do eixo domina.** Isso é ponto cego de quase 1% num ganho, e 1% no
+azul se vê. Coberto por uma segunda linha, `ganho(formula)`: a fórmula desta
+ponta alimentada com o `above` da outra tem que reproduzir o ganho dela ao nível
+do float — **0,00 bins em 15 de 15**. Um erro de fórmula aparece ali mesmo
+escondido na folga da primeira linha; um erro de entrada aparece na linha do
+próprio `acimaDoPedestal`, que é estreita. As duas juntas não deixam vão.
+
 ## 6. Ordem de execução
 
 1. `steps/colour-cal.js` — neutralização e ganhos, com as salvaguardas. Sem

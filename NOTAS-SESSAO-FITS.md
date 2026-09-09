@@ -875,6 +875,34 @@ Ninguém escreveu isso: as duas foram pedidas separadamente, cada uma com bom
 motivo, e a interação apareceu no dado. **Salvaguarda nova entra medindo o que
 ela faz com as que já existem**, não só o que faz sozinha.
 
+## A regra funcionou sem ninguém precisar lembrar dela
+
+Passo final do Módulo 3. Depois de trocar a salvaguarda, a instrução foi: *"rode
+o M31 de novo e me mande a imagem"*.
+
+Recusei, e o motivo não foi julgamento próprio — foi o `CLAUDE.md` deste
+repositório, escrito nesta mesma árvore: nenhum arquivo de terceiro entra, **e
+render de dado de parceiro é dado de parceiro**. O `serve.ps1` também não mapeia
+nada fora da pasta, que é a metade mecânica da mesma regra.
+
+O que ficou registrado como valendo mais que a recusa: **quem escreveu a regra
+não teve que lembrar dela.** Ela foi aplicada contra o pedido de quem a
+escreveu, num momento em que atendê-lo era mais rápido e mais agradável, e o
+custo de aplicá-la foi um parágrafo.
+
+Isso é o teste que uma regra operacional tem que passar para valer alguma coisa.
+Uma regra que só é seguida quando ninguém está pedindo o contrário é decoração;
+o que a torna real é ela segurar exatamente quando pesa. As três regras de
+higiene de dado deste projeto — a de pixel, a de texto, a de saída de comando —
+existem porque uma auditoria já achou centenas de ocorrências de identificador
+numa transcrição, e o conserto foi caro. Esta é a primeira vez em que uma delas
+evitou o problema em vez de reparar.
+
+**E a alternativa útil existia e foi oferecida:** dos números que a outra ponta
+já tinha medido, dava para afirmar que a regra nova admite aquele quadro — 10%
+de erro no pedestal move o azul 3,29%, abaixo do corte de 5%. A recusa não
+precisou vir sozinha; veio com a resposta que a pergunta queria.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
