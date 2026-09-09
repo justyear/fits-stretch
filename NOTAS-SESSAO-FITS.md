@@ -722,6 +722,36 @@ sobrevive a uma fonte pontual que ocupe até ~20% da caixa, medido assim". Sem o
 regime, a frase é verdadeira no fixture que a gerou e desconhecida em todo o
 resto — e ninguém sabe disso até um caso novo chegar.
 
+## O comparador obedece a declaração da referência, não uma lista própria
+
+Aprovado no passo 7. Quando a referência Python não cobre um fixture — hoje o
+`seestar`, porque ela não faz debayer e num mosaico mede o padrão Bayer em vez
+do quadro demosaicado — **quem declara isso é ela**, num bloco `cobertura` do
+próprio JSON:
+
+```json
+"cobertura": { "porCanalAindaNA": ["seestar"], "motivo": "..." }
+```
+
+O `compare-reference.ps1` lê esse bloco. Não mantém lista de exclusão do lado de
+cá.
+
+**Por quê, e não é elegância.** Uma lista aqui seria a segunda cópia da mesma
+verdade, e a que envelhece: a referência ganha cobertura, ninguém lembra de
+apagar o nome daqui, e o comparador segue pulando um fixture que já podia ser
+comparado. Cobertura que existe e não é usada é indistinguível de cobertura que
+não existe.
+
+**E a falha é ruidosa nos dois sentidos.** Quando a referência foi reescrita no
+passo 7 ela veio sem o bloco `cobertura`, e o `seestar` imediatamente reprovou
+em quatro linhas — `fundo.aceitas` 73 contra 81, `lum.madn` por um fator de 6.
+Isso é o comportamento certo: parar de declarar uma exclusão faz o comparador
+comparar duas coisas que não são a mesma, e reprovar alto. Uma lista local teria
+continuado pulando em silêncio e o buraco ficaria invisível.
+
+Mesma família da regra dos hashes do MANIFEST e do `Test-Tracked`: **o dado mora
+num lugar só, e quem precisa dele lê de lá.**
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril

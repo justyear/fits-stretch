@@ -46,7 +46,7 @@ def colour_calibrate(planes, params=None):
     rec = {'params': p}
 
     if len(planes) != 3:
-        return planes, dict(applied=False,
+        return planes, dict(applied=False, ganhos=None,
                             skipReason='colour calibration needs 3 channels', **rec)
 
     # --- 2.1 neutralizacao (aditiva, mediana EXATA: a correcao e menor
@@ -95,7 +95,8 @@ def colour_calibrate(planes, params=None):
     if n < p['minStarPixels']:
         rec['motivoRecusa'] = (f'only {n} star pixels survived selection, '
                                f'{p["minStarPixels"]} are needed')
-        return planes, dict(applied=False, skipReason=rec['motivoRecusa'], **rec)
+        return planes, dict(applied=p['backgroundNeutralise'],
+                            skipReason=rec['motivoRecusa'], **rec)
 
     sm = [med_exact(c[sel]) for c in planes]
     rec['medianasEstelares'] = sm
@@ -106,7 +107,8 @@ def colour_calibrate(planes, params=None):
         rec['motivoRecusa'] = (f'the faintest star median is {min(sm):.6f}, less '
                                f'than {p["pedestalRatio"]:.0f}x the sky pedestal '
                                f'({max(ped):.6f})')
-        return planes, dict(applied=False, skipReason=rec['motivoRecusa'], **rec)
+        return planes, dict(applied=p['backgroundNeutralise'],
+                            skipReason=rec['motivoRecusa'], **rec)
 
     # a cor de uma estrela e o fluxo ACIMA do ceu
     above = [s - q for s, q in zip(sm, ped)]
@@ -117,7 +119,8 @@ def colour_calibrate(planes, params=None):
     gains[1] = 1.0
     if any(not (p['gainMin'] <= g <= p['gainMax']) for g in gains):
         rec['motivoRecusa'] = f'a gain fell outside [{p["gainMin"]}, {p["gainMax"]}]'
-        return planes, dict(applied=False, skipReason=rec['motivoRecusa'], **rec)
+        return planes, dict(applied=p['backgroundNeutralise'],
+                            skipReason=rec['motivoRecusa'], **rec)
 
     rec['ganhos'] = gains
     planes = [(c.astype(F64) * g).astype(F32) for c, g in zip(planes, gains)]
@@ -138,11 +141,27 @@ def _mtf_scalar(x, m):
     return ((m - 1.0) * x) / (((2.0 * m - 1.0) * x) - m)
 
 
-def linked_stretch(planes, params=None):
+def percentile_nearest_rank(v, frac):
+    """Nearest-rank: o menor valor cujo acumulado atinge frac*N.
+
+    E a convencao do JS (histograma, borda inferior do bin). Aqui e a
+    versao exata da mesma convencao -- np.percentile INTERPOLA e da
+    outro numero.
+    """
+    s = np.sort(np.asarray(v, dtype=F64).ravel())
+    k = int(np.ceil(frac * s.size)) - 1
+    return float(s[min(max(k, 0), s.size - 1)])
+
+
+BLACK_PCT = 0.0005
+
+
+def linked_stretch(planes, params=None, non_linear=False):
     p = dict(linked=True, operator='mtf', target=0.085,
-             shadowSigma=-2.80, applyVia='luminance')
+             shadowSigma=-2.80, applyVia='luminance', blackPct=BLACK_PCT)
     p.update(params or {})
-    rec = {'params': p, 'ligado': p['linked'], 'operador': p['operator']}
+    rec = {'params': p, 'ligado': p['linked'], 'operador': p['operator'],
+           'nonLinear': non_linear}
 
     # Detalhe 2 -- AQUI e Rec.709, fotometrica.
     if len(planes) == 3:
@@ -154,10 +173,21 @@ def linked_stretch(planes, params=None):
     ymed, ymadn = madn_exact(Y)
     rec['luminancia'] = dict(mediana=ymed, madn=ymadn)
 
-    c0 = ymed + p['shadowSigma'] * ymadn
+    # No ramo nao-linear o alvo NAO e o parametro: e a mediana do proprio
+    # quadro, limitada a [0.02, 0.6]. E o ponto preto sai do percentil,
+    # nao da regra de sigma.
+    if non_linear:
+        c0 = percentile_nearest_rank(Y, p['blackPct'])
+        target = min(0.6, max(0.02, ymed))
+    else:
+        c0 = ymed + p['shadowSigma'] * ymadn
+        target = p['target']
     if not (c0 >= 0): c0 = 0.0
     if c0 >= ymed: c0 = max(0.0, ymed * 0.5)
     rec['shadows'] = c0
+    rec['luminanceSpan'] = 3.0 * (med_exact(np.percentile(Y, 75))
+                                  - med_exact(np.percentile(Y, 25))) \
+        if False else 3.0 * (float(np.percentile(Y, 75)) - float(np.percentile(Y, 25)))
     scale = 1.0 / (1.0 - c0)
 
     u = (Y.astype(F64) - c0) * scale
@@ -171,7 +201,7 @@ def linked_stretch(planes, params=None):
         lo_s, hi_s = 1e-3, 1e6                      # bisseccao contra o alvo
         for _ in range(200):
             mid = (lo_s + hi_s) / 2
-            if f_at(mid) < p['target']: lo_s = mid
+            if f_at(mid) < target: lo_s = mid
             else: hi_s = mid
         s = (lo_s + hi_s) / 2
         rec['solvedStretch'] = s
@@ -179,12 +209,12 @@ def linked_stretch(planes, params=None):
         Yp = np.arcsinh(s * np.clip(u, 0, 1)) / np.arcsinh(s)
     else:
         x = (ymed - c0) * scale
-        m = _mtf_scalar(x, p['target']) if 0 < x < 1 else 0.5
+        m = _mtf_scalar(x, target) if 0 < x < 1 else 0.5
         if not (0 < m < 1): m = 0.5
         rec['midtones'] = m
         rec['solvedStretch'] = None
         Yp = _mtf(u, m)
-    rec['target'] = p['target']
+    rec['target'] = target
 
     if len(planes) != 3 or p['applyVia'] != 'luminance':
         out = [_mtf((c.astype(F64) - c0) * scale, rec['midtones'] or 0.5).astype(F32)

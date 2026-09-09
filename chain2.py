@@ -27,7 +27,10 @@ for fn, label in JOBS:
     pl = [p.astype(np.float32) for p in (bg['corrected'] if bg['applied'] else planes)]
 
     pl2, cc = colour_calibrate(pl)
-    res, st = linked_stretch(pl2)
+    gmed = float(np.mean([float(np.median(c)) for c in pl2]))
+    hits = [c for c in hist if any(k in c.lower() for k in ('stretch','histogram','asinh','curve','ght'))]
+    nl = (gmed >= 0.05) or (len(hits) > 0 and gmed >= 0.02)
+    res, st = linked_stretch(pl2, non_linear=nl)
     dens = density_report(pl, cc, pl2, st, res)
 
     out[label] = dict(
@@ -53,4 +56,7 @@ json.dump(dict(
                   'proprio limiar, nao a dos pixels do passo anterior. pixelsRescaled '
                   'compara max(R,G,B)*r, e r carrega midtones -- o Delta ali e '
                   'multiplicativo e tres ordens acima do por-pixel.'),
+  cobertura=dict(porCanalAindaNA=['seestar'],
+    motivo=('a referencia nao faz debayer: num mosaico ela mede o padrao '
+            'Bayer, nao o quadro demosaicado')),
   fixtures=out), open('/home/claude/referencia-cadeia.json','w'), indent=2, ensure_ascii=False)
