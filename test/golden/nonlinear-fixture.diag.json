@@ -109,6 +109,7 @@
       "shadows": 0.2374303807125963,
       "midtones": 0.033405301667266386,
       "target": 0.24592965590905622,
+      "luminanceSpan": 0.017853055619134833,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 269,
@@ -136,16 +137,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 28,
-    "preview": 1,
-    "stats": 43,
-    "background": 278,
-    "colour": 246,
-    "transfer": 338,
-    "quantise": 47,
+    "header": 0,
+    "decode": 32,
+    "preview": 2,
+    "stats": 45,
+    "background": 236,
+    "colour": 239,
+    "transfer": 331,
+    "quantise": 45,
     "downscale": 0,
-    "total": 748
+    "total": 721
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

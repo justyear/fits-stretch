@@ -105,6 +105,7 @@
       "shadows": 0.013804740693598855,
       "midtones": 0.5,
       "target": 0.085,
+      "luminanceSpan": 0.004348821240558486,
       "solvedStretch": 171.99833884891805,
       "stretchUnreachable": false,
       "clipLow": 1677,
@@ -133,15 +134,15 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 74,
-    "preview": 52,
-    "stats": 108,
-    "background": 467,
-    "colour": 509,
-    "transfer": 819,
-    "quantise": 118,
+    "decode": 67,
+    "preview": 59,
+    "stats": 109,
+    "background": 441,
+    "colour": 519,
+    "transfer": 817,
+    "quantise": 93,
     "downscale": 0,
-    "total": 1407
+    "total": 1351
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

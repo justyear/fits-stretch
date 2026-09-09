@@ -80,9 +80,49 @@ o que o `record` já resolve de graça — o log diz exatamente quais pontos ent
 ## 2. Módulo 1a — matemática, automático e rejeição visível
 
 ### 2.1 Amostragem
-
 Grade regular. Cada amostra é uma caixa de `boxSize` pixels de lado, e o valor da
 amostra é a **mediana da caixa** por canal — mediana, não média, para sobreviver a
+uma estrela dentro da caixa.
+
+> ### A condição de validade dessa frase, que ela não tinha
+>
+> **"A mediana da caixa sobrevive à estrela" é falso no caso geral.** Foi
+> calibrado num único fixture que não o estressa, e isso é a mesma família dos
+> quatro zeros do `rejected-edge`: um argumento de projeto verificado onde ele
+> não podia falhar.
+>
+> A calibração original é a estrela-sonda do `fixture-gradient`: σ 2,2, amplitude
+> 0,45, cerca de 140 px acima do fundo numa caixa de 625 — **22%**. Aí a mediana
+> de fato sobrevive. Com estrela saturada de pegada grande (σ 4, amplitude 30,
+> ~450 px acima do fundo em 625) ela não sobrevive, e **não há platô até 50%**.
+>
+> Medido no `fixture-colour`, erro da mediana da caixa contra a rampa que está
+> nos cards, por faixa de saturação da caixa:
+>
+> | fração saturada | n | erro mediano | erro máx |
+> |---|---|---|---|
+> | 0 % | 39 | 5,15e-4 | 9,49e-3 |
+> | 0,1–5 % | 11 | 6,70e-4 | 1,30e-2 |
+> | 5–10 % | 7 | 1,60e-3 | 7,12e-3 |
+> | 10–20 % | 16 | 4,86e-3 | 5,20e-2 |
+> | 20–30 % | 10 | 4,11e-2 | 1,66e-1 |
+> | 30–50 % | 12 | 2,36e-1 | 6,60e-1 |
+> | > 50 % | 13 | 9,88e-1 | 9,94e-1 |
+>
+> Ruído esperado da mediana de 625 px com σ 0,0012: **6,0e-5**. Em 20–30% o erro
+> já é **700× o ruído**, e o fundo do quadro é 0,015 — um erro de 4e-2 é quase
+> três vezes o próprio fundo.
+>
+> **A frase vale assim:** a mediana sobrevive a uma fonte pontual cuja pegada
+> acima do fundo ocupe **até ~20% da caixa**. Acima disso ela não sobrevive, e é
+> por isso que `rejected-clipped` existe com `BG_CLIP_FRACTION = 0,05` — o corte
+> não é conservadorismo, é onde a medição mostra o erro triplicando.
+>
+> Consequência que custou uma rodada: a referência Python não tinha
+> `rejected-clipped`, aceitou 71 amostras contra 49, e as quatro divergências do
+> Módulo 2 no `fixture-colour` — alvo, rejeitados por saturação, rejeitados como
+> extenso, e os ganhos — eram todas cascata dessa. Com a regra implementada os
+> quatro colapsam para zero.
 uma estrela dentro da caixa.
 
 ```

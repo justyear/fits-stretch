@@ -437,6 +437,64 @@ inteiro contado não.
 
 ---
 
+
+### Contagem por limiar: a tolerância é derivada, não escolhida
+
+A regra "inteiro contado é exato" vale para contagem sobre **os mesmos pixels**.
+Estas não são: cada lado resolve o próprio RBF, mede as próprias estatísticas, e
+compara uma grandeza contra um limiar. Um pixel troca de lado quando `q − T`
+troca de sinal, e as duas pontas mexem nos dois termos:
+
+```
+tolerância = #{ i : |q_i − T| ≤ Δ_q + Δ_T }
+```
+
+que é a curva `densidadePorLimiar` que a referência emite. **Sem constante
+ajustada**: o Δ entra medido e a cota sai da curva.
+
+**Δ é por contagem, nunca um só.** Medido:
+
+| contagem | grandeza | limiar | Δ dominante |
+|---|---|---|---|
+| seleção estelar | L = (R+G+B)/3 | mediana + 12·MADN | ~1e-6 — as duas usam mediana exata |
+| `rejeitado.saturado` | L | mesmo, mais 0,85 fixo | ~1e-6 |
+| `rejeitado.extenso` | máscara | fração de vizinhança | herda o da seleção |
+| `clipLow` | Y Rec.709 | `c0` | ~6e-6 — nosso `c0` vem do histograma de 65536 bins, o deles da mediana exata |
+| `pixelsRescaled` | `max(R,G,B)·r` | 1,0 | **multiplicativo** através de `r`, três ordens acima do por-pixel |
+
+Um Δ único para as cinco reprova uma e afrouxa as outras.
+
+**A regra se aperta sozinha.** Onde o limiar cai numa região vazia a densidade é
+zero, a tolerância é zero, e a contagem **tem que ser exata — por cálculo, não
+por afirmação**. `clipHigh` e `pixelsRescaled` são esse caso em alguns fixtures
+e não em outros, e uma exceção por nome erraria nos dois sentidos: uma primeira
+versão desta regra isentava `clipLow` por nome, e ele tem densidade 27 no
+`gradient` — tão densa quanto a seleção estelar. Bateu exato por sorte.
+
+**Cota medida, não provada.** O pior caso analítico é ~36,6·Δ_q, porque a MADN
+entra no limiar multiplicada por 12. Medido em três formatos de perturbação
+(aleatória, sistemática, rampa) a MADN se move ~Δ_q/100, e um deslocamento
+constante não a move nada — então Δ_T ≤ Δ_q, com igualdade no caso constante.
+Escrever 36,6 seria uma tolerância que desliga o instrumento. **Se o Δ_T
+reportado passar de Δ_q, isso é achado, não ruído.**
+
+### Derivado não se compara pelo valor final
+
+`shadows` e `midtones` não são medidos, são funções de duas medições, e comparar
+o valor final mistura duas perguntas: *a fórmula é a mesma?* e *as entradas são
+as mesmas?*
+
+A segunda já é respondida pelas linhas `lum.mediana` e `lum.madn`. Para isolar a
+primeira, a fórmula desta ponta é alimentada com **as entradas da outra** e o
+resultado comparado com o valor dela.
+
+Isso importa porque a propagação **amplifica**: no `fixture-colour`, 1,9e-6 de
+diferença na mediana vira 2,4e-4 em `midtones` — **131×** — porque a MTF é
+íngreme onde `midtones` vale 0,10. Alargar a tolerância até caber esconderia uma
+divergência de fórmula junto; isolar não esconde. Foi assim que o `target` do
+ramo não-linear apareceu: `midtones(formula)` passou e `target` reprovou, o que
+localiza o defeito na entrada e não no método.
+
 ## 6. Ordem de execução
 
 1. `steps/colour-cal.js` — neutralização e ganhos, com as salvaguardas. Sem

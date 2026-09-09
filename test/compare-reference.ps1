@@ -119,6 +119,67 @@ function New-Row($fixture, $scope, $field, $mine, $refv, $verdict, $detail) {
 # MAD(m) = mediana(|v-m|), and ||v-m-d| - |v-m|| <= |d| for every v by the
 # triangle inequality, so the bound passes through the median, which is
 # monotone. It is a bound, not a fitted constant - see section 7.
+$CH3 = @('R', 'G', 'B')
+
+<#
+CONTAGEM POR LIMIAR: A TOLERANCIA E DERIVADA, NAO ESCOLHIDA.
+
+A regra "inteiro contado e exato" vale para contagem sobre OS MESMOS pixels.
+Estas nao sao: cada lado resolve o proprio RBF, mede as proprias estatisticas, e
+compara uma grandeza contra um limiar. Um pixel troca de lado quando `q - T`
+troca de sinal, e as duas pontas mexem nos dois termos -- logo
+
+    tolerancia = #{ i : |q_i - T| <= Delta_q + Delta_T }
+
+que e exatamente a curva `densidadePorLimiar` que a referencia emite. Nao ha
+constante ajustada aqui: o Delta entra medido e a cota sai da curva.
+
+DELTA E POR CONTAGEM, NUNCA UM SO. Medido: a selecao estelar tem Delta ~1e-6
+(as duas usam mediana exata); o clipLow tem ~6e-6 (nosso limiar vem do
+histograma de 65536 bins e o deles da mediana exata); o pixelsRescaled tem
+Delta MULTIPLICATIVO atraves de `r`, tres ordens acima do por-pixel. Um Delta
+unico para as quatro reprova uma e afrouxa as outras.
+
+A REGRA SE APERTA SOZINHA, e e por isso que ela e melhor que uma excecao por
+nome: onde o limiar cai numa regiao vazia a densidade e zero, a tolerancia e
+zero, e a contagem TEM que ser exata -- por calculo, nao por afirmacao. O
+clipHigh e o pixelsRescaled sao esse caso em alguns fixtures e nao em outros, e
+uma lista de nomes teria errado nos dois sentidos.
+
+Cota medida, nao provada. O pior caso analitico e ~36,6*Delta_q, porque a MADN
+entra no limiar multiplicada por 12; medido em tres formatos de perturbacao a
+MADN se move ~Delta_q/100 e um deslocamento constante nao a move nada, entao
+Delta_T <= Delta_q. Escrever 36,6 seria uma tolerancia que desliga o
+instrumento. Se o Delta_T reportado passar de Delta_q, isso e achado.
+#>
+function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta, $curve) {
+    $m = [int]$mine; $r = [int]$refv
+    $diff = [math]::Abs($m - $r)
+
+    if (-not $curve -or -not $curve.density) {
+        return New-Row $fixture $scope $field $m $r 'N/A' `
+               'a referencia nao emitiu densidadePorLimiar para este limiar'
+    }
+
+    # A curva e tabelada; le-se o primeiro ponto >= Delta, que e conservador por
+    # construcao. Abaixo do primeiro ponto a cota e a densidade dele -- nunca
+    # extrapolada para baixo, porque extrapolar uma cota para baixo e inventa-la.
+    $pts = @()
+    foreach ($p in $curve.density.PSObject.Properties) {
+        $pts += [pscustomobject]@{ d = [double]$p.Name; n = [int]$p.Value }
+    }
+    $pts = $pts | Sort-Object d
+    $cota = $pts[-1].n
+    foreach ($p in $pts) { if ($p.d -ge $delta) { $cota = $p.n; break } }
+
+    $ok = ($diff -le $cota)
+    $verdict = if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }
+    $detail = ("difere {0}, cota {1} pixels a menos de {2} do limiar" -f `
+               $diff, $cota, $delta.ToString('0.0e+00', [cultureinfo]::InvariantCulture))
+    if ($cota -eq 0 -and $ok) { $detail = 'densidade zero no limiar: exata por calculo' }
+    return New-Row $fixture $scope $field $m $r $verdict $detail
+}
+
 function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $total, $medianDelta = 0) {
     $known = Get-Known $fixture $field
 
@@ -470,28 +531,8 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         $stRec = $recs2 | Where-Object { $_.id -eq 'stretch-mtf' -or $_.id -eq 'stretch-asinh' } | Select-Object -First 1
         $ccRec = $recs2 | Where-Object { $_.id -eq 'colour-cal' } | Select-Object -First 1
 
-        # A CADEIA MUDOU E A REFERENCIA AINDA NAO. Escrito uma vez, com o motivo,
-        # em vez de 78 linhas reprovando.
-        #
-        # O chain.py modela decode -> fundo -> autostretch POR CANAL. A cadeia
-        # agora roda calibracao de cor e esticamento LIGADO, e as duas coisas
-        # mudam todo numero por canal depois do fundo: os ganhos multiplicam cada
-        # canal por um numero diferente, e uma curva unica derivada da luminancia
-        # substitui as tres curvas que a referencia reproduz.
-        #
-        # Comparar assim nao mede discordancia entre duas implementacoes da mesma
-        # coisa -- mede duas implementacoes deixando de descrever a mesma coisa.
-        # Mesmo raciocinio do passo 6 do Modulo 1, e mesma saida: N/A com
-        # pre-condicao explicita, ate o passo 7 da secao 6 estender a referencia.
-        $chainDiverged = @()
-        if ($ccRec -and $ccRec.applied) { $chainDiverged += 'calibracao de cor' }
-        if ($stRec -and $stRec.linked)  { $chainDiverged += 'esticamento ligado' }
-        if ($chainDiverged.Count) {
-            $rows += New-Row $name 'cadeia' '(todos)' '-' '-' 'N/A' `
-                     ("chain.py nao modela " + ($chainDiverged -join ' nem ') +
-                      " - passo 7 da secao 6 do Modulo 2/3")
-            continue
-        }
+        # A pre-condicao N/A que estava aqui saiu: reference_m23.py modela a
+        # cadeia nova inteira. Ver os blocos 'cor' e 'esticamento' abaixo.
         if (-not $stRec) {
             $rows += New-Row $name 'cadeia' '-' '-' '-' 'NO RECORD' 'nenhum record de stretch-mtf'
             continue
@@ -505,8 +546,167 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         }
 
         # A etapa de fundo, como a referencia a viu.
-        $rows += Compare-Value $name 'cadeia' 'fundo.geradas' $bgRec.samples.generated $rf2.fundo.geradas 'exact' 0 0
+        # `geradas` e a grade, nao uma medicao: a referencia nao a emite mais, e
+        # comparar contra ausente descreveria a falta de um campo como
+        # divergencia de numero. `aceitas` e o que carrega o resultado.
+        if ($null -ne $rf2.fundo.geradas) {
+            $rows += Compare-Value $name 'cadeia' 'fundo.geradas' $bgRec.samples.generated $rf2.fundo.geradas 'exact' 0 0
+        }
         $rows += Compare-Value $name 'cadeia' 'fundo.aceitas' $bgRec.samples.accepted $rf2.fundo.aceitas 'exact' 0 0
+
+        # A REFERENCIA DECLARA O QUE NAO COBRE, e este bloco obedece a declaracao
+        # dela em vez de manter a lista aqui. Sem debayer, para um mosaico ela
+        # mede o padrao Bayer e nao o quadro demosaicado -- grandezas diferentes,
+        # nao discordancia. Se ela parar de declarar, isto reprova ALTO em vez de
+        # comparar em silencio duas coisas que nao sao a mesma.
+        $naDecl = @()
+        if ($cr.cobertura -and $cr.cobertura.porCanalAindaNA) { $naDecl = @($cr.cobertura.porCanalAindaNA) }
+        if ($naDecl -contains $fx) {
+            $rows += New-Row $name 'cadeia' '(pos-decode)' '-' '-' 'N/A' $cr.cobertura.motivo
+            continue
+        }
+
+        # ---- Modulo 2: calibracao de cor -------------------------------
+        $cr2ref = $rf2.calibracaoCor
+        if ($ccRec -and $cr2ref) {
+            $rows += Compare-Value $name 'cor' 'aplicado' $ccRec.applied $cr2ref.applied 'exact' 0 0
+            if ($ccRec.applied -and $cr2ref.applied) {
+                $nu = $ccRec.neutralise; $nr = $cr2ref.neutralizacao
+                $rows += Compare-Value $name 'cor' 'neutraliza.alvo' $nu.target $nr.alvo 'unit' 0 0
+                foreach ($ci in 0..2) {
+                    $rows += Compare-Value $name $CH3[$ci] 'neutraliza.offset' $nu.offsets[$ci] $nr.offsets[$ci] 'unit' 0 0
+                    $rows += Compare-Value $name $CH3[$ci] 'pedestal'         $ccRec.stars.pedestals[$ci] $cr2ref.pedestais[$ci] 'unit' 0 0
+                }
+                $rows += Compare-Value $name 'cor' 'lum.mediana' $ccRec.stars.luminanceMedian $cr2ref.luminanciaSelecao.mediana 'unit' 0 0
+                $rows += Compare-Value $name 'cor' 'lum.madn'    $ccRec.stars.luminanceMADN   $cr2ref.luminanciaSelecao.madn   'unit' 0 0
+                $rows += Compare-Value $name 'cor' 'limiar.inferior' $ccRec.stars.thresholdLow $cr2ref.limiares.inferior 'unit' 0 0
+
+                # AS TRES CONTAGENS POR LIMIAR, CADA UMA COM O SEU DELTA.
+                #
+                # A selecao estelar compara L contra med+12*MADN: o Delta e a
+                # discordancia do limiar (os dois reportam) mais a da propria
+                # grandeza, para a qual a diferenca das medianas e o substituto
+                # medido. A rejeicao por saturacao usa o mesmo limiar superior
+                # fixo em 0.85, entao so o Delta da grandeza entra.
+                $dLum = [math]::Abs([double]$ccRec.stars.luminanceMedian - [double]$cr2ref.luminanciaSelecao.mediana)
+                $dThr = [math]::Abs([double]$ccRec.stars.thresholdLow - [double]$cr2ref.limiares.inferior)
+                $rows += Compare-Threshold-Count $name 'cor' 'estrelas.pixels' `
+                         $ccRec.stars.pixels $cr2ref.pixels ($dThr + $dLum) $rf2.densidadePorLimiar.selecaoEstelar
+                # O corte superior e fixo em 0.85, mas a contagem tambem e
+                # limitada por baixo pelo mesmo thrLow -- os dois limiares entram.
+                $rows += Compare-Threshold-Count $name 'cor' 'rejeitado.saturado' `
+                         $ccRec.stars.rejected.saturated $cr2ref.rejeitados.saturado ($dThr + $dLum) $rf2.densidadePorLimiar.selecaoEstelar
+                # A rejeicao de extenso conta sobre a mascara: ela herda a
+                # incerteza da selecao, e nao tem limiar proprio no eixo dos
+                # valores -- a cota e a mesma da selecao que a alimenta.
+                $rows += Compare-Threshold-Count $name 'cor' 'rejeitado.extenso' `
+                         $ccRec.stars.rejected.extended $cr2ref.rejeitados.extenso ($dThr + $dLum) $rf2.densidadePorLimiar.selecaoEstelar
+
+                foreach ($ci in 0..2) {
+                    $rows += Compare-Value $name $CH3[$ci] 'estrela.mediana' $ccRec.stars.medians[$ci]       $cr2ref.medianasEstelares[$ci] 'unit' 0 0
+                    $rows += Compare-Value $name $CH3[$ci] 'acimaDoPedestal'  $ccRec.stars.abovePedestal[$ci] $cr2ref.acimaDoPedestal[$ci]   'unit' 0 0
+                }
+                $rows += Compare-Value $name 'cor' 'razao.rOverG' $ccRec.stars.ratios.rOverG $cr2ref.razoes.rOverG 'unit' 0 0
+                $rows += Compare-Value $name 'cor' 'razao.bOverG' $ccRec.stars.ratios.bOverG $cr2ref.razoes.bOverG 'unit' 0 0
+                if ($ccRec.gains -and $cr2ref.ganhos) {
+                    foreach ($ci in 0..2) {
+                        $rows += Compare-Value $name $CH3[$ci] 'ganho' $ccRec.gains[$ci] $cr2ref.ganhos[$ci] 'unit' 0 0
+                    }
+                } else {
+                    # A recusa e resultado, e concordar sobre ela vale tanto
+                    # quanto concordar sobre um numero.
+                    $rows += Compare-Value $name 'cor' 'ganhos.recusou' `
+                             ($null -eq $ccRec.gains) ($null -eq $cr2ref.ganhos) 'exact' 0 0
+                }
+            }
+        }
+
+        # ---- Modulo 3: esticamento ligado ------------------------------
+        $es = $rf2.esticamento
+        if ($es -and $stRec.linked) {
+            $lk = $stRec.linked
+            $rows += Compare-Value $name 'stretch' 'ligado'   $true            $es.ligado   'exact' 0 0
+            $rows += Compare-Value $name 'stretch' 'operador' $stRec.params.operator $es.operador 'exact' 0 0
+            $dLumY = [math]::Abs([double]$lk.luminanceMedian - [double]$es.luminancia.mediana)
+            $rows += Compare-Value $name 'stretch' 'lum.mediana' $lk.luminanceMedian $es.luminancia.mediana 'unit' 0 0
+            # O span do segundo histograma do analysePlane, que e a resolucao real
+            # do MADN: o bin dele e span/(BINS-1). Passar o proprio MADN como
+            # span dimensionaria a tolerancia a grandeza medida em vez de ao
+            # instrumento que a mediu.
+            $lumSpan = 0.0
+            if ($null -ne $lk.luminanceSpan) { $lumSpan = [double]$lk.luminanceSpan }
+            $rows += Compare-Value $name 'stretch' 'lum.madn'    $lk.luminanceMADN   $es.luminancia.madn 'mad' `
+                     $lumSpan 0 $dLumY
+            # `target` no ramo nao-linear NAO e o parametro: e a mediana do
+            # proprio quadro, limitada a [0.02, 0.6]. Comparado explicitamente
+            # porque e a unica entrada do esticamento que muda de significado
+            # entre os dois ramos, e usar o parametro ali muda a curva inteira.
+            $rows += Compare-Value $name 'stretch' 'target' $lk.target $es.target 'unit' 0 0
+
+            # SHADOWS E MIDTONES SAO DERIVADOS, NAO MEDIDOS, e comparar o valor
+            # final mistura duas perguntas: "a formula e a mesma?" e "as entradas
+            # sao as mesmas?".
+            #
+            # A segunda ja esta respondida nas linhas lum.mediana e lum.madn
+            # acima. Para responder a primeira sozinha, a formula daqui e
+            # alimentada com as entradas DELES e o resultado comparado com o
+            # valor deles. Se bater, a diferenca no valor final e propagacao da
+            # entrada e nao discordancia de metodo.
+            #
+            # Isso importa porque a propagacao AMPLIFICA: no colour, 1.9e-6 de
+            # diferenca na mediana vira 2.4e-4 em midtones, 131x, porque a MTF e
+            # ingreme onde midtones vale 0.10. Alargar a tolerancia ate caber
+            # esconderia uma divergencia de formula junto; isolar nao.
+            $refMed = [double]$es.luminancia.mediana
+            $refMadn = [double]$es.luminancia.madn
+            $refC0 = [double]$es.shadows
+            if (-not $lk.stretchUnreachable -and $stRec.params.operator -ne 'asinh') {
+                if (-not $stRec.params.nonLinear) {
+                    $meuShadows = $refMed + ([double]$stRec.params.shadowSigma) * $refMadn
+                    $rows += Compare-Value $name 'stretch' 'shadows(formula)' $meuShadows $es.shadows 'unit' 0 0
+                } else {
+                    # No ramo nao-linear shadows sai de um percentil, que esta
+                    # ponta tira do histograma e a outra do array exato. Nao ha
+                    # como recomputar aqui, entao vai comparado direto e a
+                    # diferenca e do instrumento.
+                    $rows += Compare-Value $name 'stretch' 'shadows' $lk.shadows $es.shadows 'unit' 0 0
+                }
+                $sc2 = 1.0 / (1.0 - $refC0)
+                $x2 = ($refMed - $refC0) * $sc2
+                $meuMid = 0.5
+                if ($refMadn -gt 0 -and $x2 -gt 0 -and $x2 -lt 1) {
+                    $tg2 = [double]$es.target
+                    $meuMid = if ($tg2 -eq 0.5) { $x2 } else { (($tg2 - 1) * $x2) / (((2 * $tg2 - 1) * $x2) - $tg2) }
+                }
+                $rows += Compare-Value $name 'stretch' 'midtones(formula)' $meuMid $es.midtones 'unit' 0 0
+            }
+
+            $dShad = [math]::Abs([double]$lk.shadows - [double]$es.shadows)
+            $rows += Compare-Threshold-Count $name 'stretch' 'clipLow'  $lk.clipLow  $es.clipLow  ($dShad + $dLumY) $rf2.densidadePorLimiar.clipLow
+            $rows += Compare-Threshold-Count $name 'stretch' 'clipHigh' $lk.clipHigh $es.clipHigh ($dShad + $dLumY) $rf2.densidadePorLimiar.clipHigh
+
+            $cf = $stRec.colourFidelity; $cfr = $es.colourFidelity
+            if ($cf -and $cfr) {
+                # ASSERCAO, NAO COMPARACAO. Acima de 1e-6 a implementacao esta
+                # errada, nao a tolerancia -- secao 3.2. Os dois lados sao
+                # afirmados contra o limite, e nao um contra o outro.
+                foreach ($par in @(@('nosso', $cf.maxRatioDrift), @('referencia', $cfr.maxRatioDrift))) {
+                    $ok = ([double]$par[1] -le 1e-6)
+                    $rows += New-Row $name 'stretch' ("deriva.$($par[0])") $par[1] '<= 1e-6' `
+                             $(if ($ok) { 'PASS' } else { 'FAIL' }) `
+                             $(if ($ok) { 'preservada por construcao' } else { 'a razao entre canais nao foi preservada' })
+                }
+                # pixelsRescaled compara max(R,G,B)*r contra 1.0. O limiar nao se
+                # move; a grandeza sim, e de forma MULTIPLICATIVA atraves de r,
+                # que carrega midtones. O Delta e relativo, nao aditivo.
+                $dRel = 0.0
+                if ([double]$lk.midtones -ne 0) {
+                    $dRel = [math]::Abs([double]$lk.midtones - [double]$es.midtones) / [math]::Abs([double]$lk.midtones)
+                }
+                $rows += Compare-Threshold-Count $name 'stretch' 'pixelsRescaled' `
+                         $cf.pixelsRescaled $cfr.pixelsRescaled $dRel $rf2.densidadePorLimiar.pixelsRescaled
+            }
+        }
 
         # PRE-CONDICAO para comparar estatistica pos-correcao.
         #

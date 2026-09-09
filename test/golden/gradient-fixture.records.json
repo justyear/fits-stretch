@@ -1582,6 +1582,7 @@
       "shadows": 0.013804740693598855,
       "midtones": 0.03144031631393108,
       "target": 0.085,
+      "luminanceSpan": 0.004348821240558486,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 1677,

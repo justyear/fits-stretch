@@ -350,27 +350,30 @@ if (Test-Path (Join-Path $gold 'gradient-fixture.records.json')) {
     }
 }
 
-if ($chainNa) {
-    $madOut += [pscustomobject]@{
-        case = 'termo da mediana (mad/madn)'; want = 'PASS+FAIL'; got = 'NAO EXERCITAVEL'
-        verdict = 'N/A' }
-    $madOut += [pscustomobject]@{
-        case = 'motivo: bloco cadeia N/A, chain.py nao modela cor nem ligado'
-        want = '-'; got = 'passo 7 da secao 6 devolve'; verdict = 'N/A' }
-} elseif ((Test-Path $refChain) -and (Test-Path $cmpRef)) {
+if ((Test-Path $refChain) -and (Test-Path $cmpRef)) {
     $FX2  = 'gradient'
     $recF = Join-Path $gold "$FX2-fixture.records.json"
     $cr2  = Get-Content $refChain -Raw | ConvertFrom-Json
-    $e3   = $cr2.fixtures.$FX2.canais.G.estatisticaExata
+
+    # REANCORADO NO PASSO 7. O termo vivia em canais.G.corrigido.madn, e a
+    # referencia nova nao emite mais aquele bloco -- o por canal foi substituido
+    # por calibracaoCor + esticamento. O TERMO nao mudou: continua sendo o piso
+    # de mad/madn, agora na linha stretch/lum.madn, sobre a MADN da luminancia.
+    #
+    # Reancorar em vez de aposentar: o que o controle prova e que a cota do
+    # 1.4826*|dMediana| ainda reprova quando estourada, e essa pergunta nao mudou
+    # de sentido so porque o campo mudou de nome.
+    $e3   = $cr2.fixtures.$FX2.esticamento.luminancia
 
     $recJ = Get-Content $recF -Raw | ConvertFrom-Json
     $sti  = 0
-    for ($k2 = 0; $k2 -lt @($recJ).Count; $k2++) { if (@($recJ)[$k2].id -eq 'stretch-mtf') { $sti = $k2 } }
-    $b3   = @($recJ)[$sti].before.perChannel[1]           # canal G
+    for ($k2 = 0; $k2 -lt @($recJ).Count; $k2++) { if (@($recJ)[$k2].id -like 'stretch*') { $sti = $k2 } }
+    $b3   = @($recJ)[$sti].linked                        # luminancia, uma so
 
     $bound = [math]::Max(1e-4 * [math]::Abs([double]$e3.madn),
-                         8.0 * [double]$b3.span / 65535.0 + 1.4826 * [math]::Abs([double]$b3.median - [double]$e3.median))
-    $have  = [math]::Abs([double]$b3.madn - [double]$e3.madn)
+                         8.0 * [double]$b3.luminanceSpan / 65535.0 +
+                         1.4826 * [math]::Abs([double]$b3.luminanceMedian - [double]$e3.mediana))
+    $have  = [math]::Abs([double]$b3.luminanceMADN - [double]$e3.madn)
     $room  = $bound - $have
     if ($room -le 0) { $room = $bound * 0.1 }
 
@@ -388,12 +391,12 @@ if ($chainNa) {
         # casar com nenhuma string do arquivo, e reserializar nao pode errar o
         # alvo como uma busca por texto pode.
         $j2 = Get-Content (Join-Path $d2 "$FX2-fixture.records.json") -Raw | ConvertFrom-Json
-        @($j2)[$sti].before.perChannel[1].madn = [double]$b3.madn + $case.delta
+        @($j2)[$sti].linked.luminanceMADN = [double]$b3.luminanceMADN + $case.delta
         [System.IO.File]::WriteAllText((Join-Path $d2 "$FX2-fixture.records.json"),
                                        (@($j2) | ConvertTo-Json -Depth 30))
 
         $csv = & powershell -NoProfile -ExecutionPolicy Bypass -File $cmpRef -Csv -Golden $d2 2>$null | ConvertFrom-Csv
-        $row = $csv | Where-Object { $_.fixture -eq $FX2 -and $_.campo -eq 'corrigido.madn' -and $_.escopo -eq 'G' } | Select-Object -First 1
+        $row = $csv | Where-Object { $_.fixture -eq $FX2 -and $_.campo -eq 'lum.madn' -and $_.escopo -eq 'stretch' } | Select-Object -First 1
         $got = if ($row) { $row.resultado } else { 'NONE' }
         $madOut += [pscustomobject]@{ case = $case.label; want = $case.want; got = $got
                                       verdict = $(if ($got -eq $case.want) { 'ok' } else { 'MISMATCH' }) }

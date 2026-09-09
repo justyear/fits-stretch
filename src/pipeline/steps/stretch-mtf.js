@@ -284,6 +284,11 @@ function stretchLinked(img, params, report){
     linked: {
       luminanceMedian: ys.median, luminanceMADN: ys.madn,
       shadows: shadows, midtones: midtones, target: target,
+      // A largura do segundo histograma do analysePlane, e portanto a resolucao
+      // de luminanceMADN: o bin dele e span/(BINS-1), nao 1/(BINS-1). Sem isto o
+      // comparador nao consegue dimensionar a tolerancia do MADN ao instrumento
+      // e cai na regra do eixo [0,1], que nesta magnitude e 500x mais frouxa.
+      luminanceSpan: ys.span,
       solvedStretch: solvedStretch,
       stretchUnreachable: (operator === 'asinh' && solvedStretch === null),
       clipLow: low, clipHigh: high, highlightCut: hiCut

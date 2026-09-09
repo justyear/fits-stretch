@@ -660,6 +660,68 @@ carrega a medição, encontra caso real antes de a spec descobrir que ele existe
 O custo é uma condição e uma frase; o retorno é a etapa recusando em vez de
 produzir um número que ninguém saberia questionar.
 
+## A cascata começa antes de onde o sintoma aparece
+
+Módulo 2, passo 7. Fui mandado investigar **viés na calibração de cor**: os
+ganhos das duas implementações diferiam, e no azul a referência estava 6,6×
+mais perto da verdade injetada. O sintoma era inequívoco e apontava para a
+etapa nova.
+
+Não havia viés nenhum na calibração. **Com o mesmo quadro de entrada, os dois
+lados concordam em 7,6e-6** — cem vezes menos que a diferença observada. A
+divergência inteira vinha de uma etapa antes, na extração de fundo, e de uma
+regra que a referência não tinha: `rejected-clipped`.
+
+O que fecha o caso é que **as quatro divergências colapsam juntas**. Desliguei a
+regra na minha ponta, mesma fonte, só a constante neutralizada:
+
+| | com a regra | sem a regra | a deles |
+|---|---|---|---|
+| amostras aceitas | 49 | **71** | 71 |
+| alvo de neutralização | 0,015217205 | **0,015513425** | 0,015513439 |
+| rejeitados por saturação | 302.053 | **302.060** | 302.060 |
+| rejeitados como extenso | 1.646 | **177** | 177 |
+| ganho azul | 1,2509612 | **1,2501524** | 1,2501448 |
+
+Quatro números que discordavam em quatro ordens de grandeza diferentes, e um
+interruptor os alinha todos. Uma causa, não quatro.
+
+**A regra de investigação:** quando várias divergências aparecem juntas numa
+etapa nova, a hipótese barata não é "a etapa nova tem um viés" — é **"a entrada
+da etapa nova é outra"**. Testa-se desligando uma coisa de cada vez a montante
+até os números alinharem, e o interruptor que alinha nomeia a causa. Custou uma
+medição; a hipótese do viés teria custado a leitura inteira da calibração.
+
+**E a direção do erro não indica quem está certo.** A referência estava mais
+perto da verdade injetada nos dois canais, e mesmo assim era ela que tinha o
+buraco. O `sweep` de `BG_CLIP_FRACTION` mostrou que o erro contra a verdade
+passeia entre 0,01% e 0,11% sem mínimo estável — nenhum ajuste minimiza os dois
+canais, e o vermelho não melhora em nenhum. **Estar mais perto da verdade num
+fixture não é evidência de correção quando a faixa de ruído do método é maior
+que a diferença.** O que decidiu foi medir o envenenamento da mediana da caixa
+direto contra a rampa dos cards — ver a tabela na §2.1 do Módulo 1.
+
+## Argumento de projeto verificado num fixture que não o estressa
+
+**"A mediana da caixa sobrevive à estrela"** estava escrito na §2.1 do Módulo 1
+como justificativa de por que a amostra é mediana e não média. É falso no caso
+geral, e a condição de validade não estava escrita.
+
+Foi calibrado na estrela-sonda do `fixture-gradient`: σ 2,2, amplitude 0,45,
+~22% da caixa. Ali sobrevive. Com estrela saturada de pegada grande não
+sobrevive, e **não há platô até 50%** — o erro cresce liso desde o começo e em
+20–30% já é 700× o ruído da mediana.
+
+É a mesma família dos **quatro zeros do `rejected-edge`**: um número que parecia
+confirmar o projeto e só dizia que o caminho nunca tinha sido percorrido. E do
+mesmo jeito, só apareceu quando um fixture novo estressou a condição.
+
+**A regra:** todo argumento de projeto escrito numa spec carrega, junto, **o
+regime em que foi verificado**. "A mediana sobrevive à estrela" vira "a mediana
+sobrevive a uma fonte pontual que ocupe até ~20% da caixa, medido assim". Sem o
+regime, a frase é verdadeira no fixture que a gerou e desconhecida em todo o
+resto — e ninguém sabe disso até um caso novo chegar.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
