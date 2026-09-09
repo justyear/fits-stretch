@@ -54,8 +54,8 @@
       "q1": 0.015930418860151063,
       "q3": 0.01782253757534142,
       "shadows": 0.013804740693598855,
-      "midtones": 0.00896537446785383,
-      "target": 0.25,
+      "midtones": 0.03144031631393108,
+      "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -70,8 +70,8 @@
       "q1": 0.015930418860151063,
       "q3": 0.017807278553444723,
       "shadows": 0.013804740693598855,
-      "midtones": 0.00896537446785383,
-      "target": 0.25,
+      "midtones": 0.03144031631393108,
+      "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -86,8 +86,8 @@
       "q1": 0.015930418860151063,
       "q3": 0.017807278553444723,
       "shadows": 0.013804740693598855,
-      "midtones": 0.00896537446785383,
-      "target": 0.25,
+      "midtones": 0.03144031631393108,
+      "target": 0.085,
       "pixelsBlack": 1677,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -103,8 +103,8 @@
       "luminanceMedian": 0.016769665064469367,
       "luminanceMADN": 0.0010589015610251832,
       "shadows": 0.013804740693598855,
-      "midtones": 0.00896537446785383,
-      "target": 0.25,
+      "midtones": 0.03144031631393108,
+      "target": 0.085,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 1677,
@@ -117,13 +117,13 @@
         "bOverG": 0.9994179330829253
       },
       "ratiosAfter": {
-        "rOverG": 1.0119762537798878,
-        "bOverG": 0.9905689550868905
+        "rOverG": 1.0098430889306604,
+        "bOverG": 0.9934287974696537
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 1918262,
+      "driftSamples": 1918104,
       "highlightPixels": 19220,
-      "pixelsRescaled": 2286
+      "pixelsRescaled": 405
     }
   },
   "view": {
@@ -132,16 +132,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 70,
-    "preview": 47,
-    "stats": 95,
-    "background": 452,
-    "colour": 633,
-    "transfer": 853,
-    "quantise": 95,
-    "downscale": 0,
-    "total": 1629
+    "header": 3,
+    "decode": 162,
+    "preview": 53,
+    "stats": 108,
+    "background": 503,
+    "colour": 644,
+    "transfer": 878,
+    "quantise": 103,
+    "downscale": 1,
+    "total": 1833
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

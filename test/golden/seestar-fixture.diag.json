@@ -81,8 +81,8 @@
       "q1": 0.010833905546654459,
       "q3": 0.011123826962691692,
       "shadows": 0.010530006703107752,
-      "midtones": 0.001382765280762891,
-      "target": 0.25,
+      "midtones": 0.004943993019009145,
+      "target": 0.085,
       "pixelsBlack": 40,
       "pixelsWhite": 0,
       "totalPixels": 2073600,
@@ -97,8 +97,8 @@
       "q1": 0.010833905546654459,
       "q3": 0.011123826962691692,
       "shadows": 0.010530006703107752,
-      "midtones": 0.001382765280762891,
-      "target": 0.25,
+      "midtones": 0.004943993019009145,
+      "target": 0.085,
       "pixelsBlack": 40,
       "pixelsWhite": 0,
       "totalPixels": 2073600,
@@ -113,8 +113,8 @@
       "q1": 0.010849164568551155,
       "q3": 0.011123826962691692,
       "shadows": 0.010530006703107752,
-      "midtones": 0.001382765280762891,
-      "target": 0.25,
+      "midtones": 0.004943993019009145,
+      "target": 0.085,
       "pixelsBlack": 40,
       "pixelsWhite": 0,
       "totalPixels": 2073600,
@@ -130,8 +130,8 @@
       "luminanceMedian": 0.010986495765621425,
       "luminanceMADN": 0.0001630318080405971,
       "shadows": 0.010530006703107752,
-      "midtones": 0.001382765280762891,
-      "target": 0.25,
+      "midtones": 0.004943993019009145,
+      "target": 0.085,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 40,
@@ -144,13 +144,13 @@
         "bOverG": 1.0159077911341379
       },
       "ratiosAfter": {
-        "rOverG": 0.9909156912673345,
-        "bOverG": 1.016044990481463
+        "rOverG": 0.9889299005806437,
+        "bOverG": 1.0168423635654535
       },
-      "maxRatioDrift": 3.552713678800501e-15,
-      "driftSamples": 2073553,
+      "maxRatioDrift": 1.7763568394002505e-15,
+      "driftSamples": 2073540,
       "highlightPixels": 20744,
-      "pixelsRescaled": 7299
+      "pixelsRescaled": 2474
     }
   },
   "view": {
@@ -159,19 +159,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 70,
+    "header": 0,
+    "decode": 71,
     "roworder": 1,
-    "cfa": 36,
-    "debayer": 114,
-    "preview": 49,
-    "stats": 95,
-    "background": 436,
-    "colour": 621,
-    "transfer": 840,
-    "quantise": 112,
+    "cfa": 42,
+    "debayer": 130,
+    "preview": 53,
+    "stats": 103,
+    "background": 475,
+    "colour": 661,
+    "transfer": 921,
+    "quantise": 119,
     "downscale": 0,
-    "total": 1819
+    "total": 1956
   },
   "historyCards": [],
   "allCards": [

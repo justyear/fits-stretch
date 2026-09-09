@@ -54,8 +54,8 @@
       "q1": 0.010696574349584192,
       "q3": 0.12292668039978637,
       "shadows": 0.004357043956338522,
-      "midtones": 0.030161167327265384,
-      "target": 0.25,
+      "midtones": 0.10038860889501716,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -70,8 +70,8 @@
       "q1": 0.013427939269092852,
       "q3": 0.12602426184481574,
       "shadows": 0.004357043956338522,
-      "midtones": 0.030161167327265384,
-      "target": 0.25,
+      "midtones": 0.10038860889501716,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -86,8 +86,8 @@
       "q1": 0.016861219195849545,
       "q3": 0.12980849927519647,
       "shadows": 0.004357043956338522,
-      "midtones": 0.030161167327265384,
-      "target": 0.25,
+      "midtones": 0.10038860889501716,
+      "target": 0.085,
       "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1920000,
@@ -103,8 +103,8 @@
       "luminanceMedian": 0.014572365911345083,
       "luminanceMADN": 0.0036483292696452008,
       "shadows": 0.004357043956338522,
-      "midtones": 0.030161167327265384,
-      "target": 0.25,
+      "midtones": 0.10038860889501716,
+      "target": 0.085,
       "solvedStretch": null,
       "stretchUnreachable": false,
       "clipLow": 0,
@@ -117,13 +117,13 @@
         "bOverG": 1.256596248622177
       },
       "ratiosAfter": {
-        "rOverG": 0.8004275830845307,
+        "rOverG": 0.8004275830845308,
         "bOverG": 1.2565962122093097
       },
-      "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 1920000,
+      "maxRatioDrift": 8.881784197001252e-16,
+      "driftSamples": 1919997,
       "highlightPixels": 19489,
-      "pixelsRescaled": 307796
+      "pixelsRescaled": 302040
     }
   },
   "view": {
@@ -133,15 +133,15 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 66,
-    "preview": 46,
-    "stats": 91,
-    "background": 339,
-    "colour": 533,
-    "transfer": 746,
-    "quantise": 93,
+    "decode": 109,
+    "preview": 54,
+    "stats": 115,
+    "background": 387,
+    "colour": 567,
+    "transfer": 794,
+    "quantise": 98,
     "downscale": 0,
-    "total": 1179
+    "total": 1281
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",

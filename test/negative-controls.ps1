@@ -160,6 +160,14 @@ if ($stretchRec9 -and $stretchRec9.linked) {
 } else {
     $logMedV = [double]$b9.median
 }
+# O alvo tambem sai do golden. Estava cravado como '"target": 0.25,' e o passo 5
+# do Modulo 3 o mudou para 0.085 -- o script parou alto, dizendo qual padrao nao
+# achou, que e o comportamento certo, mas era o ultimo literal deste arquivo que
+# precisava de manutencao a mao. Agora nao ha nenhum.
+$TARGET_LIT   = '"target": ' + (RT9 ([double]$stretchRec9.params.target)) + ','
+$TARGET_NUDGE = '"target": ' + (RT9 ([double]$stretchRec9.params.target + 0.0001)) + ','
+if (-not $recTxt.Contains($TARGET_LIT)) { throw "ancora de target nao encontrada: $TARGET_LIT" }
+
 $LOGMED  = 'median ' + $logMedV.ToString('0.00000', $inv9)
 $LOGMED2 = 'median ' + ($logMedV + 0.00001).ToString('0.00000', $inv9)
 if (-not $logTxt.Contains($LOGMED)) { throw "ancora do log nao encontrada: $LOGMED" }
@@ -203,7 +211,7 @@ $cases = @(
          Edit-Text $tmpdir $ART_DIAG $PXBLACK '"pixelsBlack": 0' } }
 
     @{ name = 'records params.target nudged (input knob, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
-         Edit-Text $tmpdir $ART_REC '"target": 0.25,' '"target": 0.2501,' } }
+         Edit-Text $tmpdir $ART_REC $TARGET_LIT $TARGET_NUDGE } }
     @{ name = 'records sampled 540000 -> 539999 (basis, exact)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
          Edit-Text $tmpdir $ART_REC '"sampled": 540000' '"sampled": 539999' } }
     @{ name = 'records key renamed (structural)'; art = $ART_REC; want = 'FAIL'; do = { param($tmpdir)
@@ -320,7 +328,36 @@ $refChain = Join-Path (Split-Path -Parent $here) 'referencia-cadeia.json'
 $cmpRef   = Join-Path $here 'compare-reference.ps1'
 $madOut   = @()
 
-if ((Test-Path $refChain) -and (Test-Path $cmpRef)) {
+# O QUE ESTES DOIS CONTROLAM DEIXOU DE SER COMPARADO, E ISSO E DITO EM VEZ DE
+# PASSAR OU DE SUMIR.
+#
+# Eles verificam o termo 1.4826*|dMediana| no piso de mad/madn, que vive no
+# bloco 'cadeia' do compare-reference. Esse bloco ficou N/A quando a cadeia
+# passou a rodar calibracao de cor e esticamento ligado, que o chain.py nao
+# modela -- entao a linha que estes casos leem nao existe mais e o comparador
+# devolvia NONE.
+#
+# Duas saidas erradas estavam disponiveis: marcar 'ok' (um controle que aprova
+# sem exercitar nada) ou deixar os dois como MISMATCH permanente (ruido que
+# ensina a ignorar a saida). A terceira e dizer que nao sao exercitaveis, com o
+# motivo e com o passo que os devolve.
+$chainNa = $false
+if (Test-Path (Join-Path $gold 'gradient-fixture.records.json')) {
+    $rj = Get-Content (Join-Path $gold 'gradient-fixture.records.json') -Raw | ConvertFrom-Json
+    foreach ($r in @($rj)) {
+        if ($r.id -eq 'colour-cal' -and $r.applied) { $chainNa = $true }
+        if (($r.id -eq 'stretch-mtf' -or $r.id -eq 'stretch-asinh') -and $r.linked) { $chainNa = $true }
+    }
+}
+
+if ($chainNa) {
+    $madOut += [pscustomobject]@{
+        case = 'termo da mediana (mad/madn)'; want = 'PASS+FAIL'; got = 'NAO EXERCITAVEL'
+        verdict = 'N/A' }
+    $madOut += [pscustomobject]@{
+        case = 'motivo: bloco cadeia N/A, chain.py nao modela cor nem ligado'
+        want = '-'; got = 'passo 7 da secao 6 devolve'; verdict = 'N/A' }
+} elseif ((Test-Path $refChain) -and (Test-Path $cmpRef)) {
     $FX2  = 'gradient'
     $recF = Join-Path $gold "$FX2-fixture.records.json"
     $cr2  = Get-Content $refChain -Raw | ConvertFrom-Json
@@ -368,8 +405,12 @@ if ($madOut.Count) {
     Write-Host ''
     Write-Host 'termo da mediana no piso de mad/madn (compare-reference):'
     $madOut | Format-Table -AutoSize
-    $badMad = @($madOut | Where-Object { $_.verdict -ne 'ok' }).Count
-    Write-Host "$($madOut.Count) controles do termo: $(@($madOut | Where-Object { $_.verdict -eq 'ok' }).Count) como esperado, $badMad divergentes"
+    # N/A nao conta como divergencia e nao conta como aprovacao: a pendencia
+    # aparece na contagem propria dela, para que nao vire silencio nem ruido.
+    $okMad  = @($madOut | Where-Object { $_.verdict -eq 'ok' }).Count
+    $naMad  = @($madOut | Where-Object { $_.verdict -eq 'N/A' }).Count
+    $badMad = @($madOut | Where-Object { $_.verdict -ne 'ok' -and $_.verdict -ne 'N/A' }).Count
+    Write-Host "$($madOut.Count) controles do termo: $okMad como esperado, $naMad nao exercitaveis, $badMad divergentes"
     $bad += $badMad
 }
 
