@@ -1753,6 +1753,7 @@
     "mask": {
       "background": 0.08500801098649577,
       "noiseSigma": 0.027927926073129824,
+      "luminanceSpan": 0.11306935225452046,
       "pixelsBelowSnrLow": 1919051,
       "pctBelowSnrLow": 99.95057291666667,
       "pixelsAtFullAmount": 0,

@@ -3431,7 +3431,7 @@ function stepSaturation(img, params, report){
                   '% this step accepts; the signal mask is not protecting the sky ' +
                   'on this frame',
       params: effective,
-      mask: { background: background, noiseSigma: noiseSigma,
+      mask: { background: background, noiseSigma: noiseSigma, luminanceSpan: ys.span,
               pixelsBelowSnrLow: nBg, pctBelowSnrLow: 100 * nBg / N,
               pixelsAtFullAmount: null, pctAtFullAmount: null,
               pixelsAtFullMask: null, pctAtFullMask: null,
@@ -3557,6 +3557,11 @@ function stepSaturation(img, params, report){
     params: effective,
     mask: {
       background: background, noiseSigma: noiseSigma,
+      // A largura do segundo histograma do analysePlane, que e a RESOLUCAO do
+      // madn: o bin dele e span/(BINS-1), nao 1/(BINS-1). Registrado para que uma
+      // comparacao contra outra implementacao dimensione a cota ao instrumento
+      // em vez de ao eixo [0,1], onde ela ficaria centenas de vezes larga demais.
+      luminanceSpan: ys.span,
       pixelsBelowSnrLow: belowLow, pctBelowSnrLow: 100 * belowLow / N,
       pixelsAtFullAmount: atFull, pctAtFullAmount: 100 * atFull / N,
       pixelsAtFullMask: atFullMask, pctAtFullMask: 100 * atFullMask / N,

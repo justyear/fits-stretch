@@ -346,3 +346,141 @@ def density_report(planes_before_cc, cc_rec, stretch_in, st_rec, out_planes):
                                      density=threshold_density(
                                          st_rec['_preRescaleMax'], 1.0))
     return rep
+
+
+# ------------------------------------------------- Modulo 4: saturacao
+
+def sat_factor(Y, background, noise, p):
+    """O fator local k. UMA copia.
+
+    A implementacao JS teve um defeito exatamente aqui: a pre-passada do
+    ruido duplicava esta formula, o conserto atingiu so o laco principal,
+    e a copia intacta aprovou a mascara quebrada. A salvaguarda estava
+    medindo uma funcao diferente da que ia rodar. Aqui a pre-passada e a
+    aplicacao chamam esta funcao, nao uma copia dela.
+    """
+    Y = np.asarray(Y, dtype=F64)
+    snr = (Y - background) / max(noise, 1e-12)
+    w = np.clip((snr - p['snrLow']) / (p['snrHigh'] - p['snrLow']), 0.0, 1.0)
+
+    knee, floor = p['highlightKnee'], p['highlightFloor']
+    roll = np.where(Y <= knee, 1.0,
+                    floor + (1.0 - floor) * (1.0 - (Y - knee) / (1.0 - knee)))
+    roll = np.clip(roll, floor, 1.0)
+    return 1.0 + (p['amount'] - 1.0) * w * roll, w, roll
+
+
+def _hue_hsv(r, g, b):
+    """Matiz em voltas [0,1), do trio RGB direto.
+
+    Do trio, NAO da decomposicao Y-C: um k por canal ou um erro de sinal
+    dentro da decomposicao se cancelaria consigo mesmo se o matiz fosse
+    calculado a partir dela.
+    """
+    mx = np.maximum(np.maximum(r, g), b)
+    mn = np.minimum(np.minimum(r, g), b)
+    d = mx - mn
+    h = np.zeros_like(mx)
+    ok = d > 1e-12
+    ir = ok & (mx == r)
+    ig = ok & (mx == g) & ~ir
+    ib = ok & ~ir & ~ig
+    with np.errstate(invalid='ignore', divide='ignore'):
+        h[ir] = ((g[ir] - b[ir]) / d[ir]) % 6.0
+        h[ig] = ((b[ig] - r[ig]) / d[ig]) + 2.0
+        h[ib] = ((r[ib] - g[ib]) / d[ib]) + 4.0
+    return (h / 6.0) % 1.0, ok
+
+
+def saturate(planes, params=None, background=None, noise=None):
+    p = dict(amount=1.45, snrLow=3.0, snrHigh=25.0,
+             highlightKnee=0.80, highlightFloor=0.35,
+             chromaGrowthMax=0.02, hueDriftMax=1e-6)
+    p.update(params or {})
+    rec = {'params': p}
+
+    if len(planes) != 3:
+        return planes, dict(applied=False,
+                            skipReason='saturation needs 3 channels', **rec)
+
+    R, G, B = [c.astype(F64) for c in planes]
+    Y = 0.2126 * R + 0.7152 * G + 0.0722 * B
+
+    if background is None or noise is None:
+        background, noise = madn_exact(Y.astype(F32))
+    rec['mask'] = dict(background=background, noiseSigma=noise)
+
+    k, w, roll = sat_factor(Y, background, noise, p)
+    protected = w <= 0.0
+    rec['mask'].update(
+        pixelsBelowSnrLow=int(np.count_nonzero(protected)),
+        pctFrame=100.0 * float(np.mean(protected)),
+        pixelsAtFullAmount=int(np.count_nonzero((w >= 1.0) & (roll >= 1.0))),
+        pixelsAtFullMask=int(np.count_nonzero(w >= 1.0)),
+        meanK=float(k.mean()), maxK=float(k.max()))
+
+    Ro, Go, Bo = Y + (R - Y) * k, Y + (G - Y) * k, Y + (B - Y) * k
+
+    # Salvaguarda de ruido de croma, sobre o conjunto protegido, com o
+    # MESMO k que a aplicacao usa.
+    if np.count_nonzero(protected):
+        cb = np.concatenate([(R - Y)[protected], (G - Y)[protected],
+                             (B - Y)[protected]])
+        ca = np.concatenate([(Ro - Y)[protected], (Go - Y)[protected],
+                             (Bo - Y)[protected]])
+        sb, sa = float(cb.std()), float(ca.std())
+        growth = (sa - sb) / sb if sb > 0 else 0.0
+    else:
+        sb = sa = 0.0
+        growth = 0.0
+    rec['chromaNoise'] = dict(sigmaBefore=sb, sigmaAfter=sa,
+                              growthPct=100.0 * growth)
+
+    if growth > p['chromaGrowthMax']:
+        rec['motivoRecusa'] = (
+            f'background chroma noise would grow {growth*100:.2f}%, over the '
+            f'{p["chromaGrowthMax"]*100:.0f}% limit -- the mask is not '
+            f'protecting the sky')
+        return planes, dict(applied=False, skipReason=rec['motivoRecusa'], **rec)
+
+    # Estouro: os TRES juntos, nunca um canal sozinho.
+    mx = np.maximum(np.maximum(Ro, Go), Bo)
+    hot = mx > 1.0
+    d = np.where(hot, mx, 1.0)
+    Ro, Go, Bo = Ro / d, Go / d, Bo / d
+    mn = np.minimum(np.minimum(Ro, Go), Bo)
+    cold = mn < 0.0
+    lift = np.where(cold, -mn, 0.0)
+    Ro, Go, Bo = Ro + lift, Go + lift, Bo + lift
+    rec['overflow'] = dict(pixelsRescaled=int(np.count_nonzero(hot)),
+                           pixelsLifted=int(np.count_nonzero(cold)))
+
+    h0, ok0 = _hue_hsv(R, G, B)
+    h1, ok1 = _hue_hsv(Ro, Go, Bo)
+    m = ok0 & ok1
+    if np.count_nonzero(m):
+        dh = np.abs(h1[m] - h0[m])
+        dh = np.minimum(dh, 1.0 - dh)          # matiz e circular
+        rec['hueFidelity'] = dict(maxHueDrift=float(dh.max()),
+                                  driftSamples=int(np.count_nonzero(m)))
+    else:
+        rec['hueFidelity'] = dict(maxHueDrift=0.0, driftSamples=0)
+
+    def satur(r, g, b):
+        M = np.maximum(np.maximum(r, g), b)
+        mm = np.minimum(np.minimum(r, g), b)
+        return np.where(M > 0.03, (M - mm) / np.maximum(M, 1e-9), 0.0)
+
+    tab = []
+    s0, s1 = satur(R, G, B), satur(Ro, Go, Bo)
+    for lo, hi in [(0.0, 0.10), (0.10, 0.20), (0.20, 0.35),
+                   (0.35, 0.55), (0.55, 0.80), (0.80, 1.01)]:
+        sel = (Y >= lo) & (Y < hi)
+        n = int(np.count_nonzero(sel))
+        tab.append(dict(range=[lo, hi], pct=100.0 * float(np.mean(sel)),
+                        before=float(s0[sel].mean()) if n else 0.0,
+                        after=float(s1[sel].mean()) if n else 0.0))
+    rec['saturationByLuminance'] = tab
+
+    out = [np.clip(x, 0, 1).astype(F32) for x in (Ro, Go, Bo)]
+    return out, dict(applied=True, skipReason=None, **rec)
