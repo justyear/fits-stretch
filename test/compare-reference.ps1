@@ -787,6 +787,272 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             }
         }
 
+        # ---- Modulo 4: saturacao seletiva ------------------------------
+        #
+        # A referencia le a etapa em `saturacao`, com as chaves que
+        # reference_m23.saturate() devolve:
+        #
+        #   applied, skipReason
+        #   mask{ background, noiseSigma, pixelsBelowSnrLow, pctFrame,
+        #         pixelsAtFullAmount, pixelsAtFullMask, meanK, maxK }
+        #   chromaNoise{ sigmaBefore, sigmaAfter, growthPct }
+        #   overflow{ pixelsRescaled, pixelsLifted }
+        #   hueFidelity{ maxHueDrift, driftSamples }
+        #   saturationByLuminance[]{ range, pct, before, after }
+        #
+        # Uma contagem `pixels` por faixa e bem-vinda e preferida a `pct`:
+        # reconstruir a contagem da percentagem custa meio pixel de
+        # arredondamento por faixa, que nao muda veredito mas mede o
+        # arredondamento junto com a etapa.
+        #
+        # TRES DIFERENCAS DE DEFINICAO, NAO DE PRECISAO, e por isso estao aqui
+        # e nao numa tolerancia larga. Alimentar uma formula com as entradas da
+        # outra so separa entrada de metodo quando as duas medem a MESMA
+        # grandeza; nestas tres elas nao medem.
+        #
+        #   1. chromaNoise.sigma*  Aqui e o desvio padrao da NORMA da
+        #      crominancia, sqrt(cr^2+cg^2+cb^2), um escalar por pixel. La e o
+        #      desvio padrao das TRES COMPONENTES empilhadas num array de 3N.
+        #      Sao estatisticas diferentes do mesmo conjunto: os valores nao sao
+        #      comparaveis, e comparados dariam divergencia sem causa legivel.
+        #      O que E comparavel e a afirmacao do produto -- "nao cresce mais
+        #      que 2%" -- entao os dois lados sao afirmados contra o limite e
+        #      nao um contra o outro, como ja e feito com colourFidelity.
+        #      (E nao vem do analysePlane de nenhum dos dois lados: as duas somas
+        #      sao exatas sobre os pixels protegidos. O que sai do histograma e a
+        #      MEDIANA e o MADN que definem QUAIS pixels estao no conjunto.)
+        #
+        #   2. Ordem do estouro. Aqui: subfluxo primeiro (levanta os tres e
+        #      reescala para PRESERVAR Y), depois transbordo (divide os tres).
+        #      La: transbordo primeiro, depois um levantamento que NAO preserva
+        #      Y, e um np.clip por canal no fim. Nos tres fixtures que existem
+        #      hoje `pixelsLifted` e 0 nos dois lados, entao esta discordancia
+        #      nao aparece como divergencia -- ela e NAO EXERCITADA, que nao e a
+        #      mesma coisa que concordancia. Registrada aqui para nao ser lida
+        #      como acordo.
+        #
+        #   3. saturationByLuminance.before/after. Aqui a saturacao HSV e
+        #      (max-min)/max sempre que max > 0. La ela e zerada quando
+        #      max <= 0.03. Nas faixas baixas isso muda a media, e nao por
+        #      precisao.
+        $sa = $rf2.saturacao
+        $satRec = $recs2 | Where-Object { $_.id -eq 'saturation' } | Select-Object -First 1
+        if ($null -eq $sa) {
+            $rows += New-Row $name 'saturacao' '(todos)' '-' '-' 'N/A' `
+                     'a referencia nao emite saturacao para este fixture'
+        } elseif ($null -eq $satRec) {
+            $rows += New-Row $name 'saturacao' '(todos)' '-' '-' 'N/A' `
+                     'golden sem record de saturacao: capture o fixture com { saturation: true }'
+        } else {
+            $rows += Compare-Value $name 'saturacao' 'aplicado' $satRec.applied $sa.applied 'exact' 0 0
+
+            if ($satRec.applied -and $sa.applied) {
+                $mk = $satRec.mask; $rk = $sa.mask
+                $pTot = [int]$rf2.decode.width * [int]$rf2.decode.height
+
+                # O fundo e o ruido da luminancia: mediana e MADN, histograma de
+                # 65536 bins contra selecao exata. Mesma moeda do bloco do
+                # esticamento, e a origem de tudo que vem depois neste bloco.
+                $dBg = [math]::Abs([double]$mk.background - [double]$rk.background)
+                $rows += Compare-Value $name 'saturacao' 'mascara.fundo' `
+                         $mk.background $rk.background 'unit' 0 0
+                $lumSpan = 0.0
+                if ($null -ne $mk.luminanceSpan) { $lumSpan = [double]$mk.luminanceSpan }
+                $rows += Compare-Value $name 'saturacao' 'mascara.ruido' `
+                         $mk.noiseSigma $rk.noiseSigma 'mad' $lumSpan 0 $dBg
+                $dSig = [math]::Abs([double]$mk.noiseSigma - [double]$rk.noiseSigma)
+
+                <#
+                O FATOR k NAO MORA NO EIXO [0,1], e a cota dele e derivada.
+
+                    k    = 1 + (A-1) * w * roll
+                    w    = clip((snr - L) / (H - L), 0, 1)
+                    snr  = (Y - b) / sigma
+
+                `roll` depende so de Y, que os dois lados calculam dos mesmos
+                pixels -- nao carrega a discordancia. Ela entra por `b` e
+                `sigma`, e o Jacobiano do snr e
+
+                    d(snr) <= (db + |snr| * dsigma) / sigma
+
+                com o pior caso em snr = H, que e onde `w` ainda responde (acima
+                dele o clamp satura e a sensibilidade e ZERO). Logo
+
+                    dk <= (A-1) * (db + H * dsigma) / (sigma * (H - L))
+
+                Medido no fixture-colour isso vale ~2.8e-4, o dobro do que a
+                tolerancia do eixo [0,1] permitiria -- usa-la aqui reprovaria
+                uma implementacao correta. O piso do eixo fica como minimo para
+                que a cota nunca desca abaixo do instrumento.
+                #>
+                $pAmt = [double]$satRec.params.amount
+                $pLow = [double]$satRec.params.snrLow
+                $pHigh = [double]$satRec.params.snrHigh
+                $sig = [math]::Max([double]$mk.noiseSigma, 1e-12)
+                $dK = ($pAmt - 1.0) * ($dBg + $pHigh * $dSig) / ($sig * [math]::Max($pHigh - $pLow, 1e-12))
+                $dK = [math]::Max($dK, 4.0 / 65535.0)
+                foreach ($par in @(@('mascara.maxK', $mk.maxK, $rk.maxK), @('mascara.mediaK', $mk.meanK, $rk.meanK))) {
+                    $dd = [math]::Abs([double]$par[1] - [double]$par[2])
+                    $ok = ($dd -le $dK)
+                    $rows += New-Row $name 'saturacao' $par[0] ('{0:G9}' -f [double]$par[1]) ('{0:G9}' -f [double]$par[2]) `
+                             $(if ($ok) { if ($dd -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
+                             ('{0:0.0e+00} de {1:0.0e+00} - cota propagada de db e dsigma' -f $dd, $dK)
+                }
+
+                <#
+                AS CONTAGENS DA MASCARA SAO CONTAGENS POR LIMIAR.
+
+                `snr` contra `snrLow` e contra `snrHigh`: um pixel troca de lado
+                quando `snr - T` troca de sinal, e as duas pontas mexem em `snr`
+                pelos mesmos db e dsigma de cima. O Delta e POR LIMIAR, porque o
+                termo |snr|*dsigma cresce com o limiar: em snrLow = 3 ele vale
+                3*dsigma, em snrHigh = 25 vale 25*dsigma, oito vezes mais.
+
+                Quando a referencia emitir `densidadePorLimiar.saturacao.<campo>`
+                a cota sai da curva, como no clipLow. Sem a curva a linha cai na
+                cota de contagem da secao 7 (0,05% do quadro) e o detalhe diz
+                que a cota nao foi derivada -- que e menos, e esta escrito.
+                #>
+                $dens = $null
+                if ($rf2.densidadePorLimiar -and $rf2.densidadePorLimiar.saturacao) {
+                    $dens = $rf2.densidadePorLimiar.saturacao
+                }
+                $dSnrLow  = ($dBg + $pLow  * $dSig) / $sig
+                $dSnrHigh = ($dBg + $pHigh * $dSig) / $sig
+
+                foreach ($t in @(
+                    @('mascara.abaixoDoLimiar', $mk.pixelsBelowSnrLow, $rk.pixelsBelowSnrLow, $dSnrLow,  'pixelsBelowSnrLow'),
+                    @('mascara.mascaraCheia',   $mk.pixelsAtFullMask,  $rk.pixelsAtFullMask,  $dSnrHigh, 'pixelsAtFullMask'),
+                    @('mascara.amountCheio',    $mk.pixelsAtFullAmount, $rk.pixelsAtFullAmount, $dSnrHigh, 'pixelsAtFullAmount'))) {
+                    $curve = $null
+                    if ($dens) { $curve = $dens.($t[4]) }
+                    if ($curve) {
+                        $rows += Compare-Threshold-Count $name 'saturacao' $t[0] $t[1] $t[2] $t[3] $curve
+                    } else {
+                        $r0 = Compare-Value $name 'saturacao' $t[0] $t[1] $t[2] 'count' 0 $pTot
+                        $r0.detalhe = $r0.detalhe + ' - cota da secao 7, nao derivada (sem densidadePorLimiar.saturacao)'
+                        $rows += $r0
+                    }
+                }
+
+                # Estouro. O limiar e 1.0 e nao se move; a grandeza e
+                # max(R,G,B) depois de multiplicada por k, entao o Delta e
+                # MULTIPLICATIVO atraves de k -- a mesma forma do pixelsRescaled
+                # do esticamento, onde o Delta vem de midtones.
+                $dRelK = 0.0
+                if ([double]$mk.maxK -ne 0) { $dRelK = $dK / [math]::Abs([double]$mk.maxK) }
+                $ov = $satRec.overflow; $rov = $sa.overflow
+                if ($ov -and $rov) {
+                    foreach ($t in @(
+                        @('estouro.reescalados', $ov.pixelsRescaled, $rov.pixelsRescaled, 'pixelsRescaled'),
+                        @('estouro.levantados',  $ov.pixelsLifted,   $rov.pixelsLifted,   'pixelsLifted'))) {
+                        $curve = $null
+                        if ($dens) { $curve = $dens.($t[3]) }
+                        if ($curve) {
+                            $rows += Compare-Threshold-Count $name 'saturacao' $t[0] $t[1] $t[2] $dRelK $curve
+                        } else {
+                            $r0 = Compare-Value $name 'saturacao' $t[0] $t[1] $t[2] 'count' 0 $pTot
+                            $r0.detalhe = $r0.detalhe + ' - cota da secao 7, nao derivada'
+                            $rows += $r0
+                        }
+                    }
+                    # O caminho do subfluxo tem contagem zero nos dois lados em
+                    # todos os fixtures de hoje. Dito em voz alta, porque zero
+                    # igual a zero le como acordo e aqui e ausencia de caso --
+                    # a mesma classe dos quatro zeros do rejected-edge.
+                    if ([int]$ov.pixelsLifted -eq 0 -and [int]$rov.pixelsLifted -eq 0) {
+                        $rows += New-Row $name 'saturacao' 'estouro.subfluxo' '0' '0' 'N/A' `
+                                 'nenhum pixel abaixo de zero: o caminho onde as duas implementacoes discordam de ORDEM nao foi exercitado'
+                    }
+                }
+
+                # AFIRMACAO, NAO COMPARACAO -- secao 3.2 do Modulo 4 e o mesmo
+                # padrao do colourFidelity. Acima de 1e-6 a implementacao esta
+                # errada, e nao a tolerancia. Os dois lados sao afirmados contra
+                # o limite; um contra o outro nao diria nada, porque zero e zero
+                # e tambem o que sai quando a etapa nao faz nada.
+                $hf = $satRec.hueFidelity; $rhf = $sa.hueFidelity
+                if ($hf -and $rhf) {
+                    foreach ($par in @(@('nosso', $hf.maxHueDrift), @('referencia', $rhf.maxHueDrift))) {
+                        $ok = ([double]$par[1] -le 1e-6)
+                        $rows += New-Row $name 'saturacao' ("matiz.$($par[0])") $par[1] '<= 1e-6' `
+                                 $(if ($ok) { 'PASS' } else { 'FAIL' }) `
+                                 $(if ($ok) { 'preservado por construcao' } else { 'o matiz andou: erro de implementacao, nao de cota' })
+                    }
+                    # `driftSamples` conta os pixels com matiz definido, e as
+                    # duas pontas usam limiares diferentes para "definido"
+                    # (max-min > 0 aqui, > 1e-12 la). E contagem por limiar com
+                    # Delta que nenhum dos dois lados mede; vai pela cota da
+                    # secao 7 com a causa escrita.
+                    $r0 = Compare-Value $name 'saturacao' 'matiz.amostras' `
+                          $hf.driftSamples $rhf.driftSamples 'count' 0 $pTot
+                    $r0.detalhe = $r0.detalhe + ' - limiar de "matiz definido" difere: >0 aqui, >1e-12 la'
+                    $rows += $r0
+                }
+
+                # Ruido de croma: afirmacao contra o limite dos dois lados, e os
+                # dois sigmas reportados sem veredito. Ver a nota 1 no topo
+                # deste bloco -- sao estatisticas diferentes do mesmo conjunto.
+                $cn = $satRec.chromaNoise; $rcn = $sa.chromaNoise
+                if ($cn -and $rcn) {
+                    $limPct = 2.0
+                    if ($null -ne $cn.limitPct) { $limPct = [double]$cn.limitPct }
+                    foreach ($par in @(@('nosso', $cn.growthPct), @('referencia', $rcn.growthPct))) {
+                        $ok = ([double]$par[1] -le $limPct)
+                        $rows += New-Row $name 'saturacao' ("croma.crescimento.$($par[0])") `
+                                 ('{0:0.0000}%' -f [double]$par[1]) ("<= $limPct%") `
+                                 $(if ($ok) { 'PASS' } else { 'FAIL' }) `
+                                 $(if ($ok) { 'a mascara protege o fundo' } else { 'a mascara nao esta protegendo o ceu' })
+                    }
+                    $rows += New-Row $name 'saturacao' 'croma.sigma' `
+                             ('{0:G6}' -f [double]$cn.sigmaBefore) ('{0:G6}' -f [double]$rcn.sigmaBefore) 'N/A' `
+                             'desvio da NORMA aqui, das tres componentes empilhadas la: grandezas diferentes'
+                }
+
+                # A tabela por faixa de luminancia -- a metrica do produto, a
+                # unica que permite comparar contra uma entrega manual sem olhar
+                # a imagem. `pct` e contagem por limiar em Y; `before`/`after`
+                # sao medias sobre o conjunto da faixa.
+                $bl = @($satRec.saturationByLuminance); $rbl = @($sa.saturationByLuminance)
+                if ($bl.Count -gt 0 -and $rbl.Count -gt 0) {
+                    if ($bl.Count -ne $rbl.Count) {
+                        $rows += New-Row $name 'saturacao' 'faixas' $bl.Count $rbl.Count 'FAIL' `
+                                 'numero de faixas difere: as duas tabelas nao descrevem a mesma particao'
+                    } else {
+                        for ($bi = 0; $bi -lt $bl.Count; $bi++) {
+                            $lo = [double]$bl[$bi].range[0]
+                            $tag = ('faixa[{0:0.00}]' -f $lo)
+                            # A contagem direta quando a referencia a emite; reconstruida
+                            # da percentagem quando nao. Reconstruir custa meio pixel
+                            # de arredondamento e nao muda veredito, mas o campo
+                            # direto e o que se deve pedir.
+                            $refN = $rbl[$bi].pixels
+                            $viaPct = $false
+                            if ($null -eq $refN) { $refN = [math]::Round([double]$rbl[$bi].pct / 100.0 * $pTot); $viaPct = $true }
+                            $r0 = Compare-Value $name 'saturacao' "$tag.pixels" $bl[$bi].pixels $refN 'count' 0 $pTot
+                            $r0.detalhe = $r0.detalhe + ' - contagem por limiar em Y' + $(if ($viaPct) { ' (reconstruida de pct)' } else { '' })
+                            $rows += $r0
+                            foreach ($w in @('before', 'after')) {
+                                $mv = $bl[$bi].$w; $rv = $rbl[$bi].$w
+                                if ($null -eq $mv -or $null -eq $rv) { continue }
+                                $r1 = Compare-Value $name 'saturacao' "$tag.$w" $mv $rv 'unit' 0 0
+                                if ($r1.resultado -eq 'FAIL' -and $lo -lt 0.10) {
+                                    $r1.detalhe = $r1.detalhe + ' - a referencia zera a saturacao abaixo de max=0.03; aqui nao'
+                                }
+                                $rows += $r1
+                            }
+                        }
+                    }
+                }
+            } elseif ((-not $satRec.applied) -and (-not $sa.applied)) {
+                # As duas recusaram. O motivo importa mais que o veredito: duas
+                # recusas por razoes diferentes leem como acordo e nao sao.
+                $rows += New-Row $name 'saturacao' 'motivo' `
+                         $satRec.skipReason $sa.skipReason 'N/A' `
+                         'as duas recusaram; os textos sao proprios de cada implementacao'
+            }
+        }
+
         # PRE-CONDICAO para comparar estatistica pos-correcao.
         #
         # A tolerancia da secao 7 pressupoe que os dois lados medem OS MESMOS

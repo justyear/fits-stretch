@@ -1113,6 +1113,55 @@ ninguém sabe qual. O comparador afirma essa independência explicitamente — s
 dia as duas passarem a pegar as mesmas falhas, `test/compare-safeguards.ps1`
 reprova e diz qual sobrou.
 
+## Ler a outra implementação antes dos números chegarem
+
+A referência do Módulo 4 chegou antes dos dois fixtures que ela precisa para
+rodar. Em vez de esperar, li o `saturate()` linha a linha contra o
+`saturation.js` — e saíram **três diferenças de definição**, nenhuma delas de
+precisão:
+
+| | aqui | na referência |
+|---|---|---|
+| `chromaNoise.sigma*` | desvio padrão da **norma** `√(cr²+cg²+cb²)`, um escalar por pixel | desvio padrão das **três componentes empilhadas** num array de 3N |
+| ordem do estouro | subfluxo primeiro, levantando os três e **reescalando para preservar Y**; depois o transbordo | transbordo primeiro; depois um levantamento que **não** preserva Y, e um `clip` por canal no fim |
+| saturação HSV da tabela | `(max−min)/max` sempre que `max > 0` | zerada quando `max ≤ 0,03` |
+
+Nenhuma delas apareceria como "divergência" legível. A primeira daria dois
+números diferentes sem causa visível; a terceira reprovaria só nas faixas
+baixas, que é onde se procuraria erro de esticamento antes de erro de
+definição. A segunda é pior: **`pixelsLifted` é 0 nos dois lados em todo
+fixture que roda a etapa hoje**, então o caminho onde as duas discordam nunca
+executa. Zero igual a zero lê como acordo e é ausência de caso — a mesma classe
+dos quatro zeros do `rejected-edge`, e ela agora tem uma linha própria no
+comparador dizendo isso em voz alta.
+
+**A regra:** *alimentar uma fórmula com as entradas da outra* separa "fórmula
+diferente" de "entrada diferente" — mas só quando as duas medem a **mesma
+grandeza**. Quando não medem, a técnica não se aplica e nenhuma tolerância
+conserta. Ler a outra implementação antes de comparar é o que separa os dois
+casos, e custa uma leitura em vez de uma rodada.
+
+Consequência para o comparador: onde as grandezas diferem, os dois lados são
+**afirmados contra o limite que o produto promete** (croma ≤ 2%, matiz ≤ 1e-6)
+e não um contra o outro — o mesmo padrão do `colourFidelity` do Módulo 3.
+
+## Comparador exercitado com referência sintética antes da real
+
+O bloco novo do `compare-reference` ficaria 100% N/A até os fixtures chegarem —
+ou seja, entregue sem nunca ter produzido uma linha. Um comparador nessas
+condições é a mesma coisa que uma salvaguarda que nunca disparou.
+
+Ensaio: goldens descartáveis (`-Golden`, que existe para isto), um record de
+saturação real injetado no `colour-fixture`, e um bloco `saturacao` na
+referência com os números **perturbados de propósito** — 3 pixels no conjunto
+da máscara, 2 na máscara cheia, 8e-6 no fundo, −5e-6 no ruído, e 4% na faixa
+mais baixa da tabela. Saíram **34 linhas**, todos os ramos passaram por dados, e
+a única FAIL foi a perturbação de 4%, com a causa certa no detalhe.
+
+**A regra:** um comparador cujo primeiro dado real é também a primeira vez que
+ele roda está sendo estreado e verificado no mesmo instante, e não dá para
+saber qual dos dois falhou.
+
 ## Em aberto
 
 
@@ -1123,10 +1172,12 @@ salvaguardas, o `fixture-saturation.fit` e o `fixture-flatsky.fit`, o registry
 com o round-trip nos três estados, o bloco do log, e o controle permanente da
 salvaguarda de ruído no `compare-safeguards`.
 
-Falta o **passo 9**: `reference_m23.py` estendido para a etapa e
-`compare-reference` cobrindo `mask`, `hueFidelity`, `chromaNoise`,
-`saturationByLuminance` e `overflow`. Enquanto ele não fecha, a etapa está
-verificada **contra si mesma** (goldens, controles negativos, teoremas) e não
+Falta fechar o **passo 9**. O `compare-reference` ja cobre a etapa (34 linhas
+por fixture, ensaiadas contra referencia sintetica) e o `reference_m23.py` ja
+tem a saturacao; o que falta e a referencia RODAR sobre `fixture-saturation.fit`
+e `fixture-flatsky.fit`, que sao os dois unicos fixtures com a etapa ligada.
+
+Enquanto ele não fecha, a etapa está verificada **contra si mesma** (goldens, controles negativos, teoremas) e não
 contra uma implementação independente — que é o padrão que as outras três etapas
 já têm. **Ligar antes disso rebaixaria o padrão de verificação da entrega**, e
 essa é a única razão pela qual ela continua desligada; não é mais falta de log.
