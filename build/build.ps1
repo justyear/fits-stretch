@@ -75,6 +75,7 @@ $Sources = @(
     'src\pipeline\steps\background.js',
     'src\pipeline\steps\colour-cal.js',
     'src\pipeline\steps\stretch-mtf.js',
+    'src\pipeline\steps\saturation.js',
     'src\pipeline\render.js',
     'src\pipeline\log.js',
     'src\pipeline\run.js'

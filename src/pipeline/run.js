@@ -72,6 +72,14 @@ function plainRecords(records){
       // medicao de fidelidade de cor que e a razao de existir do Modulo 3.
       linked: r.linked || null,
       colourFidelity: r.colourFidelity || null,
+      // Saturacao seletiva: a mascara de SNR, a fidelidade de matiz e a tabela
+      // por faixa de luminancia, que e a metrica do produto -- ela e o que
+      // permite comparar a saida contra uma entrega manual sem olhar a imagem.
+      mask: r.mask || null,
+      hueFidelity: r.hueFidelity || null,
+      chromaNoise: r.chromaNoise || null,
+      saturationByLuminance: r.saturationByLuminance || null,
+      overflow: r.overflow || null,
       stars: r.stars || null,
       gains: r.gains || null,
       reference: r.reference || null,
@@ -312,6 +320,20 @@ async function openFile(buffer, fileName, opts, post){
     ccExtendedWindow: 25,
     ccExtendedFrac: 0.50,
     ccReference: 'green',
+    // Saturacao seletiva. DESLIGADA nesta entrega: os passos 1 a 3 da secao 6
+    // do Modulo 4 produzem a operacao, a mascara e a queda, e os passos 4 a 9 --
+    // salvaguardas, fixture, registry, bloco do log -- sao o que permite
+    // publicar. Ligar antes do bloco do log seria uma etapa que o log deixa de
+    // negar sem descrever.
+    //
+    // amount 1.45 saiu da medicao da secao 1 contra uma entrega manual, nao de
+    // escolha: se ele mudar, a medicao que o justifica muda junto.
+    saturation: false,
+    satAmount: 1.45,
+    satSnrLow: 3.0,
+    satSnrHigh: 25.0,
+    satHighlightKnee: 0.80,
+    satHighlightFloor: 0.35,
     dither: true
   };
 
@@ -466,6 +488,33 @@ async function runChain(params, mode, post){
     before: stretchBefore
   }, report);
   mark('transfer', step);
+
+  // Selective saturation ----------------------------------------------
+  //
+  // AFTER the stretch, because it works on display-referred values: the
+  // highlight knee at 0.80 and the roll-off toward Y = 1 only mean anything
+  // once the frame is where it will be shown.
+  //
+  // OFF BY DEFAULT, and for the reason Module 2 already paid for once. The
+  // catalogue entry for `saturation` announces, so a step reporting applied
+  // would drop the word from the "Not applied" sentence — and until the log has
+  // a block describing what it did (step 7), that is an operation the log stops
+  // denying without describing. Section 7 of Module 0 forbids exactly that, and
+  // arriving at it by omission is still arriving at it.
+  if (params.saturation){
+    await yieldNow();
+    step = Date.now();
+    stage('Scaling chroma', 78);
+    work = stepSaturation(work, {
+      amount: params.satAmount,
+      snrLow: params.satSnrLow,
+      snrHigh: params.satSnrHigh,
+      highlightKnee: params.satHighlightKnee,
+      highlightFloor: params.satHighlightFloor,
+      stride: full ? SESSION.statStride : 1
+    }, report);
+    mark('saturation', step);
+  }
 
   // Quantise ----------------------------------------------------------
   await yieldNow();
