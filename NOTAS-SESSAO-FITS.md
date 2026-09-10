@@ -903,6 +903,132 @@ já tinha medido, dava para afirmar que a regra nova admite aquele quadro — 10
 de erro no pedestal move o azul 3,29%, abaixo do corte de 5%. A recusa não
 precisou vir sozinha; veio com a resposta que a pergunta queria.
 
+## Preferência aplicada sob restrições medidas
+
+A formulação, e ela é mais apertada que "é gosto".
+
+O Módulo 4 é a primeira etapa deste pipeline que **não mede nada**. O teste que
+resolve: pergunte *"qual é a saturação verdadeira deste objeto?"* — a pergunta
+não tem resposta. O gradiente **está** no quadro. A razão de fluxo estelar **é**
+propriedade dos fótons. Não existe uma saturação que o céu tenha e que a
+ferramenta esteja recuperando.
+
+O `amount: 1.45` não desfaz isso. Ele foi medido — de uma entrega manual, §1 da
+spec — e **o que essa medição mediu foi o que uma pessoa escolheu**. É medição
+precisa de um gosto.
+
+**Mas a etapa não é gosto solto, e a formulação certa é esta:**
+
+> É uma **preferência aplicada sob restrições medidas**. A máscara de SNR e a
+> queda nas altas luzes **não são gosto** — "não amplifique onde não há sinal" é
+> afirmação sobre ruído, e "não empurre além de onde um canal satura" é
+> aritmética. As restrições **impedem a preferência de mentir**. Elas **não a
+> convertem em medição**.
+
+A consequência é operacional e vale para o texto: **o log não pode usar a
+máscara medida para insinuar que a etapa é medida.** Um produto que satura,
+explica a máscara em detalhe e nunca diz "esta parte é uma escolha" usou
+medição como cobertura. Por isso a última linha do bloco fica, e não se suaviza:
+
+> This is the one step here that is a preference rather than a measurement, and
+> it says so.
+
+## Verificação cujo valor esperado coincide com "nada aconteceu"
+
+**Uma verificação assim só vale com controle negativo, e ela verifica a
+implementação, nunca o desenho.**
+
+Achado três vezes no Módulo 4, e as três estavam na spec como se fossem provas:
+
+| verificação | por que é teorema |
+|---|---|
+| deriva de matiz | `ch' = Y + (ch−Y)k` escala toda diferença entre canais por `k`, e matiz depende só de razões dessas diferenças |
+| `k = 1` no fundo | a máscara põe `w = 0` abaixo de `snrLow`, por definição |
+| ruído de croma do fundo | mede exatamente o conjunto que a máscara protege — **o mesmo limiar define os dois** |
+
+Nos três, **zero é o resultado certo e também o que sai se a etapa não fizer
+nada**. É a mesma família da classe já registrada sobre etapa cujo modo de falha
+é virar identidade, e do `colourFidelity` do Módulo 3.
+
+**O que se faz com isso, em ordem:**
+
+1. **Medir a grandeza por um caminho independente do que a produziu.** A deriva
+   de matiz é calculada do trio RGB (HSV) e não da decomposição Y–C. Assim um
+   `k` por canal, um erro de sinal, um índice trocado aparecem em vez de se
+   cancelarem com eles mesmos.
+2. **Escrever no record o que a verificação é.** O campo carrega a frase
+   *"preserved by construction; this measures the implementation, not the
+   design"*. Um zero sem essa etiqueta é lido como evidência de que o desenho
+   está certo.
+3. **Provar que dispara.** Injetar o defeito e medir. Azul escalado por `k×1.02`
+   em vez de `k`: deriva **2,35e-3** contra o limite 1e-6, 2350× acima.
+
+## A alavanca do controle negativo não é o parâmetro óbvio
+
+Corolário do anterior, e custou duas tentativas.
+
+Para fazer a salvaguarda de ruído de croma disparar, o óbvio era **baixar o
+`snrLow`** para a máscara parar de proteger. Não funciona: o conjunto que a
+salvaguarda **mede** é definido pelo mesmo limiar que a máscara **usa**, então
+baixar `snrLow` **esvazia** o conjunto medido em vez de desprotegê-lo. Resultado:
+`pixels: 0`, nada a medir, não dispara.
+
+O segundo óbvio era **um quadro de céu sem sinal**, que a §5 da spec pede. Também
+não funciona, e pelo mesmo motivo invertido: com todo pixel abaixo do limiar,
+todo pixel é protegido e o crescimento é zero. **Um céu sem sinal é o oposto de
+fazê-la disparar.**
+
+A alavanca certa era **a fiação da máscara** — o clamp do `w` invertido, que é a
+classe de defeito que a salvaguarda existe para pegar. Aí ela dispara: **45,00%**
+contra o limite de 2%, e a etapa recusa.
+
+**A regra:** a alavanca de um controle negativo é o **mecanismo que a
+salvaguarda alega proteger**, não o parâmetro que dá nome a ele. Quando os dois
+coincidem, mexer no parâmetro move a medição junto e não prova nada.
+
+## Salvaguarda que duplica a aritmética que verifica
+
+O controle negativo acima achou um defeito que nenhum teste da suíte acharia.
+
+A pré-passada do ruído de croma **duplicava** o cálculo do `k`. Injetei o clamp
+invertido, ele atingiu só o laço principal, e a pré-passada — ainda correta —
+previu `k = 1` no fundo, não viu crescimento, aprovou, e o laço principal
+aplicou a máscara quebrada. **A salvaguarda estava medindo uma função diferente
+da que ia rodar.**
+
+Consertado com uma função só, `satFactor`, chamada pelas duas. E o controle
+negativo agora tem uma asserção a mais: **existe exatamente uma cópia do clamp
+no código-fonte**. Se aparecer uma segunda, o teste para.
+
+É a mesma classe do `records[0]` e da nota sobre duas medições da mesma coisa
+que podem discordar — com um agravante: aqui a segunda cópia era justamente a
+que verificava a primeira, então a divergência entre elas era invisível por
+construção.
+
+## `announce: false` retira a promessa nas duas direções
+
+A §4 do Módulo 4 pede `announce: false` para a saturação, no argumento de que o
+log dedica um bloco a ela. **O argumento não fecha, e a medição mostra por quê:**
+
+| estado | com `announce: false` | |
+|---|---|---|
+| rodou e aplicou | não nega, bloco descreve | ok |
+| rodou e recusou | não nega, bloco diz o motivo | ok |
+| **não rodou** | **não nega, sem bloco** | **quebrado** |
+
+A terceira linha é o estado de hoje e o de qualquer build com a saturação
+desligada. A palavra sairia da promessa **sem que nada tivesse sido feito** — a
+ferramenta pararia de afirmar que não satura, num quadro que ela não saturou.
+
+O esticamento e a calibração nunca caem nessa linha: rodam em todo quadro de
+três canais. **A saturação é a primeira etapa que pode simplesmente não existir
+na cadeia**, e para ela o padrão do catálogo — anunciar — já produz a frase
+certa nos três casos, porque `notAppliedLabels` derruba o rótulo no instante em
+que um record reivindica `applied`. Não precisou inventar nada.
+
+**A regra:** `announce: false` pressupõe que a etapa **sempre roda**. Para uma
+etapa opcional, ele troca uma promessa verdadeira por silêncio.
+
 ## Em aberto
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril

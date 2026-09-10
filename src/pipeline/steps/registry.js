@@ -17,6 +17,34 @@ var CATALOGUE = [
   // people have already pasted it in public.
   { id: 'denoise',       label: 'noise reduction' },
   { id: 'sharpen',       label: 'sharpening',                neverImplemented: true },
+  /* SATURATION STAYS IN THE SENTENCE, AND SECTION 4 OF MODULE 4 IS WRONG ABOUT
+   * THIS — measured, not argued.
+   *
+   * The spec asks for `announce: false`, on the argument that the log gives the
+   * step a block of its own. That argument holds for the stretch and for the
+   * colour calibration, and it does not hold here, because `announce: false`
+   * removes the word in BOTH directions:
+   *
+   *   step ran and applied     no denial, block describes it        fine
+   *   step ran and refused     no denial, block says why            fine
+   *   STEP DID NOT RUN         NO DENIAL, NO BLOCK                  broken
+   *
+   * The third row is today's state and will be the state of any build where
+   * saturation is off. The word would leave the promise without anything having
+   * been done — the tool would quietly stop claiming it does not saturate, on a
+   * frame it did not saturate.
+   *
+   * The stretch and the calibration never hit that row: they run on every
+   * three-channel frame. Saturation is the first step that can simply be
+   * absent, and the catalogue's default — announce — already produces the right
+   * sentence in all three cases, because `notAppliedLabels` drops a label the
+   * moment a record claims `applied`. Nothing needed inventing; the mechanism
+   * from Module 0 already handles it.
+   *
+   * If saturation ever becomes unconditional, revisit — but the block carrying
+   * "this is a preference rather than a measurement" is what would have to earn
+   * the change, not the mere existence of a block.
+   */
   { id: 'saturation',    label: 'saturation' },
   { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
   { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
@@ -48,6 +76,8 @@ var CATALOGUE = [
   // pixel count, so a denial elsewhere in the sentence would be a warning about
   // something the reader can already see was handled and measured.
   { id: 'colour-cal',    label: 'colour calibration',        announce: false },
+
+  // (`saturation` is NOT here — see the entry above and the note below.)
 
   // Not in the sentence today, and not implemented. Whoever writes the step
   // decides whether it announces — flipping this changes a sentence people

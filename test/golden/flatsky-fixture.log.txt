@@ -1,0 +1,27 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-flatsky.fit
+1600 × 1200 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00000 to 0.02346.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is linear: median 0.01099, no stretch recorded in the header. Full autostretch applied.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 108 of them. A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01099, G 0.01249, B 0.00950), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Colour calibration: the sky background was levelled between channels (R 0.000002, G 0.001495, B -0.001497 subtracted, additively, so only the floor moved).
+    Stellar gains: only 0 pixels are between the star thresholds (0.000% of the frame); 2000 are needed.
+    Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.085 — that is 22 of 255. Applied LINKED: one curve, derived from the luminance, and every channel multiplied by the same number. Highlights untouched at 1.000.
+    Luminance  median 0.01100  MADN 0.00198  →  shadows 0.00545  midtones 0.05702
+    Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 1,914,774 pixels — float rounding, nothing else. In the highlights, R/G 0.9504 → 0.9503 and B/G 0.9365 → 0.9365.
+    0.248% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
+• Selective saturation: chroma was scaled by up to ×1.029 (the ceiling in use is ×1.45), strongest where the signal is well above the noise and rolled off in the highlights so a bright core does not turn into a flat disc of colour.
+    The mask is driven by signal-to-noise, never by brightness: a pixel is left alone below 3.0σ above the sky and gets the full factor above 25.0σ. On this frame the sky sits at 0.08501 with a noise of 0.02793, so 1,919,051 pixels (100.0%) were not touched at all. Average factor across the frame: ×1.000.
+    Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 1.2e-15 of a turn across 1,915,245 pixels. Background chroma noise grew -0.00%.
+    This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

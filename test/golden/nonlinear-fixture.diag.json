@@ -137,16 +137,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 37,
-    "preview": 2,
-    "stats": 63,
-    "background": 323,
-    "colour": 321,
-    "transfer": 421,
-    "quantise": 49,
+    "header": 0,
+    "decode": 24,
+    "preview": 1,
+    "stats": 46,
+    "background": 252,
+    "colour": 260,
+    "transfer": 343,
+    "quantise": 43,
     "downscale": 0,
-    "total": 908
+    "total": 720
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

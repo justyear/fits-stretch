@@ -133,16 +133,16 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 73,
-    "preview": 57,
-    "stats": 96,
-    "background": 469,
-    "colour": 532,
-    "transfer": 838,
-    "quantise": 106,
+    "header": 1,
+    "decode": 91,
+    "preview": 53,
+    "stats": 97,
+    "background": 437,
+    "colour": 511,
+    "transfer": 804,
+    "quantise": 93,
     "downscale": 0,
-    "total": 1415
+    "total": 1334
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

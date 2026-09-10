@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -308,6 +308,105 @@ public static class FitsFixture
             double val = img[i] + nrnd.Gauss() * noiseSigma;
             if (val < 0) val = 0; else if (val > 1) val = 1;
             img[i] = (float)val;
+        }
+        return img;
+    }
+
+    /* ----------------------------------------------------------------
+     * SaturationScene — four regions with known hue, each testing one way the
+     * step can fail, plus an option for a sky with no signal anywhere.
+     *
+     * Hue is written into HISTORY as an angle in turns, and the region colours
+     * are built FROM that angle rather than from three numbers that happen to
+     * have it. That is what makes the check external: the test reads the angle
+     * out of the card and asserts the output still has it, and neither
+     * implementation can influence the number.
+     *
+     *   core      bright, warm, saturating toward 0.95   -> highlight roll-off
+     *   nebula    strong red at mid-tone                 -> the neon case
+     *   arm       weak blue just above the noise         -> does the SNR mask
+     *                                                       let real faint
+     *                                                       signal through?
+     *   sky       chroma noise with no signal            -> must come out
+     *                                                       untouched
+     *
+     * `flatSky` builds the last case on its own: no object at all, so every
+     * pixel sits below the SNR threshold. It is what the noise safeguard needs
+     * to have a frame where nothing should be touched.
+     * ---------------------------------------------------------------- */
+    static void HueToRgb(double hueTurns, double sat, double val, double[] outRgb)
+    {
+        double h = hueTurns - Math.Floor(hueTurns);
+        double hp = h * 6.0;
+        double c = val * sat;
+        double x = c * (1.0 - Math.Abs((hp % 2.0) - 1.0));
+        double m = val - c;
+        double r, g, b;
+        if      (hp < 1) { r = c; g = x; b = 0; }
+        else if (hp < 2) { r = x; g = c; b = 0; }
+        else if (hp < 3) { r = 0; g = c; b = x; }
+        else if (hp < 4) { r = 0; g = x; b = c; }
+        else if (hp < 5) { r = x; g = 0; b = c; }
+        else             { r = c; g = 0; b = x; }
+        outRgb[0] = r + m; outRgb[1] = g + m; outRgb[2] = b + m;
+    }
+
+    public static float[] SaturationScene(
+        int W, int H, ulong seed,
+        double[] skyLevel,          // R, G, B floor
+        double noiseSigma,
+        double chromaNoiseSigma,    // extra per-channel noise, so the sky has COLOUR noise
+        double[] regionHue,         // turns: core, nebula, arm
+        double[] regionSat,         // HSV saturation of each region as built
+        double[] regionPeak,        // peak value added above the sky
+        double[] regionGeom,        // cx,cy,rx,ry per region, flattened (9 numbers... 4 each)
+        bool flatSky)
+    {
+        int N = W * H;
+        var img = new float[N * 3];
+        var rgb = new double[3];
+
+        for (int c = 0; c < 3; c++)
+            for (int i = 0; i < N; i++)
+                img[c * N + i] = (float)skyLevel[c];
+
+        if (!flatSky)
+        {
+            for (int reg = 0; reg < 3; reg++)
+            {
+                double cx = regionGeom[reg * 4 + 0], cy = regionGeom[reg * 4 + 1];
+                double rx = regionGeom[reg * 4 + 2], ry = regionGeom[reg * 4 + 3];
+                HueToRgb(regionHue[reg], regionSat[reg], 1.0, rgb);
+
+                int x0 = Math.Max(0, (int)(cx - 3 * rx)), x1 = Math.Min(W - 1, (int)(cx + 3 * rx));
+                int y0 = Math.Max(0, (int)(cy - 3 * ry)), y1 = Math.Min(H - 1, (int)(cy + 3 * ry));
+                for (int y = y0; y <= y1; y++)
+                    for (int x = x0; x <= x1; x++)
+                    {
+                        double dx = (x - cx) / rx, dy = (y - cy) / ry;
+                        double rr = dx * dx + dy * dy;
+                        double f = Math.Exp(-rr);
+                        if (f < 1e-6) continue;
+                        double amp = regionPeak[reg] * f;
+                        for (int c = 0; c < 3; c++) img[c * N + y * W + x] += (float)(amp * rgb[c]);
+                    }
+            }
+        }
+
+        // Noise last. Luminance noise is common to the three channels; chroma
+        // noise is independent per channel, which is what gives the sky a
+        // COLOUR to be amplified — a frame with only common-mode noise would
+        // make the chroma-noise safeguard untestable by construction.
+        var rnd = new Lcg(seed);
+        for (int i = 0; i < N; i++)
+        {
+            double common = rnd.Gauss() * noiseSigma;
+            for (int c = 0; c < 3; c++)
+            {
+                double v = img[c * N + i] + common + rnd.Gauss() * chromaNoiseSigma;
+                if (v < 0) v = 0; else if (v > 1) v = 1;
+                img[c * N + i] = (float)v;
+            }
         }
         return img;
     }
@@ -1139,6 +1238,107 @@ if ($Only -eq 'all' -or $Only -eq 'colour') {
 
     Write-Fits (Join-Path $outDir 'fixture-colour.fit') $cards `
                ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+}
+
+# ------------------------------------------------------------- saturation
+if ($Only -eq 'all' -or $Only -eq 'saturation') {
+    $W = 1600; $H = 1200; $planes = 3
+
+    # ---- a verdade ------------------------------------------------------
+    #
+    # O MATIZ E ESCRITO COMO ANGULO, e as cores das regioes sao construidas A
+    # PARTIR dele -- nao sao tres numeros que por acaso tem aquele angulo. E
+    # isso que torna a verificacao externa: o teste le o angulo do cartao e
+    # exige que a saida ainda o tenha, e nenhuma das duas implementacoes
+    # influencia o numero.
+    #
+    #   nucleo   quente, saturando ate perto de 1   -> a queda nas altas luzes
+    #   nebulosa vermelho forte em meio-tom         -> o caso que vira neon
+    #   braco    azul fraco logo acima do ruido     -> a mascara deixa passar
+    #                                                   sinal fraco de verdade?
+    #   ceu      ruido de croma sem sinal           -> tem que sair intocado
+    $skyLevel = @(0.0110, 0.0125, 0.0095)
+    $noiseSig = 0.0018          # ruido comum aos tres canais (luminancia)
+    $chromaSig = 0.0011         # ruido independente por canal: da COR ao ceu
+    $noiseSeed = 20260913
+
+    # matiz em voltas: 0.083 = laranja, 0.995 = vermelho, 0.583 = azul
+    $hue  = @(0.0830, 0.9950, 0.5830)
+    $sat  = @(0.5500, 0.8000, 0.6500)
+    $peak = @(0.9000, 0.2200, 0.0180)
+    # cx, cy, rx, ry por regiao
+    $geom = @(1120.0, 380.0, 105.0, 88.0,
+               460.0, 430.0, 300.0, 210.0,
+               760.0, 900.0, 420.0, 150.0)
+
+    function Fmt6s([double]$v) { return $v.ToString('0.000000000', [cultureinfo]::InvariantCulture) }
+    function Hists([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    function SatCards([string]$obj, [bool]$flat) {
+        $c = @(
+            (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+            (New-Card 'BITPIX'   -32  'IEEE single precision')
+            (New-Card 'NAXIS'    3)
+            (New-Card 'NAXIS1'   $W)
+            (New-Card 'NAXIS2'   $H)
+            (New-Card 'NAXIS3'   $planes)
+            (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+            (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+            (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+            (New-Card 'OBJECT'   $obj '' -AsString)
+            (New-Card 'EXPTIME'  '600.' 'seconds')
+            (Hists 'SAT synthetic frame for the selective saturation step.')
+            (Hists 'SAT HUE is written as an ANGLE IN TURNS and the region colours')
+            (Hists 'SAT are BUILT from it, so the test reads the truth from here')
+            (Hists 'SAT and neither implementation can influence the number.')
+            (Hists ("SKY level R=" + (Fmt6s $skyLevel[0]) + " G=" + (Fmt6s $skyLevel[1]) + " B=" + (Fmt6s $skyLevel[2])))
+            (Hists ("NOISE common sigma=" + (Fmt6s $noiseSig) + " per-channel sigma=" + (Fmt6s $chromaSig)))
+            (Hists 'NOISE the per-channel term is what gives the sky a COLOUR to')
+            (Hists 'NOISE amplify. Common-mode noise alone would make the chroma')
+            (Hists 'NOISE safeguard untestable by construction.')
+            (Hists ("SEED $noiseSeed, noise added last, clipped to [0,1]"))
+        )
+        if (-not $flat) {
+            $c += @(
+                (Hists ("HUE core    = " + (Fmt6s $hue[0]) + " turns, HSV sat " + (Fmt6s $sat[0]) + ", peak " + (Fmt6s $peak[0])))
+                (Hists 'HUE core tests the highlight roll-off: without it a bright')
+                (Hists 'HUE core becomes a flat disc of one colour.')
+                (Hists ("HUE nebula  = " + (Fmt6s $hue[1]) + " turns, HSV sat " + (Fmt6s $sat[1]) + ", peak " + (Fmt6s $peak[1])))
+                (Hists 'HUE nebula tests the neon case: strong red at mid-tone.')
+                (Hists ("HUE arm     = " + (Fmt6s $hue[2]) + " turns, HSV sat " + (Fmt6s $sat[2]) + ", peak " + (Fmt6s $peak[2])))
+                (Hists 'HUE arm tests the SNR mask: faint blue just above the noise,')
+                (Hists 'HUE which the mask must let through and not treat as sky.')
+                (Hists ("GEOM core   cx=$($geom[0]) cy=$($geom[1]) rx=$($geom[2]) ry=$($geom[3])"))
+                (Hists ("GEOM nebula cx=$($geom[4]) cy=$($geom[5]) rx=$($geom[6]) ry=$($geom[7])"))
+                (Hists ("GEOM arm    cx=$($geom[8]) cy=$($geom[9]) rx=$($geom[10]) ry=$($geom[11])"))
+                (Hists 'GEOM I = peak * exp(-((x-cx)/rx)^2 - ((y-cy)/ry)^2)')
+                (Hists 'TRUTH these rows came from neither implementation.')
+            )
+        } else {
+            $c += @(
+                (Hists 'FLAT no object at all: every pixel sits below the SNR')
+                (Hists 'FLAT threshold, so the saturation step must leave the whole')
+                (Hists 'FLAT frame untouched. Exists because a safeguard with no')
+                (Hists 'FLAT case that exercises it is an assertion, not a control.')
+                (Hists 'TRUTH these rows came from neither implementation.')
+            )
+        }
+        return ($c + @((('END'.PadRight(80)))))
+    }
+
+    foreach ($case in @(@('fixture-saturation.fit', 'Saturation probe', $false),
+                        @('fixture-flatsky.fit',    'Flat sky',         $true))) {
+        Write-Host ("{0}  ({1} x {2} x {3}, float32, TOP-DOWN)" -f $case[0], $W, $H, $planes)
+        $img = [FitsFixture]::SaturationScene($W, $H, $noiseSeed,
+                                              $skyLevel, $noiseSig, $chromaSig,
+                                              $hue, $sat, $peak, $geom, [bool]$case[2])
+        $cards = SatCards $case[1] ([bool]$case[2])
+        Write-Fits (Join-Path $outDir $case[0]) $cards `
+                   ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+    }
 }
 
 Write-Host ''

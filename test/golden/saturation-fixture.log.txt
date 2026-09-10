@@ -1,0 +1,29 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-saturation.fit
+1600 × 1200 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00000 to 0.91751.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is linear: median 0.01525, no stretch recorded in the header. Full autostretch applied.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 63 of them (45 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.01437, G 0.01461, B 0.01187), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Colour calibration: the sky background was levelled between channels (R 0.001014, G 0.000831, B -0.001844 subtracted, additively, so only the floor moved).
+    Stellar gains: a 10% error in the sky estimate would move the red gain by 5.34%, over the 5% this step accepts; the stars are too close to the sky here for a ratio taken above it to be stable.
+    Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.085 — that is 22 of 255. Applied LINKED: one curve, derived from the luminance, and every channel multiplied by the same number. Highlights untouched at 1.000.
+    Luminance  median 0.01550  MADN 0.00437  →  shadows 0.00326  midtones 0.11809
+    Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 1.3e-15 across 1,920,000 pixels — float rounding, nothing else. In the highlights, R/G 1.3684 → 1.3679 and B/G 0.6327 → 0.6331.
+    29,465 pixels came out above 1.0 in one channel. All three were divided by their own maximum rather than the bright channel being clipped on its own: clipping one channel changes the colour of the pixel, dividing takes it to white and keeps it.
+    0.000% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
+• Selective saturation: chroma was scaled by up to ×1.440 (the ceiling in use is ×1.45), strongest where the signal is well above the noise and rolled off in the highlights so a bright core does not turn into a flat disc of colour.
+    The mask is driven by signal-to-noise, never by brightness: a pixel is left alone below 3.0σ above the sky and gets the full factor above 25.0σ. On this frame the sky sits at 0.08504 with a noise of 0.02842, so 1,545,033 pixels (80.5%) were not touched at all. Average factor across the frame: ×1.024.
+    Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 1.1e-16 of a turn across 1,920,000 pixels. Background chroma noise grew -0.00%.
+    59,743 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
+    This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

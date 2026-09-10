@@ -14,26 +14,51 @@ de jeitos diferentes em cada um, e falha visivelmente.
 Todas as etapas anteriores **medem**. A extração de fundo mede um gradiente. A
 calibração mede o fluxo estelar. O esticamento mede a mediana. Nenhuma decide.
 
-**Saturação não mede nada.** É gosto. E o log hoje termina dizendo:
+**Saturação não mede nada.** E o teste que resolve isso é perguntar *"qual é a
+saturação verdadeira deste objeto?"* — a pergunta não tem resposta. O gradiente
+**está** no quadro; a razão de fluxo estelar **é** propriedade dos fótons. Não
+existe uma saturação que o céu tenha e que a ferramenta esteja recuperando.
+
+O `amount: 1.45` da §1 não desfaz isso. Ele foi medido de uma entrega manual, e
+**o que essa medição mediu foi o que uma pessoa escolheu.** É medição precisa de
+um gosto.
+
+E o log hoje termina dizendo:
 
 > Not applied: noise reduction, sharpening, **saturation**, deconvolution, star
 > removal, colour grading, or any AI or generative step.
 
-Essa palavra sai da frase, e é a primeira vez no projeto em que a ferramenta
-faz algo que não é medição.
+Essa palavra sai da frase quando a etapa roda, e é a primeira vez no projeto em
+que a ferramenta faz algo que não é medição.
 
-**O que preserva a integridade do produto:** a operação escala **crominância**
-e não toca em **matiz**. Ela torna mais visível a cor que a calibração mediu; não
+### A formulação, e ela é mais apertada que "é gosto"
+
+> A etapa é uma **preferência aplicada sob restrições medidas**. A máscara de
+> SNR e a queda nas altas luzes **não são gosto** — "não amplifique onde não há
+> sinal" é afirmação sobre ruído, e "não empurre além de onde um canal satura" é
+> aritmética. As restrições **impedem a preferência de mentir**. Elas **não a
+> convertem em medição.**
+
+Isso tem consequência operacional para o texto: **o log não pode usar a máscara
+medida para insinuar que a etapa é medida.** Um produto que satura, explica a
+máscara em detalhe e nunca diz "esta parte é uma escolha" usou medição como
+cobertura. Por isso a última linha do bloco da §4 fica, e não se suaviza.
+
+**O que preserva a integridade além disso:** a operação escala **crominância** e
+não toca em **matiz**. Ela torna mais visível a cor que a calibração mediu; não
 decide qual cor é.
 
-Isso não é retórica — é verificável, do mesmo jeito que o `colourFidelity` do
-Módulo 3. A deriva de matiz tem que ser nula por construção, medida em execução,
-e gravada no record.
+⚠ **Mas cuidado com o que essa verificação prova.** A preservação de matiz aqui é
+**teorema, não propriedade**: `ch' = Y + (ch−Y)k` escala toda diferença entre
+canais por `k`, e matiz depende só de razões dessas diferenças, então `k`
+cancela — e os dois caminhos de estouro também preservam. Deriva zero é o
+resultado certo **e também o que sai se a etapa não fizer nada**. Ela verifica a
+**implementação**, nunca o desenho, e só vale acompanhada do controle negativo
+que prova que dispara. Ver a §2.4 e o NOTAS.
 
 **O log tem que dizer as duas coisas:** que saturação foi aplicada, com o fator
 exato, e que o matiz não mudou, com a deriva medida. Uma etapa estética
 declarada é honesta; uma escondida destrói o argumento inteiro.
-
 ---
 
 ## 1. O que a referência profissional faz, medido

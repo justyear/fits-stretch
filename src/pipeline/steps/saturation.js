@@ -79,9 +79,43 @@ function satOf(r, g, b){
   return (mx > 0) ? (mx - mn) / mx : 0;
 }
 
+// Section 2.4: if the background's colour noise grows by more than this, refuse.
+var SAT_NOISE_GROWTH_MAX = 2.0;
+
+// Section 2.4 again: a hue drift above this is an implementation error, not a
+// tight tolerance.
+var SAT_HUE_DRIFT_MAX = 1e-6;
+
 // The luminance bands of the reference table, section 1. Kept as data so the
 // record and the spec cannot drift apart.
-var SAT_BANDS = [[0.0, 0.10], [0.10, 0.20], [0.20, 0.35], [0.35, 0.55], [0.55, 0.80], [0.80, 1.01]];
+var SAT_BANDS =[[0.0, 0.10], [0.10, 0.20], [0.20, 0.35], [0.35, 0.55], [0.55, 0.80], [0.80, 1.01]];
+
+/* UMA FUNCAO, DUAS CHAMADAS. A salvaguarda tem que medir a MESMA aritmetica que
+ * roda, e nao uma copia dela.
+ *
+ * A pre-passada do ruido de croma comecou duplicando este calculo, e o controle
+ * negativo pegou: com o clamp do `w` invertido so no laco principal, a
+ * pre-passada continuou prevendo k = 1 no fundo, nao viu crescimento nenhum, e
+ * deixou a mascara quebrada passar. A salvaguarda estava medindo uma funcao
+ * diferente da que ia rodar.
+ *
+ * E a mesma classe do `records[0]` e da nota sobre duas medicoes da mesma coisa
+ * que podem discordar: duas copias da verdade, e a que ninguem lembraria de
+ * atualizar e justamente a que verifica a outra.
+ */
+function satFactor(y, background, noiseSigma, amount, snrLow, snrSpan, knee, floorFrac, kneeSpan){
+  var snr = (noiseSigma > 0) ? ((y - background) / noiseSigma) : 0;
+  var w = (snrSpan > 0) ? ((snr - snrLow) / snrSpan) : (snr > snrLow ? 1 : 0);
+  if (w < 0) w = 0; else if (w > 1) w = 1;
+
+  var roll = 1;
+  if (y > knee && kneeSpan > 0){
+    roll = floorFrac + (1 - floorFrac) * (1 - (y - knee) / kneeSpan);
+    if (roll < floorFrac) roll = floorFrac;
+    if (roll > 1) roll = 1;
+  }
+  return { snr: snr, w: w, roll: roll, k: 1 + (amount - 1) * w * roll };
+}
 
 /**
  * Selective saturation.
@@ -148,6 +182,104 @@ function stepSaturation(img, params, report){
   var knee = effective.highlightKnee, floorFrac = effective.highlightFloor;
   var kneeSpan = 1 - knee;
 
+  /* SALVAGUARDA DE RUIDO DE CROMA -- E O QUE ELA CONSEGUE E NAO CONSEGUE PEGAR.
+   *
+   * A secao 2.4 pede: meca o desvio padrao da crominancia nos pixels com
+   * snr < snrLow, antes e depois; se crescer mais de 2%, recuse.
+   *
+   * MEDIDO: ela nao pode disparar com a mascara ligada. Em snr <= snrLow o `w`
+   * satura em 0, entao `k` e exatamente 1 e a crominancia daqueles pixels nao e
+   * tocada -- crescimento zero por construcao. O unico caminho que os move e o
+   * `min < 0`, que ENCOLHE a crominancia ao reescalar para preservar Y. O
+   * crescimento e sempre <= 0.
+   *
+   * E a terceira verificacao desta etapa cujo valor esperado coincide com o que
+   * sai quando nada acontece -- as outras duas sao a deriva de matiz e o proprio
+   * `k = 1` do fundo. Registrada como tal, e nao como prova de que a mascara
+   * protege: ela prova que a mascara ESTA LIGADA, o que e menos e ainda vale.
+   *
+   * O que ela pega de verdade: um `w` que nao zerasse, um clamp invertido, um
+   * snrLow que deixasse de proteger. A alavanca do controle negativo e o
+   * `snrLow`, nao o SNR do quadro -- um ceu inteiro de SNR baixo mantem todo
+   * mundo abaixo do limiar e portanto intocado, que e o oposto de faze-la
+   * disparar.
+   *
+   * Medida numa pre-passada, antes de qualquer escrita, para que a recusa possa
+   * ser uma recusa: uma etapa que aplicasse e depois desfizesse teria que
+   * inverter aritmetica com perda.
+   */
+  var nBg = 0, sumC0 = 0, sumC0sq = 0, sumC1 = 0, sumC1sq = 0;
+  for (i = 0; i < N; i++){
+    var yp = Y[i];
+    if (yp !== yp) yp = 0;
+    var snrp = (noiseSigma > 0) ? ((yp - background) / noiseSigma) : 0;
+    if (snrp >= effective.snrLow) continue;
+
+    var Rp = data[bR + i], Gp = data[bG + i], Bp = data[bB + i];
+    var kp = satFactor(yp, background, noiseSigma, effective.amount, effective.snrLow,
+                       snrSpan, knee, floorFrac, kneeSpan).k;
+
+    var cr0 = Rp - yp, cg0 = Gp - yp, cb0 = Bp - yp;
+    var m0 = Math.sqrt(cr0 * cr0 + cg0 * cg0 + cb0 * cb0);
+
+    var Rq = yp + cr0 * kp, Gq = yp + cg0 * kp, Bq = yp + cb0 * kp;
+    var mnq = Rq < Gq ? (Rq < Bq ? Rq : Bq) : (Gq < Bq ? Gq : Bq);
+    if (mnq < 0){
+      var lq = -mnq; Rq += lq; Gq += lq; Bq += lq;
+      var ylq = yp + lq;
+      if (ylq > 0){ var fq = yp / ylq; Rq *= fq; Gq *= fq; Bq *= fq; }
+    }
+    var mxq = Rq > Gq ? (Rq > Bq ? Rq : Bq) : (Gq > Bq ? Gq : Bq);
+    if (mxq > 1){ Rq /= mxq; Gq /= mxq; Bq /= mxq; }
+
+    var yq = SAT_LUM_R * Rq + SAT_LUM_G * Gq + SAT_LUM_B * Bq;
+    var cr1 = Rq - yq, cg1 = Gq - yq, cb1 = Bq - yq;
+    var m1 = Math.sqrt(cr1 * cr1 + cg1 * cg1 + cb1 * cb1);
+
+    sumC0 += m0; sumC0sq += m0 * m0;
+    sumC1 += m1; sumC1sq += m1 * m1;
+    nBg++;
+  }
+
+  var sigmaBefore = null, sigmaAfter = null, growthPct = null;
+  if (nBg > 1){
+    var v0 = sumC0sq / nBg - (sumC0 / nBg) * (sumC0 / nBg);
+    var v1 = sumC1sq / nBg - (sumC1 / nBg) * (sumC1 / nBg);
+    sigmaBefore = Math.sqrt(v0 > 0 ? v0 : 0);
+    sigmaAfter  = Math.sqrt(v1 > 0 ? v1 : 0);
+    growthPct = (sigmaBefore > 0) ? (100 * (sigmaAfter - sigmaBefore) / sigmaBefore) : 0;
+  }
+
+  var chromaNoise = {
+    sigmaBefore: sigmaBefore, sigmaAfter: sigmaAfter, growthPct: growthPct,
+    pixels: nBg, limitPct: SAT_NOISE_GROWTH_MAX,
+    note: 'measured on the pixels the mask leaves at k = 1; with the mask wired ' +
+          'correctly this cannot grow, so it verifies the mask is on, not that ' +
+          'the mask is right'
+  };
+
+  if (growthPct !== null && growthPct > SAT_NOISE_GROWTH_MAX){
+    report({
+      id: 'saturation', name: 'Selective saturation',
+      applied: false,
+      skipReason: 'scaling chroma would raise the colour noise of the background by ' +
+                  growthPct.toFixed(2) + '%, over the ' + SAT_NOISE_GROWTH_MAX +
+                  '% this step accepts; the signal mask is not protecting the sky ' +
+                  'on this frame',
+      params: effective,
+      mask: { background: background, noiseSigma: noiseSigma,
+              pixelsBelowSnrLow: nBg, pctBelowSnrLow: 100 * nBg / N,
+              pixelsAtFullAmount: null, pctAtFullAmount: null,
+              pixelsAtFullMask: null, pctAtFullMask: null,
+              meanK: null, maxK: null },
+      hueFidelity: null, chromaNoise: chromaNoise,
+      saturationByLuminance: null, overflow: null,
+      before: before, after: null,
+      notes: ['Nothing was applied: the frame was left exactly as the stretch produced it.']
+    });
+    return img;
+  }
+
   var belowLow = 0, atFull = 0, atFullMask = 0, sumK = 0, maxK = 0;
   var rescaled = 0, lifted = 0;
   var maxHueDrift = 0, driftSamples = 0;
@@ -162,22 +294,14 @@ function stepSaturation(img, params, report){
     var R = data[bR + i], G = data[bG + i], B = data[bB + i];
 
     // --- the local factor ---------------------------------------------
-    var snr = (noiseSigma > 0) ? ((y - background) / noiseSigma) : 0;
-    var w = (snrSpan > 0) ? ((snr - effective.snrLow) / snrSpan) : (snr > effective.snrLow ? 1 : 0);
-    if (w < 0) w = 0; else if (w > 1) w = 1;
-
-    // The roll-off. Without it a bright galaxy core becomes a flat orange disc
-    // and an emission nebula becomes neon: the reference delivery FALLS from
-    // 0.335 to 0.227 above 0.80, and this reproduces that fall rather than
-    // inventing one.
-    var roll = 1;
-    if (y > knee && kneeSpan > 0){
-      roll = floorFrac + (1 - floorFrac) * (1 - (y - knee) / kneeSpan);
-      if (roll < floorFrac) roll = floorFrac;
-      if (roll > 1) roll = 1;
-    }
-
-    var k = 1 + (effective.amount - 1) * w * roll;
+    //
+    // The same call the noise pre-pass makes. The roll-off inside it is what
+    // stops a bright core from becoming a flat orange disc and an emission
+    // nebula from becoming neon: the reference delivery FALLS from 0.335 to
+    // 0.227 above 0.80, and this reproduces that fall rather than inventing one.
+    var fac = satFactor(y, background, noiseSigma, effective.amount, effective.snrLow,
+                        snrSpan, knee, floorFrac, kneeSpan);
+    var w = fac.w, roll = fac.roll, k = fac.k;
     if (w <= 0) belowLow++;
     if (w >= 1) atFullMask++;
     // `pixelsAtFullAmount` conta w>=1 E roll>=1, que e o que a secao 3 pede -- e
@@ -279,10 +403,11 @@ function stepSaturation(img, params, report){
     // the design is sound rather than that the code matches the design.
     hueFidelity: {
       maxHueDrift: maxHueDrift, driftSamples: driftSamples,
+      limit: SAT_HUE_DRIFT_MAX, withinLimit: (maxHueDrift <= SAT_HUE_DRIFT_MAX),
       unit: 'turns of the hue circle',
       note: 'preserved by construction; this measures the implementation, not the design'
     },
-    chromaNoise: null,          // step 4
+    chromaNoise: chromaNoise,
     saturationByLuminance: byLum,
     overflow: { pixelsRescaled: rescaled, pixelsLifted: lifted },
     before: before,
