@@ -65,5 +65,57 @@
       "veredito": "recusa",
       "ganhos": null
     }
-  ]
+  ],
+  "propositoSaturacao": "A salvaguarda de ruido de croma da saturacao, exercitada nos dois lados. Com o codigo publicado ela NAO PODE disparar -- no fundo o `w` satura em 0 e `k` e exatamente 1 -- entao a cobertura vem de duas fontes deliberadamente quebradas, rodadas pela MESMA cadeia. Ver o cabecalho de test/compare-safeguards.ps1.",
+  "saturacao": {
+    "copiasDoClamp": 1,
+    "fixture": "/f/test/fixtures/fixture-saturation.fit",
+    "casos": [
+      {
+        "nome": "codigo-publicado",
+        "naoLinear": false,
+        "veredito": "aplica",
+        "motivo": null,
+        "crescimentoPct": -1.054232237508444e-9,
+        "limitePct": 2,
+        "pixelsDeFundo": 1545033,
+        "pctAbaixoDoLimiar": 80.47046875,
+        "maxK": 1.4397679680354267,
+        "mediaK": 1.0238195542304973,
+        "derivaMatiz": 1.1102230246251565e-16,
+        "limiteMatiz": 0.000001,
+        "matizDentroDoLimite": true
+      },
+      {
+        "nome": "clamp-do-w-invertido",
+        "naoLinear": false,
+        "veredito": "recusa",
+        "motivo": "scaling chroma would raise the colour noise of the background by 45.00%, over the 2% this step accepts; the signal mask is not protecting the sky on this frame",
+        "crescimentoPct": 45.000001014600116,
+        "limitePct": 2,
+        "pixelsDeFundo": 1545033,
+        "pctAbaixoDoLimiar": 80.47046875,
+        "maxK": null,
+        "mediaK": null,
+        "derivaMatiz": null,
+        "limiteMatiz": null,
+        "matizDentroDoLimite": null
+      },
+      {
+        "nome": "azul-com-k-proprio",
+        "naoLinear": false,
+        "veredito": "aplica",
+        "motivo": null,
+        "crescimentoPct": -1.054232237508444e-9,
+        "limitePct": 2,
+        "pixelsDeFundo": 1545033,
+        "pctAbaixoDoLimiar": 80.47046875,
+        "maxK": 1.4397679680354267,
+        "mediaK": 1.0238195542304973,
+        "derivaMatiz": 0.0023545333162561244,
+        "limiteMatiz": 0.000001,
+        "matizDentroDoLimite": false
+      }
+    ]
+  }
 }

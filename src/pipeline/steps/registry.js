@@ -17,13 +17,14 @@ var CATALOGUE = [
   // people have already pasted it in public.
   { id: 'denoise',       label: 'noise reduction' },
   { id: 'sharpen',       label: 'sharpening',                neverImplemented: true },
-  /* SATURATION STAYS IN THE SENTENCE, AND SECTION 4 OF MODULE 4 IS WRONG ABOUT
-   * THIS — measured, not argued.
+  /* SATURATION STAYS IN THE SENTENCE. Section 4 of Module 4 asked for
+   * `announce: false`; measuring it settled the question the other way, and the
+   * spec now carries the corrected table.
    *
-   * The spec asks for `announce: false`, on the argument that the log gives the
-   * step a block of its own. That argument holds for the stretch and for the
-   * colour calibration, and it does not hold here, because `announce: false`
-   * removes the word in BOTH directions:
+   * The argument for `announce: false` was that the log gives the step a block
+   * of its own. That holds for the stretch and for the colour calibration, and
+   * it does not hold here, because `announce: false` removes the word in BOTH
+   * directions:
    *
    *   step ran and applied     no denial, block describes it        fine
    *   step ran and refused     no denial, block says why            fine
