@@ -312,6 +312,67 @@ function buildLog(ctx){
     L.push('    ' + fx(100 * clipped / total, 3) + '% of pixels land on pure black or pure white after the transfer.');
   }
 
+  /* --- selective saturation ---------------------------------------
+   *
+   * THE LAST SENTENCE OF THIS BLOCK IS NOT DECORATION AND DOES NOT GET SOFTENED.
+   *
+   * `saturation` left the "Not applied" line when this step arrived, and it is
+   * the first entry to leave it because a step actually does the thing — every
+   * earlier departure was a mis-paired label being corrected. So this is the
+   * first moment in the whole pipeline where the tool applies a TASTE, and the
+   * reader has no other place to learn that: the denial that used to carry the
+   * word is gone, and `announce: false` means nothing will put it back.
+   *
+   * The mask and the roll-off are measured, and the block says so — but they
+   * are constraints on the preference, not evidence that it is a measurement,
+   * and the wording must not let one read as the other. A tool that saturates
+   * and explains the mask in detail while never saying "this part is a choice"
+   * has used measurement as cover.
+   */
+  var sat = null;
+  for (var si = 0; si < ctx.records.length; si++){
+    if (ctx.records[si].id === 'saturation') sat = ctx.records[si];
+  }
+  if (sat && sat.applied){
+    var mk = sat.mask, hf = sat.hueFidelity, cn = sat.chromaNoise;
+    // THE HEADLINE REPORTS WHAT HAPPENED, NOT WHAT WAS ASKED FOR. `amount` is
+    // the ceiling; `maxK` is the largest factor any pixel actually received. On
+    // a frame with no signal those differ by everything — the ceiling is 1.45
+    // and nothing above 1.03 is applied — and printing the ceiling there would
+    // be a true sentence that leaves the reader with a false belief.
+    L.push('• Selective saturation: chroma was scaled by up to ×' + fx(mk.maxK, 3) +
+           ' (the ceiling in use is ×' + fx(sat.params.amount, 2) + '), strongest where the ' +
+           'signal is well above the noise and rolled off in the highlights so a bright core ' +
+           'does not turn into a flat disc of colour.');
+    L.push('    The mask is driven by signal-to-noise, never by brightness: a pixel is ' +
+           'left alone below ' + fx(sat.params.snrLow, 1) + 'σ above the sky and gets the full ' +
+           'factor above ' + fx(sat.params.snrHigh, 1) + 'σ. On this frame the sky sits at ' +
+           fx(mk.background, 5) + ' with a noise of ' + fx(mk.noiseSigma, 5) + ', so ' +
+           grp(mk.pixelsBelowSnrLow) + ' pixels (' + fx(mk.pctBelowSnrLow, 1) +
+           '%) were not touched at all. Average factor across the frame: ×' + fx(mk.meanK, 3) + '.');
+    L.push('    Hue was not changed — all three channels were scaled by the same number, so ' +
+           'the direction of the colour is untouched and only its strength moved. Measured ' +
+           'on this frame, the largest hue change was ' + hf.maxHueDrift.toExponential(1) +
+           ' of a turn across ' + grp(hf.driftSamples) + ' pixels.' +
+           (cn && cn.growthPct !== null
+              ? ' Background chroma noise grew ' + fx(cn.growthPct, 2) + '%.' : ''));
+    if (sat.overflow && sat.overflow.pixelsRescaled){
+      L.push('    ' + grp(sat.overflow.pixelsRescaled) + ' pixels came out above 1.0 in one ' +
+             'channel and ' + grp(sat.overflow.pixelsLifted) + ' below 0.0. All three channels ' +
+             'were moved together in both cases rather than the offending one being clipped ' +
+             'on its own: clipping one channel changes the colour of the pixel, which is the ' +
+             'one thing this step promises not to do.');
+    }
+    L.push('    This is the one step here that is a preference rather than a measurement, ' +
+           'and it says so. The mask and the roll-off are measured — they are what stops a ' +
+           'preference from colouring noise or flattening a core — but how much colour you ' +
+           'want is a choice, and it was made for you at ×' + fx(sat.params.amount, 2) + '.');
+  } else if (sat && !sat.applied){
+    // A refusal is an outcome and it gets said. With `announce: false` nothing
+    // else in the log would mention that the step exists, tried, and declined.
+    L.push('• Selective saturation: not applied. ' + sat.skipReason + '.');
+  }
+
   // --- output -----------------------------------------------------
   var qz = null;
   for (var qi = 0; qi < ctx.records.length; qi++){

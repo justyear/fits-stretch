@@ -88,7 +88,13 @@ window.__GOLDEN = [
   // trocar espera haver imagem real para comparar. O que este golden fixa e a
   // resolucao numerica de `stretch` contra o alvo -- 171.998 neste quadro, que e
   // o numero que faz o asinh responder ao mesmo alvo que o MTF responde.
-  ['asinh-fixture',     '/f/test/fixtures/fixture-gradient.fit', { operator: 'asinh' }]
+  ['asinh-fixture',     '/f/test/fixtures/fixture-gradient.fit', { operator: 'asinh' }],
+  // Modulo 4. Os dois unicos com saturacao ligada: ela e opcional e desligada
+  // por padrao, entao capturar com os defaults nao exercitaria nada dela.
+  // O flatsky nao tem objeto nenhum -- todo pixel abaixo do limiar de SNR --
+  // e existe para que a etapa tenha um quadro onde o certo e nao tocar em nada.
+  ['saturation-fixture', '/f/test/fixtures/fixture-saturation.fit', { saturation: true }],
+  ['flatsky-fixture',    '/f/test/fixtures/fixture-flatsky.fit',    { saturation: true }]
 ];
 
 /* ------------------------------------------------------------------ *

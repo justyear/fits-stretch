@@ -1330,6 +1330,34 @@ var CATALOGUE = [
   // people have already pasted it in public.
   { id: 'denoise',       label: 'noise reduction' },
   { id: 'sharpen',       label: 'sharpening',                neverImplemented: true },
+  /* SATURATION STAYS IN THE SENTENCE, AND SECTION 4 OF MODULE 4 IS WRONG ABOUT
+   * THIS — measured, not argued.
+   *
+   * The spec asks for `announce: false`, on the argument that the log gives the
+   * step a block of its own. That argument holds for the stretch and for the
+   * colour calibration, and it does not hold here, because `announce: false`
+   * removes the word in BOTH directions:
+   *
+   *   step ran and applied     no denial, block describes it        fine
+   *   step ran and refused     no denial, block says why            fine
+   *   STEP DID NOT RUN         NO DENIAL, NO BLOCK                  broken
+   *
+   * The third row is today's state and will be the state of any build where
+   * saturation is off. The word would leave the promise without anything having
+   * been done — the tool would quietly stop claiming it does not saturate, on a
+   * frame it did not saturate.
+   *
+   * The stretch and the calibration never hit that row: they run on every
+   * three-channel frame. Saturation is the first step that can simply be
+   * absent, and the catalogue's default — announce — already produces the right
+   * sentence in all three cases, because `notAppliedLabels` drops a label the
+   * moment a record claims `applied`. Nothing needed inventing; the mechanism
+   * from Module 0 already handles it.
+   *
+   * If saturation ever becomes unconditional, revisit — but the block carrying
+   * "this is a preference rather than a measurement" is what would have to earn
+   * the change, not the mere existence of a block.
+   */
   { id: 'saturation',    label: 'saturation' },
   { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
   { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
@@ -1361,6 +1389,8 @@ var CATALOGUE = [
   // pixel count, so a denial elsewhere in the sentence would be a warning about
   // something the reader can already see was handled and measured.
   { id: 'colour-cal',    label: 'colour calibration',        announce: false },
+
+  // (`saturation` is NOT here — see the entry above and the note below.)
 
   // Not in the sentence today, and not implemented. Whoever writes the step
   // decides whether it announces — flipping this changes a sentence people
@@ -3212,9 +3242,43 @@ function satOf(r, g, b){
   return (mx > 0) ? (mx - mn) / mx : 0;
 }
 
+// Section 2.4: if the background's colour noise grows by more than this, refuse.
+var SAT_NOISE_GROWTH_MAX = 2.0;
+
+// Section 2.4 again: a hue drift above this is an implementation error, not a
+// tight tolerance.
+var SAT_HUE_DRIFT_MAX = 1e-6;
+
 // The luminance bands of the reference table, section 1. Kept as data so the
 // record and the spec cannot drift apart.
-var SAT_BANDS = [[0.0, 0.10], [0.10, 0.20], [0.20, 0.35], [0.35, 0.55], [0.55, 0.80], [0.80, 1.01]];
+var SAT_BANDS =[[0.0, 0.10], [0.10, 0.20], [0.20, 0.35], [0.35, 0.55], [0.55, 0.80], [0.80, 1.01]];
+
+/* UMA FUNCAO, DUAS CHAMADAS. A salvaguarda tem que medir a MESMA aritmetica que
+ * roda, e nao uma copia dela.
+ *
+ * A pre-passada do ruido de croma comecou duplicando este calculo, e o controle
+ * negativo pegou: com o clamp do `w` invertido so no laco principal, a
+ * pre-passada continuou prevendo k = 1 no fundo, nao viu crescimento nenhum, e
+ * deixou a mascara quebrada passar. A salvaguarda estava medindo uma funcao
+ * diferente da que ia rodar.
+ *
+ * E a mesma classe do `records[0]` e da nota sobre duas medicoes da mesma coisa
+ * que podem discordar: duas copias da verdade, e a que ninguem lembraria de
+ * atualizar e justamente a que verifica a outra.
+ */
+function satFactor(y, background, noiseSigma, amount, snrLow, snrSpan, knee, floorFrac, kneeSpan){
+  var snr = (noiseSigma > 0) ? ((y - background) / noiseSigma) : 0;
+  var w = (snrSpan > 0) ? ((snr - snrLow) / snrSpan) : (snr > snrLow ? 1 : 0);
+  if (w < 0) w = 0; else if (w > 1) w = 1;
+
+  var roll = 1;
+  if (y > knee && kneeSpan > 0){
+    roll = floorFrac + (1 - floorFrac) * (1 - (y - knee) / kneeSpan);
+    if (roll < floorFrac) roll = floorFrac;
+    if (roll > 1) roll = 1;
+  }
+  return { snr: snr, w: w, roll: roll, k: 1 + (amount - 1) * w * roll };
+}
 
 /**
  * Selective saturation.
@@ -3281,6 +3345,104 @@ function stepSaturation(img, params, report){
   var knee = effective.highlightKnee, floorFrac = effective.highlightFloor;
   var kneeSpan = 1 - knee;
 
+  /* SALVAGUARDA DE RUIDO DE CROMA -- E O QUE ELA CONSEGUE E NAO CONSEGUE PEGAR.
+   *
+   * A secao 2.4 pede: meca o desvio padrao da crominancia nos pixels com
+   * snr < snrLow, antes e depois; se crescer mais de 2%, recuse.
+   *
+   * MEDIDO: ela nao pode disparar com a mascara ligada. Em snr <= snrLow o `w`
+   * satura em 0, entao `k` e exatamente 1 e a crominancia daqueles pixels nao e
+   * tocada -- crescimento zero por construcao. O unico caminho que os move e o
+   * `min < 0`, que ENCOLHE a crominancia ao reescalar para preservar Y. O
+   * crescimento e sempre <= 0.
+   *
+   * E a terceira verificacao desta etapa cujo valor esperado coincide com o que
+   * sai quando nada acontece -- as outras duas sao a deriva de matiz e o proprio
+   * `k = 1` do fundo. Registrada como tal, e nao como prova de que a mascara
+   * protege: ela prova que a mascara ESTA LIGADA, o que e menos e ainda vale.
+   *
+   * O que ela pega de verdade: um `w` que nao zerasse, um clamp invertido, um
+   * snrLow que deixasse de proteger. A alavanca do controle negativo e o
+   * `snrLow`, nao o SNR do quadro -- um ceu inteiro de SNR baixo mantem todo
+   * mundo abaixo do limiar e portanto intocado, que e o oposto de faze-la
+   * disparar.
+   *
+   * Medida numa pre-passada, antes de qualquer escrita, para que a recusa possa
+   * ser uma recusa: uma etapa que aplicasse e depois desfizesse teria que
+   * inverter aritmetica com perda.
+   */
+  var nBg = 0, sumC0 = 0, sumC0sq = 0, sumC1 = 0, sumC1sq = 0;
+  for (i = 0; i < N; i++){
+    var yp = Y[i];
+    if (yp !== yp) yp = 0;
+    var snrp = (noiseSigma > 0) ? ((yp - background) / noiseSigma) : 0;
+    if (snrp >= effective.snrLow) continue;
+
+    var Rp = data[bR + i], Gp = data[bG + i], Bp = data[bB + i];
+    var kp = satFactor(yp, background, noiseSigma, effective.amount, effective.snrLow,
+                       snrSpan, knee, floorFrac, kneeSpan).k;
+
+    var cr0 = Rp - yp, cg0 = Gp - yp, cb0 = Bp - yp;
+    var m0 = Math.sqrt(cr0 * cr0 + cg0 * cg0 + cb0 * cb0);
+
+    var Rq = yp + cr0 * kp, Gq = yp + cg0 * kp, Bq = yp + cb0 * kp;
+    var mnq = Rq < Gq ? (Rq < Bq ? Rq : Bq) : (Gq < Bq ? Gq : Bq);
+    if (mnq < 0){
+      var lq = -mnq; Rq += lq; Gq += lq; Bq += lq;
+      var ylq = yp + lq;
+      if (ylq > 0){ var fq = yp / ylq; Rq *= fq; Gq *= fq; Bq *= fq; }
+    }
+    var mxq = Rq > Gq ? (Rq > Bq ? Rq : Bq) : (Gq > Bq ? Gq : Bq);
+    if (mxq > 1){ Rq /= mxq; Gq /= mxq; Bq /= mxq; }
+
+    var yq = SAT_LUM_R * Rq + SAT_LUM_G * Gq + SAT_LUM_B * Bq;
+    var cr1 = Rq - yq, cg1 = Gq - yq, cb1 = Bq - yq;
+    var m1 = Math.sqrt(cr1 * cr1 + cg1 * cg1 + cb1 * cb1);
+
+    sumC0 += m0; sumC0sq += m0 * m0;
+    sumC1 += m1; sumC1sq += m1 * m1;
+    nBg++;
+  }
+
+  var sigmaBefore = null, sigmaAfter = null, growthPct = null;
+  if (nBg > 1){
+    var v0 = sumC0sq / nBg - (sumC0 / nBg) * (sumC0 / nBg);
+    var v1 = sumC1sq / nBg - (sumC1 / nBg) * (sumC1 / nBg);
+    sigmaBefore = Math.sqrt(v0 > 0 ? v0 : 0);
+    sigmaAfter  = Math.sqrt(v1 > 0 ? v1 : 0);
+    growthPct = (sigmaBefore > 0) ? (100 * (sigmaAfter - sigmaBefore) / sigmaBefore) : 0;
+  }
+
+  var chromaNoise = {
+    sigmaBefore: sigmaBefore, sigmaAfter: sigmaAfter, growthPct: growthPct,
+    pixels: nBg, limitPct: SAT_NOISE_GROWTH_MAX,
+    note: 'measured on the pixels the mask leaves at k = 1; with the mask wired ' +
+          'correctly this cannot grow, so it verifies the mask is on, not that ' +
+          'the mask is right'
+  };
+
+  if (growthPct !== null && growthPct > SAT_NOISE_GROWTH_MAX){
+    report({
+      id: 'saturation', name: 'Selective saturation',
+      applied: false,
+      skipReason: 'scaling chroma would raise the colour noise of the background by ' +
+                  growthPct.toFixed(2) + '%, over the ' + SAT_NOISE_GROWTH_MAX +
+                  '% this step accepts; the signal mask is not protecting the sky ' +
+                  'on this frame',
+      params: effective,
+      mask: { background: background, noiseSigma: noiseSigma,
+              pixelsBelowSnrLow: nBg, pctBelowSnrLow: 100 * nBg / N,
+              pixelsAtFullAmount: null, pctAtFullAmount: null,
+              pixelsAtFullMask: null, pctAtFullMask: null,
+              meanK: null, maxK: null },
+      hueFidelity: null, chromaNoise: chromaNoise,
+      saturationByLuminance: null, overflow: null,
+      before: before, after: null,
+      notes: ['Nothing was applied: the frame was left exactly as the stretch produced it.']
+    });
+    return img;
+  }
+
   var belowLow = 0, atFull = 0, atFullMask = 0, sumK = 0, maxK = 0;
   var rescaled = 0, lifted = 0;
   var maxHueDrift = 0, driftSamples = 0;
@@ -3295,22 +3457,14 @@ function stepSaturation(img, params, report){
     var R = data[bR + i], G = data[bG + i], B = data[bB + i];
 
     // --- the local factor ---------------------------------------------
-    var snr = (noiseSigma > 0) ? ((y - background) / noiseSigma) : 0;
-    var w = (snrSpan > 0) ? ((snr - effective.snrLow) / snrSpan) : (snr > effective.snrLow ? 1 : 0);
-    if (w < 0) w = 0; else if (w > 1) w = 1;
-
-    // The roll-off. Without it a bright galaxy core becomes a flat orange disc
-    // and an emission nebula becomes neon: the reference delivery FALLS from
-    // 0.335 to 0.227 above 0.80, and this reproduces that fall rather than
-    // inventing one.
-    var roll = 1;
-    if (y > knee && kneeSpan > 0){
-      roll = floorFrac + (1 - floorFrac) * (1 - (y - knee) / kneeSpan);
-      if (roll < floorFrac) roll = floorFrac;
-      if (roll > 1) roll = 1;
-    }
-
-    var k = 1 + (effective.amount - 1) * w * roll;
+    //
+    // The same call the noise pre-pass makes. The roll-off inside it is what
+    // stops a bright core from becoming a flat orange disc and an emission
+    // nebula from becoming neon: the reference delivery FALLS from 0.335 to
+    // 0.227 above 0.80, and this reproduces that fall rather than inventing one.
+    var fac = satFactor(y, background, noiseSigma, effective.amount, effective.snrLow,
+                        snrSpan, knee, floorFrac, kneeSpan);
+    var w = fac.w, roll = fac.roll, k = fac.k;
     if (w <= 0) belowLow++;
     if (w >= 1) atFullMask++;
     // `pixelsAtFullAmount` conta w>=1 E roll>=1, que e o que a secao 3 pede -- e
@@ -3412,10 +3566,11 @@ function stepSaturation(img, params, report){
     // the design is sound rather than that the code matches the design.
     hueFidelity: {
       maxHueDrift: maxHueDrift, driftSamples: driftSamples,
+      limit: SAT_HUE_DRIFT_MAX, withinLimit: (maxHueDrift <= SAT_HUE_DRIFT_MAX),
       unit: 'turns of the hue circle',
       note: 'preserved by construction; this measures the implementation, not the design'
     },
-    chromaNoise: null,          // step 4
+    chromaNoise: chromaNoise,
     saturationByLuminance: byLum,
     overflow: { pixelsRescaled: rescaled, pixelsLifted: lifted },
     before: before,
@@ -3899,6 +4054,67 @@ function buildLog(ctx){
 
   if (total > 0){
     L.push('    ' + fx(100 * clipped / total, 3) + '% of pixels land on pure black or pure white after the transfer.');
+  }
+
+  /* --- selective saturation ---------------------------------------
+   *
+   * THE LAST SENTENCE OF THIS BLOCK IS NOT DECORATION AND DOES NOT GET SOFTENED.
+   *
+   * `saturation` left the "Not applied" line when this step arrived, and it is
+   * the first entry to leave it because a step actually does the thing — every
+   * earlier departure was a mis-paired label being corrected. So this is the
+   * first moment in the whole pipeline where the tool applies a TASTE, and the
+   * reader has no other place to learn that: the denial that used to carry the
+   * word is gone, and `announce: false` means nothing will put it back.
+   *
+   * The mask and the roll-off are measured, and the block says so — but they
+   * are constraints on the preference, not evidence that it is a measurement,
+   * and the wording must not let one read as the other. A tool that saturates
+   * and explains the mask in detail while never saying "this part is a choice"
+   * has used measurement as cover.
+   */
+  var sat = null;
+  for (var si = 0; si < ctx.records.length; si++){
+    if (ctx.records[si].id === 'saturation') sat = ctx.records[si];
+  }
+  if (sat && sat.applied){
+    var mk = sat.mask, hf = sat.hueFidelity, cn = sat.chromaNoise;
+    // THE HEADLINE REPORTS WHAT HAPPENED, NOT WHAT WAS ASKED FOR. `amount` is
+    // the ceiling; `maxK` is the largest factor any pixel actually received. On
+    // a frame with no signal those differ by everything — the ceiling is 1.45
+    // and nothing above 1.03 is applied — and printing the ceiling there would
+    // be a true sentence that leaves the reader with a false belief.
+    L.push('• Selective saturation: chroma was scaled by up to ×' + fx(mk.maxK, 3) +
+           ' (the ceiling in use is ×' + fx(sat.params.amount, 2) + '), strongest where the ' +
+           'signal is well above the noise and rolled off in the highlights so a bright core ' +
+           'does not turn into a flat disc of colour.');
+    L.push('    The mask is driven by signal-to-noise, never by brightness: a pixel is ' +
+           'left alone below ' + fx(sat.params.snrLow, 1) + 'σ above the sky and gets the full ' +
+           'factor above ' + fx(sat.params.snrHigh, 1) + 'σ. On this frame the sky sits at ' +
+           fx(mk.background, 5) + ' with a noise of ' + fx(mk.noiseSigma, 5) + ', so ' +
+           grp(mk.pixelsBelowSnrLow) + ' pixels (' + fx(mk.pctBelowSnrLow, 1) +
+           '%) were not touched at all. Average factor across the frame: ×' + fx(mk.meanK, 3) + '.');
+    L.push('    Hue was not changed — all three channels were scaled by the same number, so ' +
+           'the direction of the colour is untouched and only its strength moved. Measured ' +
+           'on this frame, the largest hue change was ' + hf.maxHueDrift.toExponential(1) +
+           ' of a turn across ' + grp(hf.driftSamples) + ' pixels.' +
+           (cn && cn.growthPct !== null
+              ? ' Background chroma noise grew ' + fx(cn.growthPct, 2) + '%.' : ''));
+    if (sat.overflow && sat.overflow.pixelsRescaled){
+      L.push('    ' + grp(sat.overflow.pixelsRescaled) + ' pixels came out above 1.0 in one ' +
+             'channel and ' + grp(sat.overflow.pixelsLifted) + ' below 0.0. All three channels ' +
+             'were moved together in both cases rather than the offending one being clipped ' +
+             'on its own: clipping one channel changes the colour of the pixel, which is the ' +
+             'one thing this step promises not to do.');
+    }
+    L.push('    This is the one step here that is a preference rather than a measurement, ' +
+           'and it says so. The mask and the roll-off are measured — they are what stops a ' +
+           'preference from colouring noise or flattening a core — but how much colour you ' +
+           'want is a choice, and it was made for you at ×' + fx(sat.params.amount, 2) + '.');
+  } else if (sat && !sat.applied){
+    // A refusal is an outcome and it gets said. With `announce: false` nothing
+    // else in the log would mention that the step exists, tried, and declined.
+    L.push('• Selective saturation: not applied. ' + sat.skipReason + '.');
   }
 
   // --- output -----------------------------------------------------

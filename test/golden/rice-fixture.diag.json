@@ -160,16 +160,16 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 365,
-    "roworder": 4,
-    "preview": 50,
+    "decode": 372,
+    "roworder": 3,
+    "preview": 51,
     "stats": 131,
-    "background": 527,
-    "colour": 983,
-    "transfer": 1611,
-    "quantise": 179,
-    "downscale": 54,
-    "total": 2949
+    "background": 498,
+    "colour": 976,
+    "transfer": 1315,
+    "quantise": 139,
+    "downscale": 44,
+    "total": 2568
   },
   "historyCards": [],
   "allCards": [
