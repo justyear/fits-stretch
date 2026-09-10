@@ -986,6 +986,14 @@ contra o limite de 2%, e a etapa recusa.
 salvaguarda alega proteger**, não o parâmetro que dá nome a ele. Quando os dois
 coincidem, mexer no parâmetro move a medição junto e não prova nada.
 
+
+**O controle é permanente desde o passo 8**, em `test/compare-safeguards.ps1`:
+três fontes rodadas pela mesma cadeia do golden `saturation-fixture` — a
+publicada, o clamp invertido, e o azul com `k` próprio. O comparador exige que
+pelo menos uma aplique e pelo menos uma recuse, que quem recusa recuse **pelo
+motivo do ruído de croma** e não por outro qualquer, e que exista **exatamente
+uma cópia do clamp** no código-fonte. Enquanto era demonstração de sessão, a
+salvaguarda era afirmação; agora é controle.
 ## Salvaguarda que duplica a aritmética que verifica
 
 O controle negativo acima achou um defeito que nenhum teste da suíte acharia.
@@ -1029,7 +1037,99 @@ que um record reivindica `applied`. Não precisou inventar nada.
 **A regra:** `announce: false` pressupõe que a etapa **sempre roda**. Para uma
 etapa opcional, ele troca uma promessa verdadeira por silêncio.
 
+## O título reporta o número medido, não o teto
+
+A frase de abertura do bloco da saturação podia dizer duas coisas verdadeiras, e
+só uma delas responde à pergunta que o leitor faz.
+
+| candidata | o que é | o que o leitor conclui |
+|---|---|---|
+| "chroma was scaled by ×1.45" | o **teto** — o parâmetro `amount` | que todo pixel foi multiplicado por 1,45 |
+| "chroma was scaled by up to ×1.440" | o **`maxK` medido** neste quadro | que 1,440 foi o máximo que algum pixel recebeu |
+
+O teto é o número que a pessoa escolheu; o `maxK` é o número que o quadro
+recebeu. **Um parâmetro não é uma medição, e imprimir o parâmetro no lugar da
+medição converte a configuração em resultado** — exatamente o movimento que a
+§4 proíbe para esta etapa.
+
+A saída ficou com os dois, nessa ordem: `up to ×1.440 (the ceiling in use is
+×1.45)`. O medido primeiro porque é o que aconteceu; o teto ao lado porque sem
+ele o leitor não sabe se 1,440 é perto ou longe do que a etapa podia fazer. E a
+diferença entre eles não é enfeite: **ela mostra que a máscara mordeu**. Se
+`maxK` viesse exatamente no teto em todo quadro, a máscara não estaria
+selecionando nada.
+
+Classe: **quando um número de configuração e um número medido são próximos, é
+tentador imprimir o de configuração — é mais redondo. O medido é o que o log
+deve.** Mesmo motivo pelo qual o bloco do esticamento imprime `stretch` resolvido
+e não o alvo pedido.
+
+## Um campo certo que responde a outra pergunta
+
+`pixelsAtFullAmount` conta `w ≥ 1` **e** `roll ≥ 1` — o que a §3 pede, e é a
+resposta certa para *"quanto do quadro recebeu o amount inteiro"*. Medido no
+`fixture-colour`: o limiar de `snrHigh` cai em Y = 0,798 e o joelho em 0,80,
+então a faixa onde os dois saturam tem **0,002 de largura**. O campo dá **0,06%**
+e lê como *"a máscara mal engatou"* — quando ela está em `w = 0,927` na faixa do
+pico.
+
+O campo não está errado. Ele responde a uma pergunta que quase ninguém está
+fazendo, e o leitor faz a outra: *"o sinal forte foi reconhecido pela máscara?"*
+
+A correção foi **acrescentar `pixelsAtFullMask`** (só `w ≥ 1`) e deixar os dois,
+não trocar um pelo outro. Trocar teria apagado o que a spec pede; deixar só o da
+spec teria mantido um número que engana sozinho.
+
+É a mesma família de "duas medições certas que leem como contradição", com a
+diferença de que aqui **o conserto é acrescentar, não escolher**: quando dois
+números são ambos verdadeiros e um deles é lido errado sozinho, publique os
+dois com os rótulos que separam as perguntas.
+
+## Duas verificações que não são a mesma verificação
+
+A saturação tem duas salvaguardas, e cada uma é cega para o que a outra pega.
+Isso não era argumento antes de o controle negativo medir; agora é, e os números
+estão no golden.
+
+| fonte rodada pela mesma cadeia | ruído de croma | deriva de matiz |
+|---|---|---|
+| código publicado | −1,05e-9% (passa) | 1,11e-16 (passa) |
+| clamp do `w` invertido | **45,00% → recusa** | não chega a medir |
+| azul com `k` próprio (`k×1,02`) | −1,05e-9% (passa) | **2,35e-3 → 2350× o limite** |
+
+A linha do azul é a que vale. O crescimento de croma dela é **idêntico ao do
+código publicado, dígito por dígito** — a quebra está só no laço principal e a
+pré-passada nem a vê. A salvaguarda de ruído não está sendo tolerante: ela é
+**estruturalmente cega** para um erro por canal.
+
+E a linha do clamp invertido mostra o inverso: a etapa recusa **antes** de
+escrever qualquer pixel, então a deriva de matiz nunca chega a ser calculada. A
+verificação de matiz não teria pego esse defeito nem se tivesse rodado, porque
+lá o `k` errado é o mesmo nos três canais e matiz é preservado.
+
+**A regra:** duas salvaguardas numa etapa só se justificam se alguém mostrou uma
+falha que passa por uma e é pega pela outra. Sem isso, uma delas é redundante e
+ninguém sabe qual. O comparador afirma essa independência explicitamente — se um
+dia as duas passarem a pegar as mesmas falhas, `test/compare-safeguards.ps1`
+reprova e diz qual sobrou.
+
 ## Em aberto
+
+
+**Saturação seletiva: implementada, verificada, e DESLIGADA por padrão.**
+`saturation: false` em `run.js`. Os passos 1 a 8 da §6 do Módulo 4 estão
+fechados — a operação, a máscara de SNR, a queda nas altas luzes, as duas
+salvaguardas, o `fixture-saturation.fit` e o `fixture-flatsky.fit`, o registry
+com o round-trip nos três estados, o bloco do log, e o controle permanente da
+salvaguarda de ruído no `compare-safeguards`.
+
+Falta o **passo 9**: `reference_m23.py` estendido para a etapa e
+`compare-reference` cobrindo `mask`, `hueFidelity`, `chromaNoise`,
+`saturationByLuminance` e `overflow`. Enquanto ele não fecha, a etapa está
+verificada **contra si mesma** (goldens, controles negativos, teoremas) e não
+contra uma implementação independente — que é o padrão que as outras três etapas
+já têm. **Ligar antes disso rebaixaria o padrão de verificação da entrega**, e
+essa é a única razão pela qual ela continua desligada; não é mais falta de log.
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
 nem os subs da ZWO trazem o keyword; o código assume o padrão do FITS

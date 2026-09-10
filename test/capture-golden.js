@@ -229,10 +229,165 @@ window.__captureSafeguards = async function () {
       ganhos: r2[0].gains || null
     });
   }
-  var body = new Blob([JSON.stringify({ casos: casos }, null, 2)]);
+  // A salvaguarda da saturacao vai no MESMO arquivo, porque e o mesmo tipo de
+  // afirmacao -- uma regra que so vale se alguem ja a viu recusar -- e um
+  // comparador so evita que uma das duas fique orfa.
+  var sat = await window.__captureSatSafeguards();
+
+  var body = new Blob([JSON.stringify({ casos: casos, saturacao: sat }, null, 2)]);
   var ab = await body.arrayBuffer();
   await fetch('/save/safeguards.results.json', { method: 'POST', body: ab });
-  return { casos: casos.length, arquivo: 'safeguards.results.json' };
+  return { casos: casos.length, saturacao: sat.casos.length, arquivo: 'safeguards.results.json' };
+};
+
+
+/* ------------------------------------------------------------------ *
+ * A salvaguarda de ruido de croma da saturacao, exercitada de verdade
+ *
+ * A secao 2.4 do Modulo 4 pede: meca o desvio padrao da crominancia nos pixels
+ * com snr < snrLow, antes e depois, e recuse se crescer mais de 2%. Com o
+ * codigo certo ela NAO PODE disparar -- naqueles pixels o `w` satura em 0,
+ * `k` e exatamente 1, e a crominancia nao e tocada. O crescimento medido e
+ * -0,00%, que e tambem o que sai quando a etapa nao faz nada.
+ *
+ * Uma salvaguarda que nunca dispara e uma salvaguarda que ninguem verificou.
+ * Este projeto ja pagou por isso duas vezes -- os quatro zeros do
+ * `rejected-edge`, e a regra dos 3x que so foi vista disparando depois de
+ * publicada. O caso aqui e o controle negativo: uma fonte deliberadamente
+ * quebrada, rodada pela MESMA cadeia, que tem que fazer a etapa RECUSAR.
+ *
+ * DUAS ALAVANCAS ERRADAS FORAM TENTADAS ANTES, e o motivo de cada uma falhar
+ * esta no NOTAS porque nao e obvio:
+ *
+ *   baixar `snrLow`   nao dispara: o conjunto medido pela salvaguarda E o
+ *                     conjunto protegido pela mascara -- os dois leem o mesmo
+ *                     limiar. Baixar o limiar esvazia o conjunto medido
+ *                     (`pixels: 0`) em vez de desproteger alguem.
+ *   ceu sem sinal     nao dispara: um quadro todo abaixo do limiar deixa TODO
+ *                     mundo em k = 1. Protege tudo, que e o oposto de falhar.
+ *
+ * A alavanca certa e a FIACAO da mascara, nao um parametro: com o clamp do `w`
+ * invertido, o fundo passa a receber o amount inteiro e a crominancia do ceu
+ * cresce ~45%. E a falha que a regra existe para pegar, e nenhum ajuste de
+ * parametro a produz.
+ *
+ * O TERCEIRO CASO mede o que a salvaguarda de ruido NAO pega. Escalar o azul
+ * por um k diferente dos outros dois nao muda a magnitude da crominancia do
+ * fundo o bastante para acusar -- a pre-passada nem ve, porque a quebra esta so
+ * no laco principal -- e muda o MATIZ. Quem pega e a outra verificacao. As duas
+ * juntas cobrem o que cada uma sozinha deixa passar; e por isso que sao duas.
+ * ------------------------------------------------------------------ */
+
+// As ancoras dos controles negativos. Sao strings da fonte publicada, e o
+// comparador exige que cada uma apareca EXATAMENTE UMA VEZ: se alguem duplicar
+// a aritmetica do `k` de novo, a contagem vira 2 e o teste reprova antes de
+// olhar qualquer numero. Foi assim que a duplicacao original apareceu -- a
+// pre-passada tinha a sua propria copia da formula, o clamp quebrado atingiu so
+// o laco principal, e a copia intacta aprovou a mascara quebrada.
+window.__SAT_ANCORAS = {
+  clamp:    'if (w < 0) w = 0; else if (w > 1) w = 1;',
+  clampInv: 'if (w < 0) w = 1; else if (w > 1) w = 0;',
+  azul:     'var Bo = y + (B - y) * k;',
+  azulOff:  'var Bo = y + (B - y) * k * 1.02;'
+};
+
+window.__captureSatSafeguards = async function () {
+  var src = document.getElementById('pipeline-src').textContent;
+  var A = window.__SAT_ANCORAS;
+
+  function conta(hay, needle){ return hay.split(needle).length - 1; }
+  function troca(hay, de, para){
+    var n = conta(hay, de);
+    if (n !== 1) throw new Error('ancora aparece ' + n + 'x, esperava 1: ' + de);
+    return hay.split(de).join(para);
+  }
+
+  function monta(source){
+    var shim = { onmessage: null, postMessage: function () {} };
+    new Function('self', source + ';self.__T={findImageHDU:findImageHDU,' +
+      'toNormalisedFloat:toNormalisedFloat,Image:Image,measure:measure,' +
+      'stepBackground:stepBackground,stepColourCal:stepColourCal,' +
+      'stepStretch:stepStretch,stepSaturation:stepSaturation};')(shim);
+    return shim.__T;
+  }
+
+  /* A MESMA cadeia que o golden `saturation-fixture` roda, com os mesmos
+   * defaults: fundo, cor, esticamento, e so entao a saturacao. A mascara le SNR
+   * de um quadro JA ESTICADO -- medi-la em dado linear seria exercitar outra
+   * etapa e chamar o resultado de controle desta. */
+  async function rodar(T, url){
+    // Buffer novo a cada rodada: toNormalisedFloat troca os bytes NO LUGAR, e
+    // reaproveitar o mesmo ArrayBuffer ja produziu uma conclusao falsa aqui.
+    var buf = await fetch(url).then(function (r) { return r.arrayBuffer(); });
+    var hdu = T.findImageHDU(buf);
+    var d = T.toNormalisedFloat(buf, hdu, function () {});
+    var img = new T.Image(d.data, d.w, d.h, d.planes);
+
+    var recs = [];
+    function rep(x){ recs.push(x); }
+
+    // A mesma regra de run.js, sem o ramo do HISTORY: os fixtures sao gerados
+    // por make-fixture.ps1 e nao carregam historico de esticamento. Registrado
+    // na saida para que uma mudanca no fixture que vire este bit apareca.
+    var ms = T.measure(img, 1), gm = 0, c;
+    for (c = 0; c < ms.perChannel.length; c++) gm += ms.perChannel[c].median;
+    gm /= ms.perChannel.length;
+    var naoLinear = (gm >= 0.05);
+
+    img = T.stepBackground(img, { samplesPerRow: 12, boxSize: 25, tolerance: 1.0,
+      edgeMargin: 0.02, smoothing: 0.10, correction: 'subtract',
+      pedestal: 'model-median', scale: 1, stride: 1 }, rep);
+    img = T.stepColourCal(img, { backgroundNeutralise: true, starSigma: 12.0,
+      starMax: 0.85, minStarPixels: 2000, extendedWindow: 25, extendedFrac: 0.50,
+      reference: 'green', stride: 1 }, rep);
+    img = T.stepStretch(img, { linked: true, operator: 'mtf', stretch: null,
+      shadowSigma: -2.80, target: 0.085, blackPct: 0.0005,
+      nonLinear: naoLinear, stride: 1 }, rep);
+    img = T.stepSaturation(img, { amount: 1.45, snrLow: 3.0, snrHigh: 25.0,
+      highlightKnee: 0.80, highlightFloor: 0.35, stride: 1 }, rep);
+
+    var s = null;
+    for (var i = 0; i < recs.length; i++) if (recs[i].id === 'saturation') s = recs[i];
+    if (!s) throw new Error('a etapa de saturacao nao reportou');
+    return { rec: s, naoLinear: naoLinear };
+  }
+
+  var FIXTURE = '/f/test/fixtures/fixture-saturation.fit';
+
+  var fontes = [
+    { nome: 'codigo-publicado',   src: src },
+    { nome: 'clamp-do-w-invertido', src: troca(src, A.clamp, A.clampInv) },
+    { nome: 'azul-com-k-proprio',   src: troca(src, A.azul,  A.azulOff) }
+  ];
+
+  var casos = [];
+  for (var i = 0; i < fontes.length; i++){
+    var T = monta(fontes[i].src);
+    var r = await rodar(T, FIXTURE);
+    var rec = r.rec, cn = rec.chromaNoise || {}, hf = rec.hueFidelity, mk = rec.mask;
+    casos.push({
+      nome: fontes[i].nome,
+      naoLinear: r.naoLinear,
+      veredito: rec.applied ? 'aplica' : 'recusa',
+      motivo: rec.skipReason,
+      crescimentoPct: (cn.growthPct === undefined) ? null : cn.growthPct,
+      limitePct: (cn.limitPct === undefined) ? null : cn.limitPct,
+      pixelsDeFundo: (cn.pixels === undefined) ? null : cn.pixels,
+      pctAbaixoDoLimiar: mk ? mk.pctBelowSnrLow : null,
+      maxK: mk ? mk.maxK : null,
+      mediaK: mk ? mk.meanK : null,
+      derivaMatiz: hf ? hf.maxHueDrift : null,
+      limiteMatiz: hf ? hf.limit : null,
+      matizDentroDoLimite: hf ? hf.withinLimit : null
+    });
+  }
+
+  return {
+    // Estrutural, e vale antes de qualquer numero: UMA copia da formula do `k`.
+    copiasDoClamp: conta(src, A.clamp),
+    fixture: FIXTURE,
+    casos: casos
+  };
 };
 
 window.__captureAll = async function () {
