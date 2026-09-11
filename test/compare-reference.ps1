@@ -910,30 +910,50 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 }
 
                 <#
-                AS CONTAGENS DA MASCARA SAO CONTAGENS POR LIMIAR.
+                AS CONTAGENS DA MASCARA SAO CONTAGENS POR LIMIAR, E O DELTA MORA
+                NA UNIDADE DA CURVA -- QUE E Y, NAO snr.
 
-                `snr` contra `snrLow` e contra `snrHigh`: um pixel troca de lado
-                quando `snr - T` troca de sinal, e as duas pontas mexem em `snr`
-                pelos mesmos db e dsigma de cima. O Delta e POR LIMIAR, porque o
-                termo |snr|*dsigma cresce com o limiar: em snrLow = 3 ele vale
-                3*dsigma, em snrHigh = 25 vale 25*dsigma, oito vezes mais.
+                A referencia tabela `densidadePorLimiar.saturacao.<campo>` como
+                #{ i : |Y_i - T| <= Delta } com T em unidade de LUMINANCIA:
+                `b + 3*sigma`, `b + 25*sigma`, e o joelho. O Delta que entra tem
+                que estar na mesma unidade, entao ele NAO se divide por sigma:
 
-                Quando a referencia emitir `densidadePorLimiar.saturacao.<campo>`
-                a cota sai da curva, como no clipLow. Sem a curva a linha cai na
-                cota de contagem da secao 7 (0,05% do quadro) e o detalhe diz
-                que a cota nao foi derivada -- que e menos, e esta escrito.
+                    T      = b + S*sigma
+                    dT     = db + S*dsigma          <- unidade de Y
+
+                Dividir por sigma daria o Delta em snr e inflaria a cota ~35x
+                (sigma ~ 0,028), afrouxando o teste por um fator que nao tem
+                significado nenhum. O termo S*dsigma e o que faz o Delta ser POR
+                LIMIAR: em snrLow = 3 vale 3*dsigma, em snrHigh = 25 vale oito
+                vezes mais.
+
+                `pixelsAtFullAmount` E UMA FAIXA, NAO UM LIMIAR. Ele conta
+                `w >= 1 E roll >= 1`, ou seja `Y >= b + 25*sigma` E `Y <= joelho`
+                -- duas fronteiras. A cota e a SOMA das duas densidades, porque
+                um pixel pode trocar de lado em qualquer uma delas. Usar so a
+                curva do joelho contaria metade das maneiras de discordar.
+
+                No joelho o Delta e ~0: as duas pontas calculam Y dos mesmos
+                pixels e o joelho e constante. Fica o piso de precisao do float,
+                e `Compare-Threshold-Count` nunca extrapola a curva para baixo
+                do primeiro ponto tabelado.
+
+                Sem curva a linha cai na cota de contagem da secao 7 (0,05% do
+                quadro) e o detalhe diz que a cota nao foi derivada -- que e
+                menos, e esta escrito.
                 #>
                 $dens = $null
                 if ($rf2.densidadePorLimiar -and $rf2.densidadePorLimiar.saturacao) {
                     $dens = $rf2.densidadePorLimiar.saturacao
                 }
-                $dSnrLow  = ($dBg + $pLow  * $dSig) / $sig
-                $dSnrHigh = ($dBg + $pHigh * $dSig) / $sig
-
+                # Unidade de Y, nao de snr.
+                $dThrLow  = $dBg + $pLow  * $dSig
+                $dThrHigh = $dBg + $pHigh * $dSig
+                # O joelho e constante nos dois lados; sobra a precisao do Y.
+                $dKnee    = 1e-7
                 foreach ($t in @(
-                    @('mascara.abaixoDoLimiar', $mk.pixelsBelowSnrLow, $rk.pixelsBelowSnrLow, $dSnrLow,  'pixelsBelowSnrLow'),
-                    @('mascara.mascaraCheia',   $mk.pixelsAtFullMask,  $rk.pixelsAtFullMask,  $dSnrHigh, 'pixelsAtFullMask'),
-                    @('mascara.amountCheio',    $mk.pixelsAtFullAmount, $rk.pixelsAtFullAmount, $dSnrHigh, 'pixelsAtFullAmount'))) {
+                    @('mascara.abaixoDoLimiar', $mk.pixelsBelowSnrLow, $rk.pixelsBelowSnrLow, $dThrLow,  'pixelsBelowSnrLow'),
+                    @('mascara.mascaraCheia',   $mk.pixelsAtFullMask,  $rk.pixelsAtFullMask,  $dThrHigh, 'pixelsAtFullMask'))) {
                     $curve = $null
                     if ($dens) { $curve = $dens.($t[4]) }
                     if ($curve) {
@@ -943,6 +963,36 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                         $r0.detalhe = $r0.detalhe + ' - cota da secao 7, nao derivada (sem densidadePorLimiar.saturacao)'
                         $rows += $r0
                     }
+                }
+
+                # `amountCheio` e a faixa entre as duas fronteiras: a cota e a
+                # SOMA das duas densidades. Com uma so, metade das maneiras de
+                # discordar fica de fora da cota.
+                $cvKnee = $null; $cvHigh = $null
+                if ($dens) { $cvKnee = $dens.pixelsAtFullAmount; $cvHigh = $dens.pixelsAtFullMask }
+                if ($cvKnee -and $cvHigh) {
+                    $a = Compare-Threshold-Count $name 'saturacao' 'mascara.amountCheio' `
+                         $mk.pixelsAtFullAmount $rk.pixelsAtFullAmount $dKnee $cvKnee
+                    $b = Compare-Threshold-Count $name 'saturacao' 'mascara.amountCheio' `
+                         $mk.pixelsAtFullAmount $rk.pixelsAtFullAmount $dThrHigh $cvHigh
+                    # As duas linhas trazem a cota lida em cada fronteira; o que
+                    # vale e a soma, entao o veredito e recomposto aqui.
+                    $ca = 0; $cb = 0
+                    if ($a.detalhe -match 'cota (\d+) pixels') { $ca = [int]$Matches[1] }
+                    if ($b.detalhe -match 'cota (\d+) pixels') { $cb = [int]$Matches[1] }
+                    $diff = [math]::Abs([int]$mk.pixelsAtFullAmount - [int]$rk.pixelsAtFullAmount)
+                    $cota = $ca + $cb
+                    $ok = ($diff -le $cota)
+                    $rows += New-Row $name 'saturacao' 'mascara.amountCheio' `
+                             $mk.pixelsAtFullAmount $rk.pixelsAtFullAmount `
+                             $(if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
+                             ("difere {0}, cota {1} = {2} no joelho + {3} em b+{4}sigma (faixa, duas fronteiras)" -f `
+                              $diff, $cota, $ca, $cb, $pHigh)
+                } else {
+                    $r0 = Compare-Value $name 'saturacao' 'mascara.amountCheio' `
+                          $mk.pixelsAtFullAmount $rk.pixelsAtFullAmount 'count' 0 $pTot
+                    $r0.detalhe = $r0.detalhe + ' - cota da secao 7, nao derivada (faixa precisa das duas curvas)'
+                    $rows += $r0
                 }
 
                 # Estouro. O limiar e 1.0 e nao se move; a grandeza e

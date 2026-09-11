@@ -3,13 +3,18 @@ import json, hashlib, sys
 import numpy as np
 sys.path.insert(0, '.')
 from reference_bg import extract_background
-from reference_m23 import colour_calibrate, linked_stretch, density_report
+from reference_m23 import (colour_calibrate, linked_stretch, density_report,
+                           saturate, threshold_density, sat_factor)
 from chain import load
 
 BASE = '/mnt/user-data/uploads/'
 JOBS = [('fixture-seestar.fit','seestar'), ('fixture-rice_fit.fz','rice'),
         ('fixture-nonlinear.fit','nonlinear'), ('fixture-gradient.fit','gradient'),
-        ('fixture-colour.fit','colour'), ('fixture-edge.fit','edge')]
+        ('fixture-colour.fit','colour'), ('fixture-edge.fit','edge'),
+        ('fixture-saturation.fit','saturation'), ('fixture-flatsky.fit','flatsky')]
+# So estes dois tem a etapa LIGADA. Emitir saturacao para os outros nao
+# ajuda: os goldens deles sao a cadeia com os defaults, sem saturacao.
+SAT_ON = {'saturation', 'flatsky'}
 
 def clean(o):
     if isinstance(o, dict):
@@ -33,18 +38,52 @@ for fn, label in JOBS:
     res, st = linked_stretch(pl2, non_linear=nl)
     dens = density_report(pl, cc, pl2, st, res)
 
+    sat = None
+    if label in SAT_ON:
+        satout, sat = saturate(res)
+        Yv = (0.2126*res[0].astype(np.float64) + 0.7152*res[1].astype(np.float64)
+              + 0.0722*res[2].astype(np.float64))
+        b, nz = sat['mask']['background'], sat['mask']['noiseSigma']
+        pr = sat['params']
+        kk, _, _ = sat_factor(Yv, b, nz, pr)
+        mxo = np.maximum(np.maximum(Yv+(res[0].astype(np.float64)-Yv)*kk,
+                                    Yv+(res[1].astype(np.float64)-Yv)*kk),
+                         Yv+(res[2].astype(np.float64)-Yv)*kk)
+        dens['saturacao'] = dict(
+            pixelsBelowSnrLow=dict(
+                count=sat['mask']['pixelsBelowSnrLow'],
+                threshold=b + pr['snrLow']*nz,
+                density=threshold_density(Yv, b + pr['snrLow']*nz)),
+            pixelsAtFullMask=dict(
+                count=sat['mask']['pixelsAtFullMask'],
+                threshold=b + pr['snrHigh']*nz,
+                density=threshold_density(Yv, b + pr['snrHigh']*nz)),
+            pixelsAtFullAmount=dict(
+                count=sat['mask']['pixelsAtFullAmount'],
+                threshold=pr['highlightKnee'],
+                density=threshold_density(Yv, pr['highlightKnee'])),
+            pixelsRescaled=dict(
+                count=sat['overflow']['pixelsRescaled'], threshold=1.0,
+                density=threshold_density(mxo, 1.0)))
+
     out[label] = dict(
         sha256=hashlib.sha256(open(BASE+fn,'rb').read()).hexdigest(),
         decode=dict(width=w, height=h, planes=len(planes)),
         fundo=dict(aplicado=bg['applied'], aceitas=bg.get('accepted')),
         calibracaoCor=clean(cc),
         esticamento=clean(st),
+        saturacao=clean(sat) if sat else None,
         densidadePorLimiar=clean(dens))
+    st_extra = ('' if not sat else
+                f"  sat {'aplica' if sat['applied'] else 'RECUSA'} "
+                f"maxK {sat['mask']['maxK']:.3f} "
+                f"croma {sat['chromaNoise']['growthPct']:+.3f}% "
+                f"matiz {sat['hueFidelity']['maxHueDrift']:.1e}")
     g = cc.get('ganhos')
     print(f"{label:10} cc {str(cc['applied']):5} ganhos "
           f"{'-' if not g else ' '.join('%.4f'%x for x in g):26} "
           f"drift {st['colourFidelity']['maxRatioDrift'] if st.get('colourFidelity') else 0:.2e}"
-          f"  clipLow {st['clipLow']}")
+          f"  clipLow {st['clipLow']}" + st_extra)
 
 json.dump(dict(
   geradoPor='reference_m23.py + reference_bg.py -- segunda implementacao dos Modulos 2 e 3',
