@@ -114,8 +114,13 @@ Processing log — fixture-gradient.fit
     Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 1,918,086 pixels — float rounding, nothing else. In the highlights, R/G 1.0188 → 1.0232 and B/G 0.9831 → 0.9773.
     355 pixels came out above 1.0 in one channel. All three were divided by their own maximum rather than the bright channel being clipped on its own: clipping one channel changes the colour of the pixel, dividing takes it to white and keeps it.
     0.088% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
+• Selective saturation: chroma was scaled by up to ×1.450 (the ceiling in use is ×1.45), strongest where the signal is well above the noise and rolled off in the highlights so a bright core does not turn into a flat disc of colour.
+    The mask is driven by signal-to-noise, never by brightness: a pixel is left alone below 3.0σ above the sky and gets the full factor above 25.0σ. On this frame the sky sits at 0.08522 with a noise of 0.02794, so 1,782,704 pixels (92.8%) were not touched at all. Average factor across the frame: ×1.008.
+    Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 3.5e-14 of a turn across 1,918,311 pixels. Background chroma noise grew 0.00%.
+    649 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
+    This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
-• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
+• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.
 ```
@@ -150,13 +155,19 @@ the two apart.
 
 The log every image comes with ends with a sentence like this one:
 
-> Not applied: noise reduction, sharpening, saturation, deconvolution, star
-> removal, colour grading, or any AI or generative step.
+> Not applied: noise reduction, sharpening, deconvolution, star removal,
+> colour grading, or any AI or generative step.
 
 That sentence is generated, not typed. It is the list of everything the tool
 knows how to name, minus whatever actually ran. If a step is ever added and it
 runs, the sentence drops that word by itself. It cannot go stale, because
 nobody maintains it.
+
+**That is not a claim about the future — it already happened.** Up to v1.2.0 the
+sentence read *"noise reduction, sharpening, **saturation**, deconvolution…"*.
+Selective saturation shipped in v1.3.0, and the word left the sentence on its
+own, because the step now reports that it ran. Nobody edited that line; the two
+halves of this paragraph are a commit apart.
 
 **Nothing here invents detail.** No neural network, no upscaling, no
 "enhancement". Every number in the log was measured from your file, and the log
@@ -179,15 +190,27 @@ What it *does* do, and says so:
   **linked**: one curve derived from the luminance, and all three channels
   multiplied by the same number, so the ratio between them survives the stretch
   instead of being flattened by it
+- **scales the colour of what is already there** — and this is the only step in
+  the chain that is a preference rather than a measurement, which the log says
+  out loud. Ask "what is the true saturation of this object?" and the question
+  has no answer; there is no saturation the sky has that this is recovering. The
+  factor, ×1.45 at most, was measured — from a manual delivery of a real frame —
+  and what that measured is *what a person chose*. What keeps it honest is that
+  it runs under constraints that are not taste: it touches nothing within 3σ of
+  the noise, so the sky is left exactly alone, and it rolls off above 0.80 so a
+  bright core does not become a flat disc of colour. Hue does not move — all
+  three channels are scaled by the same number, and the log prints the largest
+  hue change it measured on your frame
 - writes an 8-bit PNG, and a log describing all of the above with numbers
 
-Those middle three are the difference between v1.0 and today. The stretch used
-to run each channel through its own curve, which quietly changes the colour of
-everything — an undeclared white balance, which is the one thing the sentence
-above promises not to do. Measured on a real stack: stellar ratios R/G 1.054 and
-B/G 0.714 going in, R/G 1.008 and B/G 0.950 coming out. The curve ate the
-colour. Now the largest change to any channel ratio is **4.4e-16**, and the log
-prints that number on every run rather than claiming it.
+The sky levelling, the measured colour balance and the linked stretch are the
+difference between v1.0 and today. The stretch used to run each channel through
+its own curve, which quietly changes the colour of everything — an undeclared
+white balance, which is the one thing the sentence above promises not to do.
+Measured on a real stack: stellar ratios R/G 1.054 and B/G 0.714 going in,
+R/G 1.008 and B/G 0.950 coming out. The curve ate the colour. Now the largest
+change to any channel ratio is **4.4e-16**, and the log prints that number on
+every run rather than claiming it.
 
 ---
 
@@ -227,10 +250,10 @@ automated:
 | command | the question it answers |
 |---|---|
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? |
-| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (249 comparisons across six test frames; the four that stay unanswered are the ones the Python declines to cover, and it declines them in its own output rather than being excused here) |
+| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (426 comparisons across eight test frames; the eleven that stay unanswered are the ones the Python declines to cover, plus one path neither side exercises -- and each says so in its own line rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
-| `test\compare-safeguards.ps1` | can the colour calibration still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing |
+| `test\compare-safeguards.ps1` | can the two rules that no test frame trips still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing. The second rule is the saturation one: it refuses if scaling chroma would raise the colour noise of the sky by more than 2%, which the correct code cannot do -- so the control runs a deliberately mis-wired mask through the same chain and requires it to refuse at 45% |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 
