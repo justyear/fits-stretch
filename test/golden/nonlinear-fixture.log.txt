@@ -21,7 +21,12 @@ Processing log — fixture-nonlinear.fit
     Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 539,705 pixels — float rounding, nothing else. In the highlights, R/G 1.0123 → 1.0121 and B/G 0.9843 → 0.9845.
     9,281 pixels came out above 1.0 in one channel. All three were divided by their own maximum rather than the bright channel being clipped on its own: clipping one channel changes the colour of the pixel, dividing takes it to white and keeps it.
     0.059% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
+• Selective saturation: chroma was scaled by up to ×1.056 (the ceiling in use is ×1.45), strongest where the signal is well above the noise and rolled off in the highlights so a bright core does not turn into a flat disc of colour.
+    The mask is driven by signal-to-noise, never by brightness: a pixel is left alone below 3.0σ above the sky and gets the full factor above 25.0σ. On this frame the sky sits at 0.24738 with a noise of 0.09675, so 502,740 pixels (93.1%) were not touched at all. Average factor across the frame: ×1.003.
+    Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 7.2e-14 of a turn across 539,731 pixels. Background chroma noise grew -0.00%.
+    9,544 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
+    This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
-• Not applied: noise reduction, sharpening, saturation, deconvolution, star removal, colour grading, or any AI or generative step.
+• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.

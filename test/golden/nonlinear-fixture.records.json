@@ -1616,6 +1616,217 @@
     }
   },
   {
+    "id": "saturation",
+    "name": "Selective saturation",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "amount": 1.45,
+      "snrLow": 3,
+      "snrHigh": 25,
+      "highlightKnee": 0.8,
+      "highlightFloor": 0.35
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": {
+      "background": 0.2473792629892424,
+      "noiseSigma": 0.09675127386111214,
+      "luminanceSpan": 0.3966124971389335,
+      "pixelsBelowSnrLow": 502740,
+      "pctBelowSnrLow": 93.1,
+      "pixelsAtFullAmount": 0,
+      "pctAtFullAmount": 0,
+      "pixelsAtFullMask": 0,
+      "pctAtFullMask": 0,
+      "meanK": 1.0027465226822279,
+      "maxK": 1.0558208524031005
+    },
+    "hueFidelity": {
+      "maxHueDrift": 7.227551890309769e-14,
+      "driftSamples": 539731,
+      "limit": 0.000001,
+      "withinLimit": true,
+      "unit": "turns of the hue circle",
+      "note": "preserved by construction; this measures the implementation, not the design"
+    },
+    "chromaNoise": {
+      "sigmaBefore": 0.006193508795152567,
+      "sigmaAfter": 0.006193508784051834,
+      "growthPct": -1.7923173353011034e-7,
+      "pixels": 502740,
+      "limitPct": 2,
+      "note": "measured on the pixels the mask leaves at k = 1; with the mask wired correctly this cannot grow, so it verifies the mask is on, not that the mask is right"
+    },
+    "saturationByLuminance": [
+      {
+        "range": [
+          0,
+          0.1
+        ],
+        "pixels": 31805,
+        "pctFrame": 5.889814814814815,
+        "before": 0.05598691157118893,
+        "after": 0.05598691157118893
+      },
+      {
+        "range": [
+          0.1,
+          0.2
+        ],
+        "pixels": 146164,
+        "pctFrame": 27.06740740740741,
+        "before": 0.06239477748757695,
+        "after": 0.06239477748757695
+      },
+      {
+        "range": [
+          0.2,
+          0.35
+        ],
+        "pixels": 301808,
+        "pctFrame": 55.89037037037037,
+        "before": 0.06280793201711295,
+        "after": 0.06280793201711295
+      },
+      {
+        "range": [
+          0.35,
+          0.55
+        ],
+        "pixels": 23604,
+        "pctFrame": 4.371111111111111,
+        "before": 0.06424217957680783,
+        "after": 0.06424409662921148
+      },
+      {
+        "range": [
+          0.55,
+          0.8
+        ],
+        "pixels": 12555,
+        "pctFrame": 2.325,
+        "before": 0.05911097572658918,
+        "after": 0.06082518630838527
+      },
+      {
+        "range": [
+          0.8,
+          1.01
+        ],
+        "pixels": 24064,
+        "pctFrame": 4.456296296296296,
+        "before": 0.0715863959623742,
+        "after": 0.07484748540442705
+      }
+    ],
+    "overflow": {
+      "pixelsRescaled": 9544,
+      "pixelsLifted": 0
+    },
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.25346761272602425,
+          "madn": 0.09538004819804277,
+          "mad": 0.06433296114801212,
+          "span": 0.39102769512474256,
+          "q1": 0.1820248722056916,
+          "q3": 0.31236743724727245,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.009704737926298924,
+          "p999": 1,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.24641794460975053,
+          "madn": 0.09803069011750269,
+          "mad": 0.06612079462936915,
+          "span": 0.40137331197070275,
+          "q1": 0.1739986266880293,
+          "q3": 0.30778973067826354,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.009308003356984817,
+          "p999": 0.9932402532997635,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.23820859082932783,
+          "madn": 0.08923824723188367,
+          "mad": 0.06019037314979339,
+          "span": 0.3669031815060655,
+          "q1": 0.1710383764400702,
+          "q3": 0.293339436942092,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.00917067215991455,
+          "p999": 1,
+          "totalPixels": 540000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.25346761272602425,
+          "madn": 0.09538004819804277,
+          "mad": 0.06433296114801212,
+          "span": 0.39102769512474256,
+          "q1": 0.1820248722056916,
+          "q3": 0.31236743724727245,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.009704737926298924,
+          "p999": 1,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.24641794460975053,
+          "madn": 0.09803069011750269,
+          "mad": 0.06612079462936915,
+          "span": 0.40137331197070275,
+          "q1": 0.1739986266880293,
+          "q3": 0.30778973067826354,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.009308003356984817,
+          "p999": 0.9931181811245899,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.23820859082932783,
+          "madn": 0.08923824723188367,
+          "mad": 0.06019037314979339,
+          "span": 0.3669031815060655,
+          "q1": 0.1710383764400702,
+          "q3": 0.293339436942092,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.00917067215991455,
+          "p999": 1,
+          "totalPixels": 540000
+        }
+      ]
+    }
+  },
+  {
     "id": "quantise",
     "name": "Quantise to 8-bit",
     "applied": true,

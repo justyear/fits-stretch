@@ -64,7 +64,13 @@ for fn, label in JOBS:
                 density=threshold_density(Yv, pr['highlightKnee'])),
             pixelsRescaled=dict(
                 count=sat['overflow']['pixelsRescaled'], threshold=1.0,
-                density=threshold_density(mxo, 1.0)))
+                density=threshold_density(mxo, 1.0)),
+            # As cinco fronteiras INTERIORES da tabela por faixa. A media de
+            # uma faixa nao e uma contagem por limiar: pixels trocam nas duas
+            # bordas em sentidos opostos e se cancelam na contagem liquida.
+            # Por isso a cota conta as duas bordas, nao a diferenca de n.
+            bordasDeFaixa=[dict(threshold=t, density=threshold_density(Yv, t))
+                           for t in (0.10, 0.20, 0.35, 0.55, 0.80)])
 
     out[label] = dict(
         sha256=hashlib.sha256(open(BASE+fn,'rb').read()).hexdigest(),

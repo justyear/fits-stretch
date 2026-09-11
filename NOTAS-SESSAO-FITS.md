@@ -1227,29 +1227,136 @@ ser vista falhando *na condição nova*, não na antiga.
 ele roda está sendo estreado e verificado no mesmo instante, e não dá para saber
 qual dos dois falhou.
 
+## Classe: módulo que escreve artefato no nível do módulo
+
+**Um módulo que grava arquivo fora de `if __name__ == '__main__'` transforma toda
+importação numa execução.** Quem escreve `from chain import load` para pegar uma
+função roda o script inteiro como efeito colateral — e sobrescreve o artefato.
+
+O caso: `chain.py` gerava `referencia-cadeia.json` no nível do módulo. Um script
+de verificação importou `load` dele, a geração inteira rodou de novo, e a versão
+de 4 fixtures sobrescreveu a de 8.
+
+**O sintoma é o que torna isto uma classe e não um descuido.** Não houve erro,
+nada quebrou, e o arquivo resultante estava *internamente correto* — só que de
+duas gerações atrás. O comparador então reprovou 85 linhas contra dado
+perfeitamente válido, e as linhas apontavam para o esticamento:
+
+```
+gradient  B  params.target   0,085  vs  0,25
+gradient  B  saida.median    21,10  vs  64,00
+```
+
+Alguém lendo isso procura o bug no esticamento. Ele não está lá, e não está em
+lugar nenhum — o que está errado é *qual* arquivo está no disco.
+
+Mesma família do `records[0]` e da fórmula do `k` duplicada: **sem erro, sem
+aviso, e o sintoma apontando para o lugar errado.** O que as três têm em comum é
+que a coisa quebrada e a coisa que reclama são objetos diferentes, então o
+rastro leva ao segundo.
+
+**O que denuncia:** um artefato cujo conteúdo é coerente mas cuja *proveniência*
+não bate. Foi assim que este apareceu — o campo `geradoPor` dizia `chain.py` e
+devia dizer `reference_m23.py + reference_bg.py`, e `proposito` falava do passo 8
+do Módulo 1 num arquivo que devia falar do Módulo 4. **Um artefato que carrega
+quem o gerou se denuncia; um que só carrega números, não.**
+
+## Classe: ler o código do outro acha o que comparar número não acha
+
+Duas vezes nesta sessão, e as duas vezes o defeito era da outra ponta e estava
+fora do alcance de qualquer comparação numérica:
+
+| achado | por que número não pegaria |
+|---|---|
+| três diferenças de **definição** na referência do Módulo 4 (norma vs componentes, ordem do estouro, piso de 0,03) | a divergência sai com tamanho arbitrário e sem causa legível; e uma delas — a ordem do estouro — nem aparece, porque o caminho não é exercitado |
+| `chain.py` gravando o JSON no nível do módulo | o arquivo gerado é *correto*; nenhum número denuncia que ele é de outra geração |
+
+**A técnica:** quando a outra ponta entrega código junto com dados, ler o código
+é mais barato que comparar os dados — e acha uma classe de defeito que os dados
+não contêm. Comparar número responde *"os dois concordam?"*. Ler o código
+responde *"os dois estão medindo a mesma coisa?"*, que é a pergunta anterior e
+que, quando a resposta é não, invalida a primeira.
+
+Custo medido: uma leitura contra as três rodadas que teriam sido gastas
+procurando erro de precisão onde não havia nenhum.
+
+Não substitui a comparação — **as duas verificam coisas diferentes**, e foi a
+comparação que fechou as 426 linhas. A ordem é que importa: ler primeiro, porque
+a leitura decide se a comparação significa alguma coisa.
+
+## Classe: cota lida no eixo errado reprova implementação correta
+
+Terceira instância nesta sessão, e é o que a torna classe.
+
+| grandeza | o eixo errado | a cota certa | fator |
+|---|---|---|---|
+| ganhos estelares | eixo [0,1] | tolerância das entradas propagada por `d(a/b)/(a/b) = da/a + db/b` | 36× |
+| `mask.luminanceSpan` | eixo [0,1], 4 bins | `3(q3−q1)` ⇒ `3(Δq3+Δq1)` = 24 bins | 6× |
+| `saturationByLuminance.after` | só a troca de conjunto | mais `s'·Δk/k`, de `ds'/s' = (Δk/k)(Y/max')` | — |
+
+O padrão: **a grandeza comparada é derivada, e herda a incerteza das entradas
+multiplicada pelo Jacobiano da derivação.** Aplicar a ela a tolerância do eixo
+onde ela por acaso mora reprova implementação correta — e, o que é pior, convida
+a alargar a tolerância até caber, o que esconde divergência de verdade junto.
+
+**O teste para saber se a cota é derivada ou escolhida:** escreva a derivação. Se
+ela sai em duas linhas de álgebra a partir da definição, é cota. Se sai de olhar
+o número medido e arredondar para cima, é ajuste com outro nome.
+
+Um corolário que custou uma linha: no terceiro caso, o termo do `Δk` **sozinho**
+explicava três das quatro divergências. Sem ele, as três teriam sido creditadas à
+troca de conjunto — causa errada, e a cota que sairia disso mediria outra coisa.
+Uma cota que passa pelo motivo errado é tão ruim quanto uma que reprova.
+
+## Densidade calculada invertendo a cota prova o caminho, não o número
+
+Quando o ramo novo do comparador não tinha dados, ensaiei com curvas de densidade
+**calculadas de trás para frente** — invertendo a cota a partir da divergência
+medida, para achar o mínimo que a faria fechar.
+
+Isso prova que o caminho roda e dimensiona o pedido à outra ponta. **Não prova
+que os números concordam**, e a diferença é grande: a faixa `[0,10]` fechava com
+3% de folga contra a curva inventada. Com a curva real ela fechou com **4,8×**.
+
+Dito antes de saber o resultado, e é essa a parte que vale: **um ensaio cujo
+resultado é construído para passar precisa dizer isso em voz alta no momento em
+que passa**, não depois. Se a curva real tivesse dado menos que o mínimo, aqueles
+3% seriam achado e não folga — e quem lesse "fechou no ensaio" sem a ressalva
+teria concluído o contrário.
+
 ## Em aberto
 
 
-**Saturação seletiva: implementada, verificada, e DESLIGADA por padrão.**
-`saturation: false` em `run.js`. Os passos 1 a 8 da §6 do Módulo 4 estão
-fechados — a operação, a máscara de SNR, a queda nas altas luzes, as duas
-salvaguardas, o `fixture-saturation.fit` e o `fixture-flatsky.fit`, o registry
-com o round-trip nos três estados, o bloco do log, e o controle permanente da
-salvaguarda de ruído no `compare-safeguards`.
+**Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
+Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
+implementação — é o que autorizou ligar: até ele, a etapa estava verificada
+contra si mesma (goldens, controles negativos, teoremas) e não contra código que
+não é este. O que a autoriza, em ordem de peso:
 
-Falta fechar o **passo 9**. O `compare-reference` já cobre a etapa — **36 linhas
-por fixture**, ensaiadas contra referência sintética — e o `reference_m23.py` já
-tem a saturação, com as três diferenças de definição fechadas e os dois campos
-que o comparador pediu (`pixels` por faixa e `mask.luminanceSpan`). O que falta
-é a referência **rodar** sobre `fixture-saturation.fit` e `fixture-flatsky.fit`,
-que são os dois únicos fixtures com a etapa ligada, mais as curvas
-`densidadePorLimiar.saturacao.*` que trocam a cota de contagem da §7 por uma
-cota derivada.
+1. **Matiz contra os cards do fixture**: núcleo 0,0832 e nebulosa 0,9929,
+   idênticos antes e depois da etapa, batendo com o ângulo que o gerador
+   escreveu. **Verdade externa** — a única verificação desta etapa que não saiu
+   de nenhuma das duas implementações.
+2. **426 comparações contra `reference_m23.py`, 0 FAIL**, incluindo as quatro
+   cotas derivadas de curva de densidade e as duas cotas propagadas.
+3. **A salvaguarda de ruído de croma com controle permanente que a vê recusar**
+   (`compare-safeguards`), e não apenas prometer.
 
-Enquanto ele não fecha, a etapa está verificada **contra si mesma** (goldens,
-controles negativos, teoremas) e não contra uma implementação independente — que é o padrão que as outras três etapas
-já têm. **Ligar antes disso rebaixaria o padrão de verificação da entrega**, e
-essa é a única razão pela qual ela continua desligada; não é mais falta de log.
+O que a etapa faz, medido no `fixture-colour` (saturação HSV média por faixa de
+luminância, antes → depois):
+
+| faixa | pixels | antes | depois | |
+|---|---|---|---|---|
+| 0,00–0,10 | 1.115.630 | 0,3698 | 0,3698 | **intocado** — abaixo do limiar de SNR |
+| 0,10–0,20 | 155.980 | 0,2803 | 0,2807 | +0,1% |
+| 0,20–0,35 | 89.688 | 0,1646 | 0,1737 | +5,5% |
+| 0,35–0,55 | 77.248 | 0,0781 | 0,0919 | +17,6% |
+| 0,55–0,80 | 368.714 | 0,2801 | 0,3667 | +30,9% |
+| 0,80–1,01 | 112.740 | 0,0646 | 0,0821 | **+27,1%** — a queda nas altas luzes |
+
+A última linha é a única que importa discutir: ela sobe **menos** que a anterior,
+e é a queda nas altas luzes funcionando. Sem ela um núcleo brilhante vira disco
+chapado de cor.
 
 **Ordem de linha absoluta para arquivo sem `ROWORDER`.** Nem o `.fz` do Siril
 nem os subs da ZWO trazem o keyword; o código assume o padrão do FITS

@@ -134,15 +134,16 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 91,
-    "preview": 53,
-    "stats": 97,
-    "background": 437,
-    "colour": 511,
-    "transfer": 804,
-    "quantise": 93,
+    "decode": 29,
+    "preview": 24,
+    "stats": 71,
+    "background": 277,
+    "colour": 338,
+    "transfer": 562,
+    "saturation": 350,
+    "quantise": 88,
     "downscale": 0,
-    "total": 1334
+    "total": 1279
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",
