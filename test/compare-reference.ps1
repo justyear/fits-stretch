@@ -793,48 +793,48 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         # reference_m23.saturate() devolve:
         #
         #   applied, skipReason
-        #   mask{ background, noiseSigma, pixelsBelowSnrLow, pctFrame,
-        #         pixelsAtFullAmount, pixelsAtFullMask, meanK, maxK }
+        #   mask{ background, noiseSigma, luminanceSpan, pixelsBelowSnrLow,
+        #         pctFrame, pixelsAtFullAmount, pixelsAtFullMask, meanK, maxK }
         #   chromaNoise{ sigmaBefore, sigmaAfter, growthPct }
         #   overflow{ pixelsRescaled, pixelsLifted }
         #   hueFidelity{ maxHueDrift, driftSamples }
-        #   saturationByLuminance[]{ range, pct, before, after }
+        #   saturationByLuminance[]{ range, pixels, pct, before, after }
         #
-        # Uma contagem `pixels` por faixa e bem-vinda e preferida a `pct`:
-        # reconstruir a contagem da percentagem custa meio pixel de
-        # arredondamento por faixa, que nao muda veredito mas mede o
-        # arredondamento junto com a etapa.
+        # TRES DIFERENCAS DE DEFINICAO EXISTIRAM AQUI E FORAM FECHADAS NA
+        # REFERENCIA. O registro fica porque o que elas ensinaram nao expira:
         #
-        # TRES DIFERENCAS DE DEFINICAO, NAO DE PRECISAO, e por isso estao aqui
-        # e nao numa tolerancia larga. Alimentar uma formula com as entradas da
-        # outra so separa entrada de metodo quando as duas medem a MESMA
-        # grandeza; nestas tres elas nao medem.
+        #   1. `chromaNoise.sigma*` era desvio da NORMA de um lado e das TRES
+        #      COMPONENTES EMPILHADAS do outro.
+        #   2. a ordem do estouro era subfluxo-primeiro-preservando-Y de um lado
+        #      e transbordo-primeiro-com-clip-por-canal do outro.
+        #   3. a saturacao HSV da tabela era zerada abaixo de max = 0,03 de um
+        #      lado e nao do outro -- e o piso caia justamente na faixa escura,
+        #      que e onde a salvaguarda de ruido mora.
         #
-        #   1. chromaNoise.sigma*  Aqui e o desvio padrao da NORMA da
-        #      crominancia, sqrt(cr^2+cg^2+cb^2), um escalar por pixel. La e o
-        #      desvio padrao das TRES COMPONENTES empilhadas num array de 3N.
-        #      Sao estatisticas diferentes do mesmo conjunto: os valores nao sao
-        #      comparaveis, e comparados dariam divergencia sem causa legivel.
-        #      O que E comparavel e a afirmacao do produto -- "nao cresce mais
-        #      que 2%" -- entao os dois lados sao afirmados contra o limite e
-        #      nao um contra o outro, como ja e feito com colourFidelity.
-        #      (E nao vem do analysePlane de nenhum dos dois lados: as duas somas
-        #      sao exatas sobre os pixels protegidos. O que sai do histograma e a
-        #      MEDIANA e o MADN que definem QUAIS pixels estao no conjunto.)
+        # Nenhuma delas era divergencia de PRECISAO, e e por isso que nenhuma
+        # seria resolvida por tolerancia: alimentar uma formula com as entradas
+        # da outra so separa entrada de metodo quando as duas medem A MESMA
+        # GRANDEZA. Quando nao medem, o diagnostico nao se aplica. Ver o NOTAS.
         #
-        #   2. Ordem do estouro. Aqui: subfluxo primeiro (levanta os tres e
-        #      reescala para PRESERVAR Y), depois transbordo (divide os tres).
-        #      La: transbordo primeiro, depois um levantamento que NAO preserva
-        #      Y, e um np.clip por canal no fim. Nos tres fixtures que existem
-        #      hoje `pixelsLifted` e 0 nos dois lados, entao esta discordancia
-        #      nao aparece como divergencia -- ela e NAO EXERCITADA, que nao e a
-        #      mesma coisa que concordancia. Registrada aqui para nao ser lida
-        #      como acordo.
+        # O QUE MUDA NO COMPARADOR AGORA QUE ELAS FECHARAM:
         #
-        #   3. saturationByLuminance.before/after. Aqui a saturacao HSV e
-        #      (max-min)/max sempre que max > 0. La ela e zerada quando
-        #      max <= 0.03. Nas faixas baixas isso muda a media, e nao por
-        #      precisao.
+        #   - os dois sigmas de croma voltam a ser COMPARADOS numero a numero,
+        #     nao reportados sem veredito. Se alguem reverter a estatistica de um
+        #     dos lados, a linha reprova em vez de continuar dizendo `N/A`.
+        #   - os dois lados continuam AFIRMADOS contra os limites do produto
+        #     (croma <= 2%, matiz <= 1e-6), porque zero contra zero nao prova
+        #     nada -- e o que sai quando a etapa nao faz nada. A afirmacao contra
+        #     o limite e o que resta de conteudo, e ela vale acordadas ou nao.
+        #   - a linha do subfluxo FICA. As duas ordens agora concordam, mas
+        #     `pixelsLifted` continua 0 nos dois lados em todo fixture, entao a
+        #     concordancia e por construcao e nao por medicao. Zero contra zero
+        #     nao e acordo; e ausencia de caso, e a linha existe para dizer isso
+        #     em voz alta em vez de deixar o silencio parecer cobertura.
+        #
+        # `luminanceSpan` e o span do segundo histograma do analysePlane, que e a
+        # RESOLUCAO do MADN. Comparado quando a referencia o emite: e o unico
+        # numero deste bloco que mede o instrumento em vez da etapa, e ele e a
+        # entrada da cota do proprio `mascara.ruido`.
         $sa = $rf2.saturacao
         $satRec = $recs2 | Where-Object { $_.id -eq 'saturation' } | Select-Object -First 1
         if ($null -eq $sa) {
@@ -856,8 +856,18 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 $dBg = [math]::Abs([double]$mk.background - [double]$rk.background)
                 $rows += Compare-Value $name 'saturacao' 'mascara.fundo' `
                          $mk.background $rk.background 'unit' 0 0
+
+                # O span do segundo histograma: 3*(q3-q1) da luminancia. E o
+                # unico numero deste bloco que mede o INSTRUMENTO e nao a etapa,
+                # e e a entrada da cota da linha seguinte -- uma cota derivada de
+                # um numero que nunca foi conferido seria cota escolhida com
+                # outro nome.
                 $lumSpan = 0.0
                 if ($null -ne $mk.luminanceSpan) { $lumSpan = [double]$mk.luminanceSpan }
+                if ($null -ne $mk.luminanceSpan -and $null -ne $rk.luminanceSpan) {
+                    $rows += Compare-Value $name 'saturacao' 'mascara.span' `
+                             $mk.luminanceSpan $rk.luminanceSpan 'unit' 0 0
+                }
                 $rows += Compare-Value $name 'saturacao' 'mascara.ruido' `
                          $mk.noiseSigma $rk.noiseSigma 'mad' $lumSpan 0 $dBg
                 $dSig = [math]::Abs([double]$mk.noiseSigma - [double]$rk.noiseSigma)
@@ -956,13 +966,21 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                             $rows += $r0
                         }
                     }
-                    # O caminho do subfluxo tem contagem zero nos dois lados em
-                    # todos os fixtures de hoje. Dito em voz alta, porque zero
-                    # igual a zero le como acordo e aqui e ausencia de caso --
-                    # a mesma classe dos quatro zeros do rejected-edge.
+                    # ZERO CONTRA ZERO NAO E ACORDO.
+                    #
+                    # As duas implementacoes seguem hoje a MESMA ordem -- subfluxo
+                    # primeiro preservando Y, transbordo depois. Isso e acordo de
+                    # projeto, nao de medicao: `pixelsLifted` e 0 nos dois lados
+                    # em todo fixture que roda a etapa, entao o caminho nunca
+                    # executou de nenhum dos lados.
+                    #
+                    # Uma linha `0 | 0 | PASS` diria "conferimos e batem". O que
+                    # aconteceu foi "nao ha o que conferir". A linha existe para
+                    # que o comparador nao minta por silencio -- mesma classe dos
+                    # quatro zeros do `rejected-edge`.
                     if ([int]$ov.pixelsLifted -eq 0 -and [int]$rov.pixelsLifted -eq 0) {
                         $rows += New-Row $name 'saturacao' 'estouro.subfluxo' '0' '0' 'N/A' `
-                                 'nenhum pixel abaixo de zero: o caminho onde as duas implementacoes discordam de ORDEM nao foi exercitado'
+                                 'nenhum pixel abaixo de zero em nenhum dos dois lados: o caminho do subfluxo nao foi exercitado, e concordar sem executar nao e concordar'
                     }
                 }
 
@@ -990,9 +1008,18 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                     $rows += $r0
                 }
 
-                # Ruido de croma: afirmacao contra o limite dos dois lados, e os
-                # dois sigmas reportados sem veredito. Ver a nota 1 no topo
-                # deste bloco -- sao estatisticas diferentes do mesmo conjunto.
+                # Ruido de croma. Duas coisas diferentes, e as duas ficam:
+                #
+                #   AFIRMACAO  cada lado contra o limite do produto (<= 2%). E o
+                #              que resta de conteudo quando os dois valores sao
+                #              ~zero, que e o resultado certo E tambem o que sai
+                #              quando a etapa nao faz nada.
+                #   COMPARACAO os dois sigmas, numero a numero. Eram estatisticas
+                #              diferentes -- norma contra componentes empilhadas
+                #              -- e a referencia alinhou. Comparados agora para
+                #              que uma reversao reprove em vez de continuar
+                #              saindo como `N/A`, que e como a divergencia
+                #              original passou despercebida.
                 $cn = $satRec.chromaNoise; $rcn = $sa.chromaNoise
                 if ($cn -and $rcn) {
                     $limPct = 2.0
@@ -1004,9 +1031,15 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                                  $(if ($ok) { 'PASS' } else { 'FAIL' }) `
                                  $(if ($ok) { 'a mascara protege o fundo' } else { 'a mascara nao esta protegendo o ceu' })
                     }
-                    $rows += New-Row $name 'saturacao' 'croma.sigma' `
-                             ('{0:G6}' -f [double]$cn.sigmaBefore) ('{0:G6}' -f [double]$rcn.sigmaBefore) 'N/A' `
-                             'desvio da NORMA aqui, das tres componentes empilhadas la: grandezas diferentes'
+                    # Os dois sigmas, numero a numero. O conjunto e o mesmo --
+                    # os pixels que a mascara deixa em k = 1 -- e as duas somas
+                    # sao exatas sobre ele, entao a discordancia que sobra vem de
+                    # QUAIS pixels entram, que e a mediana e o MADN do
+                    # histograma. E o mesmo caminho que move o clipLow.
+                    foreach ($par in @(@('sigmaAntes', $cn.sigmaBefore, $rcn.sigmaBefore),
+                                       @('sigmaDepois', $cn.sigmaAfter, $rcn.sigmaAfter))) {
+                        $rows += Compare-Value $name 'saturacao' ("croma.$($par[0])") $par[1] $par[2] 'unit' 0 0
+                    }
                 }
 
                 # A tabela por faixa de luminancia -- a metrica do produto, a
@@ -1035,11 +1068,7 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                             foreach ($w in @('before', 'after')) {
                                 $mv = $bl[$bi].$w; $rv = $rbl[$bi].$w
                                 if ($null -eq $mv -or $null -eq $rv) { continue }
-                                $r1 = Compare-Value $name 'saturacao' "$tag.$w" $mv $rv 'unit' 0 0
-                                if ($r1.resultado -eq 'FAIL' -and $lo -lt 0.10) {
-                                    $r1.detalhe = $r1.detalhe + ' - a referencia zera a saturacao abaixo de max=0.03; aqui nao'
-                                }
-                                $rows += $r1
+                                $rows += Compare-Value $name 'saturacao' "$tag.$w" $mv $rv 'unit' 0 0
                             }
                         }
                     }

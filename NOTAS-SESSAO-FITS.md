@@ -1113,6 +1113,67 @@ ninguém sabe qual. O comparador afirma essa independência explicitamente — s
 dia as duas passarem a pegar as mesmas falhas, `test/compare-safeguards.ps1`
 reprova e diz qual sobrou.
 
+## Classe: divergência de precisão e divergência de definição
+
+**Duas implementações podem discordar por dois motivos que não têm nada em
+comum, e o diagnóstico de um não funciona no outro.**
+
+| | divergência de **precisão** | divergência de **definição** |
+|---|---|---|
+| as duas medem | a mesma grandeza, por caminhos diferentes | **grandezas diferentes** |
+| exemplo | mediana do histograma de 65536 bins contra mediana exata | desvio da norma contra desvio das componentes empilhadas |
+| como aparece | diferença pequena, com tamanho previsível | diferença de tamanho arbitrário, sem causa legível |
+| o que resolve | tolerância derivada do instrumento | **nada** — uma das duas definições tem que mudar |
+
+Isto importa porque este projeto já gravou uma técnica boa: *alimentar uma
+fórmula com as entradas da outra separa "fórmula diferente" de "entrada
+diferente"*. Ela funcionou no `shadows`, no `midtones` e no ganho azul.
+
+**Ela só funciona quando as duas medem a mesma grandeza.** Alimentada com
+entradas iguais, uma definição diferente devolve um número diferente — e o
+diagnóstico conclui "fórmula diferente", que é verdade e é inútil, porque não
+diz *qual* das duas está descrevendo a coisa errada. Pior: alargar a tolerância
+até caber faz a divergência sumir e a discordância continuar.
+
+**O que separa os dois casos é ler a outra implementação antes de comparar** —
+uma leitura em vez de uma rodada. No Módulo 4 isso achou três divergências de
+definição antes de qualquer número chegar: ver "Ler a outra implementação antes dos números chegarem", abaixo.
+
+**E onde as grandezas diferem de propósito e vão continuar diferindo, a saída é
+afirmar os dois lados contra o limite que o produto promete** — croma ≤ 2%,
+matiz ≤ 1e-6 — e não um contra o outro. A afirmação contra o limite é o que
+resta de conteúdo quando a comparação direta não significa nada, e é o mesmo
+padrão que o `colourFidelity` do Módulo 3 já usava.
+
+## Classe: zero contra zero não é acordo
+
+**Uma linha `0 | 0 | PASS` diz "conferimos e batem". Às vezes o que aconteceu
+foi "não há o que conferir", e as duas são indistinguíveis na saída.**
+
+O caso: as duas implementações da saturação tratam o subfluxo — o pixel que
+cairia abaixo de zero — e discordavam de ordem. A referência corrigiu e agora
+as duas seguem a mesma ordem. Mas `pixelsLifted` é **0 nos dois lados em todo
+fixture que roda a etapa**, então o caminho nunca executou de nenhum dos dois.
+A concordância é de projeto, não de medição.
+
+Sem uma linha dizendo isso, o comparador **mente por silêncio**: ele produz uma
+linha verde que um leitor entende como cobertura, e a cobertura não existe. É a
+mesma classe dos quatro zeros do `rejected-edge` e da salvaguarda que nunca
+disparou — com a diferença de que aqui o zero está do lado de fora, na saída do
+teste, onde ele parece um resultado.
+
+**A regra:** quando os dois lados dão zero numa contagem, o comparador tem que
+decidir entre duas frases e escrever a certa:
+
+- *"os dois contaram e deu zero"* — o caso existe e ninguém caiu nele: é
+  medição, e a linha é PASS.
+- *"o caminho não foi exercitado"* — não há caso: a linha é **N/A com o motivo
+  escrito**, nunca PASS.
+
+Distinguir as duas custa uma condição no comparador. Não distinguir custa a
+confiança em todas as outras linhas verdes, porque o leitor deixa de saber
+quais delas são medição.
+
 ## Ler a outra implementação antes dos números chegarem
 
 A referência do Módulo 4 chegou antes dos dois fixtures que ela precisa para
@@ -1120,30 +1181,30 @@ rodar. Em vez de esperar, li o `saturate()` linha a linha contra o
 `saturation.js` — e saíram **três diferenças de definição**, nenhuma delas de
 precisão:
 
-| | aqui | na referência |
+| | aqui | na referência (antes da correção) |
 |---|---|---|
 | `chromaNoise.sigma*` | desvio padrão da **norma** `√(cr²+cg²+cb²)`, um escalar por pixel | desvio padrão das **três componentes empilhadas** num array de 3N |
 | ordem do estouro | subfluxo primeiro, levantando os três e **reescalando para preservar Y**; depois o transbordo | transbordo primeiro; depois um levantamento que **não** preserva Y, e um `clip` por canal no fim |
 | saturação HSV da tabela | `(max−min)/max` sempre que `max > 0` | zerada quando `max ≤ 0,03` |
 
 Nenhuma delas apareceria como "divergência" legível. A primeira daria dois
-números diferentes sem causa visível; a terceira reprovaria só nas faixas
+números diferentes sem causa visível. A terceira reprovaria só nas faixas
 baixas, que é onde se procuraria erro de esticamento antes de erro de
-definição. A segunda é pior: **`pixelsLifted` é 0 nos dois lados em todo
-fixture que roda a etapa hoje**, então o caminho onde as duas discordam nunca
-executa. Zero igual a zero lê como acordo e é ausência de caso — a mesma classe
-dos quatro zeros do `rejected-edge`, e ela agora tem uma linha própria no
-comparador dizendo isso em voz alta.
+definição — e o piso caía justamente na faixa escura, que é **onde a salvaguarda
+de ruído mora**. A segunda não apareceria de jeito nenhum, porque o caminho não
+é exercitado: ver "Classe: zero contra zero não é acordo", acima.
 
-**A regra:** *alimentar uma fórmula com as entradas da outra* separa "fórmula
-diferente" de "entrada diferente" — mas só quando as duas medem a **mesma
-grandeza**. Quando não medem, a técnica não se aplica e nenhuma tolerância
-conserta. Ler a outra implementação antes de comparar é o que separa os dois
-casos, e custa uma leitura em vez de uma rodada.
+As três foram fechadas na referência. **O registro fica porque o custo evitado
+não foi o conserto — foi as três rodadas que teriam sido gastas procurando erro
+de precisão onde não havia nenhum.** A classe está em
+"Classe: divergência de precisão e divergência de definição", acima.
 
-Consequência para o comparador: onde as grandezas diferem, os dois lados são
-**afirmados contra o limite que o produto promete** (croma ≤ 2%, matiz ≤ 1e-6)
-e não um contra o outro — o mesmo padrão do `colourFidelity` do Módulo 3.
+Detalhe que vale por si: a expectativa declarada antes da leitura era *"o sigma
+de croma vai divergir porque o meu é exato e o seu sai do `analysePlane`"*.
+Estava errada no mecanismo — **as duas somas são exatas sobre os pixels
+protegidos**. O que sai do histograma é a mediana e o MADN que decidem *quais*
+pixels entram no conjunto. A previsão certa pelo motivo errado teria fechado a
+investigação no lugar errado.
 
 ## Comparador exercitado com referência sintética antes da real
 
@@ -1153,14 +1214,18 @@ condições é a mesma coisa que uma salvaguarda que nunca disparou.
 
 Ensaio: goldens descartáveis (`-Golden`, que existe para isto), um record de
 saturação real injetado no `colour-fixture`, e um bloco `saturacao` na
-referência com os números **perturbados de propósito** — 3 pixels no conjunto
-da máscara, 2 na máscara cheia, 8e-6 no fundo, −5e-6 no ruído, e 4% na faixa
-mais baixa da tabela. Saíram **34 linhas**, todos os ramos passaram por dados, e
-a única FAIL foi a perturbação de 4%, com a causa certa no detalhe.
+referência com os números **perturbados de propósito**. Saíram **36 linhas**,
+todos os ramos passaram por dados, e a única FAIL foi a perturbação injetada.
+
+E o ensaio se repetiu depois que a referência corrigiu as três definições, com
+**a falha injetada mudada de lugar de propósito**: ela foi para o `croma.sigma`,
+que é exatamente a linha que deixou de ser `N/A` e passou a ser comparação.
+Reprovou em 5,56 de 4,00 bins. Uma linha que muda de veredito possível tem que
+ser vista falhando *na condição nova*, não na antiga.
 
 **A regra:** um comparador cujo primeiro dado real é também a primeira vez que
-ele roda está sendo estreado e verificado no mesmo instante, e não dá para
-saber qual dos dois falhou.
+ele roda está sendo estreado e verificado no mesmo instante, e não dá para saber
+qual dos dois falhou.
 
 ## Em aberto
 
@@ -1172,13 +1237,17 @@ salvaguardas, o `fixture-saturation.fit` e o `fixture-flatsky.fit`, o registry
 com o round-trip nos três estados, o bloco do log, e o controle permanente da
 salvaguarda de ruído no `compare-safeguards`.
 
-Falta fechar o **passo 9**. O `compare-reference` ja cobre a etapa (34 linhas
-por fixture, ensaiadas contra referencia sintetica) e o `reference_m23.py` ja
-tem a saturacao; o que falta e a referencia RODAR sobre `fixture-saturation.fit`
-e `fixture-flatsky.fit`, que sao os dois unicos fixtures com a etapa ligada.
+Falta fechar o **passo 9**. O `compare-reference` já cobre a etapa — **36 linhas
+por fixture**, ensaiadas contra referência sintética — e o `reference_m23.py` já
+tem a saturação, com as três diferenças de definição fechadas e os dois campos
+que o comparador pediu (`pixels` por faixa e `mask.luminanceSpan`). O que falta
+é a referência **rodar** sobre `fixture-saturation.fit` e `fixture-flatsky.fit`,
+que são os dois únicos fixtures com a etapa ligada, mais as curvas
+`densidadePorLimiar.saturacao.*` que trocam a cota de contagem da §7 por uma
+cota derivada.
 
-Enquanto ele não fecha, a etapa está verificada **contra si mesma** (goldens, controles negativos, teoremas) e não
-contra uma implementação independente — que é o padrão que as outras três etapas
+Enquanto ele não fecha, a etapa está verificada **contra si mesma** (goldens,
+controles negativos, teoremas) e não contra uma implementação independente — que é o padrão que as outras três etapas
 já têm. **Ligar antes disso rebaixaria o padrão de verificação da entrega**, e
 essa é a única razão pela qual ela continua desligada; não é mais falta de log.
 

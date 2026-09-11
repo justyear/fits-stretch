@@ -408,7 +408,9 @@ def saturate(planes, params=None, background=None, noise=None):
 
     if background is None or noise is None:
         background, noise = madn_exact(Y.astype(F32))
-    rec['mask'] = dict(background=background, noiseSigma=noise)
+    q1, q3 = float(np.percentile(Y, 25)), float(np.percentile(Y, 75))
+    rec['mask'] = dict(background=background, noiseSigma=noise,
+                       luminanceSpan=3.0 * (q3 - q1))
 
     k, w, roll = sat_factor(Y, background, noise, p)
     protected = w <= 0.0
@@ -424,11 +426,14 @@ def saturate(planes, params=None, background=None, noise=None):
     # Salvaguarda de ruido de croma, sobre o conjunto protegido, com o
     # MESMO k que a aplicacao usa.
     if np.count_nonzero(protected):
-        cb = np.concatenate([(R - Y)[protected], (G - Y)[protected],
-                             (B - Y)[protected]])
-        ca = np.concatenate([(Ro - Y)[protected], (Go - Y)[protected],
-                             (Bo - Y)[protected]])
-        sb, sa = float(cb.std()), float(ca.std())
+        # Desvio da NORMA da crominancia, um escalar por pixel -- nao das
+        # tres componentes empilhadas. Sao grandezas diferentes: empilhar
+        # mede dispersao por componente, a norma mede dispersao do vetor.
+        nb = np.sqrt((R - Y)[protected]**2 + (G - Y)[protected]**2
+                     + (B - Y)[protected]**2)
+        na = np.sqrt((Ro - Y)[protected]**2 + (Go - Y)[protected]**2
+                     + (Bo - Y)[protected]**2)
+        sb, sa = float(nb.std()), float(na.std())
         growth = (sa - sb) / sb if sb > 0 else 0.0
     else:
         sb = sa = 0.0
@@ -444,16 +449,26 @@ def saturate(planes, params=None, background=None, noise=None):
         return planes, dict(applied=False, skipReason=rec['motivoRecusa'], **rec)
 
     # Estouro: os TRES juntos, nunca um canal sozinho.
-    mx = np.maximum(np.maximum(Ro, Go), Bo)
-    hot = mx > 1.0
-    d = np.where(hot, mx, 1.0)
-    Ro, Go, Bo = Ro / d, Go / d, Bo / d
+    # Subfluxo PRIMEIRO, reescalando para preservar Y; transbordo depois.
+    # A ordem importa e este caminho nao e exercitado por nenhum fixture --
+    # zero contra zero nao e acordo, e o comparador diz isso.
     mn = np.minimum(np.minimum(Ro, Go), Bo)
     cold = mn < 0.0
     lift = np.where(cold, -mn, 0.0)
     Ro, Go, Bo = Ro + lift, Go + lift, Bo + lift
+    # reescala para devolver Y ao valor que tinha antes do levantamento
+    Yl = 0.2126 * Ro + 0.7152 * Go + 0.0722 * Bo
+    with np.errstate(divide='ignore', invalid='ignore'):
+        f = np.where(Yl > 1e-12, Y / Yl, 1.0)
+    Ro, Go, Bo = Ro * f, Go * f, Bo * f
+
+    mx = np.maximum(np.maximum(Ro, Go), Bo)
+    hot = mx > 1.0
+    d = np.where(hot, mx, 1.0)
+    Ro, Go, Bo = Ro / d, Go / d, Bo / d
     rec['overflow'] = dict(pixelsRescaled=int(np.count_nonzero(hot)),
-                           pixelsLifted=int(np.count_nonzero(cold)))
+                           pixelsLifted=int(np.count_nonzero(cold)),
+                           pixelsUnderflow=int(np.count_nonzero(cold)))
 
     h0, ok0 = _hue_hsv(R, G, B)
     h1, ok1 = _hue_hsv(Ro, Go, Bo)
@@ -467,9 +482,12 @@ def saturate(planes, params=None, background=None, noise=None):
         rec['hueFidelity'] = dict(maxHueDrift=0.0, driftSamples=0)
 
     def satur(r, g, b):
+        # (max-min)/max sempre que max > 0. Sem piso em 0,03: o piso era
+        # meu e zerava a faixa escura inteira, que e onde a salvaguarda de
+        # ruido vive.
         M = np.maximum(np.maximum(r, g), b)
         mm = np.minimum(np.minimum(r, g), b)
-        return np.where(M > 0.03, (M - mm) / np.maximum(M, 1e-9), 0.0)
+        return np.where(M > 0.0, (M - mm) / np.maximum(M, 1e-12), 0.0)
 
     tab = []
     s0, s1 = satur(R, G, B), satur(Ro, Go, Bo)
@@ -477,7 +495,7 @@ def saturate(planes, params=None, background=None, noise=None):
                    (0.35, 0.55), (0.55, 0.80), (0.80, 1.01)]:
         sel = (Y >= lo) & (Y < hi)
         n = int(np.count_nonzero(sel))
-        tab.append(dict(range=[lo, hi], pct=100.0 * float(np.mean(sel)),
+        tab.append(dict(range=[lo, hi], pixels=n, pct=100.0 * float(np.mean(sel)),
                         before=float(s0[sel].mean()) if n else 0.0,
                         after=float(s1[sel].mean()) if n else 0.0))
     rec['saturationByLuminance'] = tab
