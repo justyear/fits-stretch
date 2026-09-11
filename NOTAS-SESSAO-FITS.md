@@ -1324,6 +1324,35 @@ que passa**, não depois. Se a curva real tivesse dado menos que o mínimo, aque
 3% seriam achado e não folga — e quem lesse "fechou no ensaio" sem a ressalva
 teria concluído o contrário.
 
+
+## Um número entregue e não usado é pior que um faltando
+
+Corolário da mesma família, e ele mordeu nesta rodada.
+
+A outra ponta acrescentou o ponto **6,8e-5** à tabela de densidades — exatamente
+o Δ que este lado calcula — para que a cota saísse de leitura direta em vez de
+interpolação. Boa ideia, entregue, e **não usada**: o Δ medido é `db + dsigma` =
+**6,83e-5**, um fio acima do ponto tabelado, e o leitor de curva sobe para o
+ponto seguinte porque nunca extrapola uma cota para baixo. A cota aplicada foi a
+de 1e-4 — **2.679 pixels contra os 1.826 que o ponto novo daria**, 47% mais
+frouxa.
+
+Nenhum veredito mudou (38 bins contra 270 de cota), e é justamente por isso que
+valia dizer. **Quem entregou o número acha que está coberto.** Ele calculou a
+folga contra 1.826; a folga real foi contra 2.679. Se um dia a divergência
+crescer até algo entre os dois, os dois lados discordam sobre se deveria passar,
+e ninguém sabe por quê — porque a discrepância está numa leitura de tabela que
+nunca apareceu em lugar nenhum.
+
+**A regra:** quando a outra ponta entrega algo sob medida para o seu uso,
+**verifique que foi usado e diga qual valor entrou de verdade** — não que o
+resultado passou. Um campo ignorado em silêncio é indistinguível de um campo
+ausente na saída, e pior na cabeça de quem o mandou.
+
+É o mesmo formato da ressalva do ensaio com densidade invertida: *dizer no
+momento em que passa*. Um número que não muda veredito é o mais fácil de não
+mencionar, e o mais caro de descobrir depois.
+
 ## Em aberto
 
 
