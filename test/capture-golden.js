@@ -94,7 +94,13 @@ window.__GOLDEN = [
   // O flatsky nao tem objeto nenhum -- todo pixel abaixo do limiar de SNR --
   // e existe para que a etapa tenha um quadro onde o certo e nao tocar em nada.
   ['saturation-fixture', '/f/test/fixtures/fixture-saturation.fit', { saturation: true }],
-  ['flatsky-fixture',    '/f/test/fixtures/fixture-flatsky.fit',    { saturation: true }]
+  ['flatsky-fixture',    '/f/test/fixtures/fixture-flatsky.fit',    { saturation: true }],
+  // Modulo 5a passo 4. Os dois casos que fazem as salvaguardas do recorte
+  // recusarem, e os dois com LARGURA IMPAR (1601) -- que e o que exercita o
+  // descarte de coluna da meia escala, deixado sem caso pelo passo 1.
+  ['twoobjects-fixture', '/f/test/fixtures/fixture-twoobjects.fit'],
+  ['bigobject-fixture',  '/f/test/fixtures/fixture-bigobject.fit'],
+  ['oneobject-fixture',  '/f/test/fixtures/fixture-oneobject.fit']
 ];
 
 /* ------------------------------------------------------------------ *

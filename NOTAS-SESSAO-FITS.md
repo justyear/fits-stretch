@@ -1500,6 +1500,14 @@ lacuna de 0,20 de largura **sem nenhuma observação**.
 Nove pontos em dois aglomerados não são uma curva. São dois pontos com
 testemunhas.
 
+**E o argumento é a alavanca, não o r².** Um r² de 0,957 sobre nove pontos
+parece decisivo e não é: o que decide é *onde os pontos estão*. Dois aglomerados
+separados por um vão — oito juntos, um longe — produzem qualquer r² que se
+queira, e a reta passa a ser definida pelo ponto solitário. **Guarde a tabela:
+ela é o caso concreto que ensina a olhar a distribuição antes do coeficiente.**
+As duas perguntas que a desmontam, nesta ordem: *tire o ponto extremo, o que
+sobra?* e *o limiar cai onde há observação?*
+
 ### E a derivação certa era não precisar da curva
 
 O critério tinha sido definido como *"a brancura que produz razão 1,8"*. Mas **a
@@ -1515,6 +1523,12 @@ critério.
 relação, primeiro pergunte se a grandeza final já está sendo medida. Se estiver,
 o intermediário é sempre pior: ele só pode adicionar erro de ajuste a um número
 que já se tem.
+
+**A forma operacional, em uma pergunta:** *antes de derivar um limiar por uma
+relação, a grandeza final já está medida?* Se está, o proxy só piora — ele não
+pode adicionar informação a um número que já se tem, e pode adicionar erro. Se
+não está, aí sim vale ajustar, e aí vale também exigir que os dados sustentem o
+ajuste.
 
 ## Dizer a verdade num texto que ninguém lê não é o mesmo que não prometer
 
@@ -1540,6 +1554,78 @@ tem como saber que o que aconteceu foi a ferramenta se recusando a prometer.
 E isto **mede o quadro, não o formato**. Não é exceção por nome: um FITS já
 demosaicado por outro programa chega como três planos, sem `BAYERPAT`, e dispara
 igual — porque o que se mede é a correlação entre vizinhos e não o cabeçalho.
+
+## Classe: salvaguarda vazia por construção ≠ salvaguarda sem caso ainda
+
+**As duas se parecem na saída — nenhuma dispara — e a diferença decide se são
+dívida ou trabalho fechado.**
+
+| | o estado existe? | o que falta | veredito |
+|---|---|---|---|
+| **sem caso ainda** | sim | um fixture que o produza | **dívida**: alguém tem que escrever o caso |
+| **vazia por construção** | não | nada | **fechado**: não reimplementar |
+
+O caso: a §3.1 do Módulo 5a pede *"objeto já ocupando mais que `cropMaxCoverage`
+→ não sugere; não há o que recortar"*. Implementada, e depois **removida**.
+
+**Um objeto que cobre mais de ~70% do quadro É o fundo**, pela definição da etapa
+que roda antes: o modelo de placa fina ajusta a mancha suave que domina o quadro
+e a subtrai. Medido no `fixture-bigobject`, construído de propósito com 72,9% de
+cobertura:
+
+```
+bigobject   sinal  16.915 px   extenso    115 px   p75 0,1062
+oneobject   sinal 571.279 px   extenso 557.356 px  p75 0,2396
+```
+
+O objeto **não chega**. Não existe estado da cadeia em que a salvaguarda tenha o
+que julgar, e fabricar um exigiria desligar a extração de fundo — testando um
+caminho que a ferramenta real nunca percorre. Um fixture assim verificaria uma
+ficção.
+
+**Por que remover e não deixar dormindo:** um parâmetro que não governa nada e um
+`if` que nunca é verdadeiro **aparentam vigiar algo**. Quem ler o código daqui a
+seis meses conta três salvaguardas e confia em três. O record carrega
+`coverageGuard` com o número medido e o motivo, no lugar dela — a pergunta foi
+feita, medida e respondida, e isso é mais informação do que o `if` dava.
+
+**Por que não apagar a pergunta junto:** tirar a salvaguarda sem registro perderia
+o fato de que ela foi considerada. Daqui a seis meses alguém relê a spec, vê o
+buraco, e reimplementa. **O registro é o que fecha.**
+
+**A regra:** quando uma salvaguarda não dispara, decida qual das duas ela é
+**antes** de escrever um fixture. A pergunta que separa: *o estado que ela
+vigia pode ser produzido pela cadeia real, sem desligar nada?* Se não pode, o
+trabalho não é um fixture — é uma linha no record e um parágrafo na spec.
+
+## Classe: uma spec que descreve caminho novo tem que nomear o fixture dele
+
+**Se nenhum fixture existente exercita o caminho, o fixture faz parte da spec, e
+não do trabalho de implementá-la.**
+
+O caso: a §4 do Módulo 5a lista os fixtures e diz *"o `gradient` tem um objeto só
+e sugere"*. Medido, depois de implementar: o maior componente do `gradient` cobre
+**8,6%** do quadro, e o maior dos nove fixtures antigos é o `saturation` com
+**19,4%** — logo abaixo do piso de 20%.
+
+**Nenhum dos nove chega a sugerir.** O caminho que a spec inteira existe para
+descrever não tinha caso nenhum, e só apareceu porque o passo 3 foi rodado contra
+todos eles e a coluna `sug=` saiu `não` nove vezes.
+
+O que isso teria custado se não tivesse aparecido: o retângulo, o botão e o
+round-trip do passo 5 seriam escritos e entregues **sem que ninguém tivesse visto
+uma sugestão acontecer** — a mesma classe da salvaguarda que nunca disparou, com
+o agravante de estar no caminho principal e não no de exceção.
+
+Custou um fixture (`fixture-oneobject.fit`, 37,1%) e uma linha no gerador, porque
+o gerador do caso de dois objetos já existia. Teria custado o mesmo se estivesse
+na spec desde o início — a diferença é que teria sido escrito antes e não
+descoberto depois.
+
+**A regra:** ao escrever a spec de um caminho novo, a seção de fixtures nomeia
+**qual fixture o exercita** e, se a resposta for "nenhum", esse fixture é item da
+spec. *"Os fixtures existentes cobrem o resto"* é uma afirmação sobre números que
+ninguém mediu — e neste caso ela estava errada por 0,6 ponto percentual.
 
 ## Em aberto
 

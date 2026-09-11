@@ -137,7 +137,7 @@ params: {
   cropDensity: 0.50,
   cropMargin: 0.08,      // folga em volta do retangulo, fração do lado maior
   cropMinFrame: 0.20,    // nunca sugere recorte menor que isto do quadro
-  cropMaxCoverage: 0.70, // se o objeto já ocupa mais que isto, não sugere
+  // cropMaxCoverage SAIU -- ver a nota abaixo
 }
 ```
 
@@ -152,8 +152,28 @@ params: {
 
 - componente conexo menor que `cropMinFrame` do quadro → não sugere; um alvo
   pequeno demais provavelmente é uma estrela grande ou um artefato
-- objeto já ocupando mais que `cropMaxCoverage` → não sugere; não há o que
-  recortar
+- ~~objeto já ocupando mais que `cropMaxCoverage`~~
+  > **REMOVIDA, e não é dívida.** Esta salvaguarda foi implementada e depois
+  > retirada, porque medida ela **não pode disparar** — e o motivo não é falta
+  > de fixture. Um objeto que cobre mais de ~70% do quadro **é o fundo**, pela
+  > definição da etapa que roda antes: o modelo de placa fina ajusta a mancha
+  > suave que domina o quadro e a subtrai. Medido no `fixture-bigobject`,
+  > construído de propósito com 72,9% de cobertura: **16.915 px de sinal e 115
+  > px de extenso**, contra 571.279 e 557.356 no `fixture-oneobject`.
+  >
+  > Não existe estado da cadeia em que ela tenha o que julgar, e fabricar um
+  > exigiria desligar a extração de fundo — testando um caminho que a ferramenta
+  > real nunca percorre.
+  >
+  > | | o estado existe? | veredito |
+  > |---|---|---|
+  > | salvaguarda **sem caso ainda** | sim, falta fixture | **dívida** |
+  > | salvaguarda **vazia por construção** | não existe | **fechado** |
+  >
+  > Esta é a segunda. O registro fica para que ninguém a reimplemente daqui a
+  > seis meses achando que encontrou um buraco: a pergunta foi feita, medida e
+  > respondida. O record carrega `coverageGuard` com o número e o motivo —
+  > **nunca uma salvaguarda que aparenta vigiar algo.**
 - mais de um componente acima de `cropMinFrame` → **não sugere**, e diz por quê.
   Dois objetos no quadro (M 31 e M 110, Coração e Alma) são um enquadramento
   deliberado, e escolher um deles é decidir pela pessoa qual ela queria.

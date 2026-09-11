@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -397,6 +397,101 @@ public static class FitsFixture
         // noise is independent per channel, which is what gives the sky a
         // COLOUR to be amplified — a frame with only common-mode noise would
         // make the chroma-noise safeguard untestable by construction.
+        var rnd = new Lcg(seed);
+        for (int i = 0; i < N; i++)
+        {
+            double common = rnd.Gauss() * noiseSigma;
+            for (int c = 0; c < 3; c++)
+            {
+                double v = img[c * N + i] + common + rnd.Gauss() * chromaNoiseSigma;
+                if (v < 0) v = 0; else if (v > 1) v = 1;
+                img[c * N + i] = (float)v;
+            }
+        }
+        return img;
+    }
+
+    /* ------------------------------------------------------------------
+     * CropScene — objetos extensos com borda NITIDA e geometria conhecida
+     *
+     * O recorte sugerido acha o maior componente conexo da mascara de extenso e
+     * devolve o retangulo envolvente. Para que isso possa ser conferido contra
+     * verdade externa, o objeto precisa de uma BORDA DEFINIDA: uma gaussiana cai
+     * suavemente e o limiar de sinal corta num raio que depende do brilho de
+     * pico, entao o retangulo medido nao teria com o que ser comparado.
+     *
+     * O perfil aqui e logistico na elipse:
+     *
+     *     f = 1 / (1 + exp((r - 1) * EDGE))     com r = sqrt((dx/rx)^2 + (dy/ry)^2)
+     *
+     * Topo quase plano, transicao de ~0,15 de raio, e a borda cai EM r = 1 --
+     * ou seja, na propria elipse cujos semi-eixos vao escritos no HISTORY. O
+     * retangulo esperado e o bbox da elipse, e ele nao saiu de nenhuma das duas
+     * implementacoes.
+     *
+     * `nObjects` escolhe o caso:
+     *   2 -> dois objetos separados, ambos acima de cropMinFrame. A salvaguarda
+     *        que mais importa: dois objetos sao enquadramento deliberado, e
+     *        escolher um e decidir pela pessoa qual ela queria.
+     *   1 -> um objeto enorme, acima de cropMaxCoverage. Nao ha o que recortar.
+     *
+     * As estrelas existem para provar que o filtro de extenso as descarta: uma
+     * estrela e pequena e mora numa vizinhanca vazia, um objeto extenso mora
+     * dentro do proprio corpo.
+     * ---------------------------------------------------------------- */
+    const double CROP_EDGE = 14.0;
+
+    public static float[] CropScene(
+        int W, int H, ulong seed,
+        double[] skyLevel,          // R, G, B floor
+        double noiseSigma,
+        double chromaNoiseSigma,
+        double[] objGeom,           // cx,cy,rx,ry por objeto, achatado
+        double[] objPeak,           // pico acima do ceu, por objeto
+        double[] objHue,            // voltas, por objeto
+        int nObjects,
+        int nStars)
+    {
+        int N = W * H;
+        var img = new float[N * 3];
+        var rgb = new double[3];
+
+        for (int c = 0; c < 3; c++)
+            for (int i = 0; i < N; i++)
+                img[c * N + i] = (float)skyLevel[c];
+
+        for (int ob = 0; ob < nObjects; ob++)
+        {
+            double cx = objGeom[ob * 4 + 0], cy = objGeom[ob * 4 + 1];
+            double rx = objGeom[ob * 4 + 2], ry = objGeom[ob * 4 + 3];
+            HueToRgb(objHue[ob], 0.45, 1.0, rgb);
+
+            int x0 = Math.Max(0, (int)(cx - 1.6 * rx)), x1 = Math.Min(W - 1, (int)(cx + 1.6 * rx));
+            int y0 = Math.Max(0, (int)(cy - 1.6 * ry)), y1 = Math.Min(H - 1, (int)(cy + 1.6 * ry));
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    double dx = (x - cx) / rx, dy = (y - cy) / ry;
+                    double r = Math.Sqrt(dx * dx + dy * dy);
+                    double f = 1.0 / (1.0 + Math.Exp((r - 1.0) * CROP_EDGE));
+                    if (f < 1e-4) continue;
+                    double amp = objPeak[ob] * f;
+                    for (int c = 0; c < 3; c++) img[c * N + y * W + x] += (float)(amp * rgb[c]);
+                }
+        }
+
+        // Estrelas em posicoes deterministicas, espalhadas fora dos objetos na
+        // medida do possivel. Pequenas de proposito: se alguma passasse pelo
+        // filtro de extenso, ela viraria um componente e a contagem mentiria.
+        var rs = new Lcg(seed ^ 0x5EEDu);
+        for (int s = 0; s < nStars; s++)
+        {
+            double sx = rs.Next() * (W - 20) + 10;
+            double sy = rs.Next() * (H - 20) + 10;
+            double amp = 0.04 + rs.Next() * 0.30;
+            AddStar(img, W, H, sx, sy, 1.3 + rs.Next() * 0.7, amp, amp * 0.97, amp * 0.93);
+        }
+
         var rnd = new Lcg(seed);
         for (int i = 0; i < N; i++)
         {
@@ -1339,6 +1434,114 @@ if ($Only -eq 'all' -or $Only -eq 'saturation') {
         Write-Fits (Join-Path $outDir $case[0]) $cards `
                    ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
     }
+}
+
+# ---------------------------------------------------------------------------
+# Modulo 5a: os dois casos que fazem as salvaguardas do recorte recusarem.
+#
+# 1601 x 1200 -- LARGURA IMPAR, de proposito. O passo 1 deixou o caminho de
+# `droppedColumn` escrito e nao exercitado: nenhum dos nove fixtures tem lado
+# impar, entao os dois lados davam `false` e zero contra zero nao e acordo. Um
+# unico numero aqui fecha isso de graca.
+#
+# A GEOMETRIA VAI NOS CARTOES e as elipses tem borda nitida em r = 1, entao o
+# retangulo esperado e o bbox da elipse escrita -- verdade externa, que nao saiu
+# de nenhuma das duas implementacoes.
+if ($Only -eq 'all' -or $Only -eq 'crop') {
+    $W = 1601; $H = 1200; $planes = 3
+    $skyLevel  = @(0.0105, 0.0120, 0.0098)
+    $noiseSig  = 0.0016
+    $chromaSig = 0.0009
+    $cropSeed  = 20260914
+
+    # Local: a Hists do bloco da saturacao nao existe com -Only crop.
+    function Hists([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    # Area do quadro 1.921.200. cropMinFrame = 0,20 -> 384.240 px de caixa.
+    # Cada objeto: 700 x 560 = 392.000, ou 20,4%. Os dois passam, e e por isso
+    # que o caso existe -- um so nao exercitaria a salvaguarda.
+    $twoGeom = @( 400.0, 560.0, 350.0, 280.0,
+                 1200.0, 640.0, 350.0, 280.0)
+    $twoPeak = @(0.075, 0.062)
+    $twoHue  = @(0.075, 0.600)
+
+    # O caso POSITIVO: um objeto so, entre cropMinFrame e cropMaxCoverage.
+    # 900 x 700 = 630.000, ou 32,8% do quadro. Sem ele o caminho que SUGERE nao
+    # tem fixture nenhum -- medido, o maior componente dos nove antigos da
+    # 19,4%, logo abaixo do piso.
+    $oneGeom = @(760.0, 600.0, 450.0, 350.0)
+    $onePeak = @(0.068)
+    $oneHue  = @(0.075)
+
+    # cropMaxCoverage = 0,70. 1400 x 1000 = 1.400.000, ou 72,9% do quadro: ja
+    # ocupa o enquadramento e nao ha o que recortar.
+    $bigGeom = @(800.0, 600.0, 700.0, 500.0)
+    $bigPeak = @(0.070)
+    $bigHue  = @(0.075)
+
+    function CropCards([string]$obj, [double[]]$geom, [int]$n, [string[]]$extra) {
+        $c = @(
+            (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+            (New-Card 'BITPIX'   -32  'IEEE single precision')
+            (New-Card 'NAXIS'    3)
+            (New-Card 'NAXIS1'   $W)
+            (New-Card 'NAXIS2'   $H)
+            (New-Card 'NAXIS3'   $planes)
+            (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+            (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+            (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+            (New-Card 'OBJECT'   $obj '' -AsString)
+            (New-Card 'EXPTIME'  '600.' 'seconds')
+            (Hists 'CROP synthetic frame for the suggested-crop step.')
+            (Hists 'CROP WIDTH IS ODD (1601) on purpose: it exercises the')
+            (Hists 'CROP droppedColumn path of the half-scale reduction, which')
+            (Hists 'CROP every other fixture leaves at false on both sides.')
+            (Hists 'CROP Objects have a SHARP edge at r = 1 of the ellipse, so')
+            (Hists 'CROP the expected bounding box is the ellipse box below and')
+            (Hists 'CROP it came from neither implementation.')
+        )
+        for ($k = 0; $k -lt $n; $k++) {
+            $cx = $geom[$k*4]; $cy = $geom[$k*4+1]; $rx = $geom[$k*4+2]; $ry = $geom[$k*4+3]
+            $c += (Hists ('OBJ{0} cx={1} cy={2} rx={3} ry={4}' -f ($k+1), $cx, $cy, $rx, $ry))
+            $c += (Hists ('OBJ{0} box x={1} y={2} w={3} h={4}' -f ($k+1),
+                          ($cx-$rx), ($cy-$ry), (2*$rx), (2*$ry)))
+        }
+        foreach ($e in $extra) { $c += (Hists $e) }
+        return ($c + @((('END'.PadRight(80)))))
+    }
+
+    Write-Host ("fixture-twoobjects.fit  ({0} x {1} x {2}, float32, TOP-DOWN, LARGURA IMPAR)" -f $W, $H, $planes)
+    $img = [FitsFixture]::CropScene($W, $H, $cropSeed, $skyLevel, $noiseSig, $chromaSig,
+                                    $twoGeom, $twoPeak, $twoHue, 2, 260)
+    $cards = CropCards 'Two objects' $twoGeom 2 @(
+        'TWO two extended objects, both above cropMinFrame. Choosing',
+        'TWO one of them decides the composition for the person, so the',
+        'TWO step must NOT suggest, and must say why.')
+    Write-Fits (Join-Path $outDir 'fixture-twoobjects.fit') $cards `
+               ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
+
+    Write-Host ("fixture-bigobject.fit   ({0} x {1} x {2}, float32, TOP-DOWN, LARGURA IMPAR)" -f $W, $H, $planes)
+    $img2 = [FitsFixture]::CropScene($W, $H, $cropSeed, $skyLevel, $noiseSig, $chromaSig,
+                                     $bigGeom, $bigPeak, $bigHue, 1, 260)
+    $cards2 = CropCards 'Big object' $bigGeom 1 @(
+        'BIG one object already covering more than cropMaxCoverage.',
+        'BIG There is nothing to crop to, so the step must NOT suggest.')
+    Write-Fits (Join-Path $outDir 'fixture-bigobject.fit') $cards2 `
+               ([FitsFixture]::FloatBytes($img2, $W, $H, $planes, $false))
+
+    Write-Host ("fixture-oneobject.fit   ({0} x {1} x {2}, float32, TOP-DOWN, LARGURA IMPAR)" -f $W, $H, $planes)
+    $img3 = [FitsFixture]::CropScene($W, $H, $cropSeed, $skyLevel, $noiseSig, $chromaSig,
+                                     $oneGeom, $onePeak, $oneHue, 1, 260)
+    $cards3 = CropCards 'One object' $oneGeom 1 @(
+        'ONE one object between cropMinFrame and cropMaxCoverage: the case',
+        'ONE where the step SUGGESTS. Without it the path that suggests has',
+        'ONE no fixture at all, and a suggestion nobody saw made is an',
+        'ONE assertion rather than a control.')
+    Write-Fits (Join-Path $outDir 'fixture-oneobject.fit') $cards3 `
+               ([FitsFixture]::FloatBytes($img3, $W, $H, $planes, $false))
 }
 
 Write-Host ''
