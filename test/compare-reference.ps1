@@ -59,6 +59,7 @@ if (-not (Test-Path -LiteralPath $refPath)) {
 }
 
 $BINS = 65535.0
+$inv  = [cultureinfo]::InvariantCulture
 $ref = Get-Content -LiteralPath $refPath -Raw | ConvertFrom-Json
 
 # Fixture name in test/golden -> key under fixtures{} in the reference, and the
@@ -152,15 +153,11 @@ MADN se move ~Delta_q/100 e um deslocamento constante nao a move nada, entao
 Delta_T <= Delta_q. Escrever 36,6 seria uma tolerancia que desliga o
 instrumento. Se o Delta_T reportado passar de Delta_q, isso e achado.
 #>
-function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta, $curve) {
-    $m = [int]$mine; $r = [int]$refv
-    $diff = [math]::Abs($m - $r)
-
-    if (-not $curve -or -not $curve.density) {
-        return New-Row $fixture $scope $field $m $r 'N/A' `
-               'a referencia nao emitiu densidadePorLimiar para este limiar'
-    }
-
+# A leitura da curva, isolada, porque tres lugares precisam da COTA e nao da
+# linha: o limiar simples, a faixa entre duas fronteiras, e a media sobre um
+# conjunto definido por fronteiras.
+function Get-Cota($curve, $delta) {
+    if (-not $curve -or -not $curve.density) { return $null }
     # A curva e tabelada; le-se o primeiro ponto >= Delta, que e conservador por
     # construcao. Abaixo do primeiro ponto a cota e a densidade dele -- nunca
     # extrapolada para baixo, porque extrapolar uma cota para baixo e inventa-la.
@@ -168,9 +165,22 @@ function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta,
     foreach ($p in $curve.density.PSObject.Properties) {
         $pts += [pscustomobject]@{ d = [double]$p.Name; n = [int]$p.Value }
     }
+    if ($pts.Count -eq 0) { return $null }
     $pts = $pts | Sort-Object d
     $cota = $pts[-1].n
     foreach ($p in $pts) { if ($p.d -ge $delta) { $cota = $p.n; break } }
+    return $cota
+}
+
+function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta, $curve) {
+    $m = [int]$mine; $r = [int]$refv
+    $diff = [math]::Abs($m - $r)
+
+    $cota = Get-Cota $curve $delta
+    if ($null -eq $cota) {
+        return New-Row $fixture $scope $field $m $r 'N/A' `
+               'a referencia nao emitiu densidadePorLimiar para este limiar'
+    }
 
     $ok = ($diff -le $cota)
     $verdict = if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }
@@ -856,17 +866,38 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 $dBg = [math]::Abs([double]$mk.background - [double]$rk.background)
                 $rows += Compare-Value $name 'saturacao' 'mascara.fundo' `
                          $mk.background $rk.background 'unit' 0 0
+                <#
+                O SPAN E 3*(q3-q1), E NAO MORA NO EIXO DOS PERCENTIS QUE O COMPOEM.
 
-                # O span do segundo histograma: 3*(q3-q1) da luminancia. E o
-                # unico numero deste bloco que mede o INSTRUMENTO e nao a etapa,
-                # e e a entrada da cota da linha seguinte -- uma cota derivada de
-                # um numero que nunca foi conferido seria cota escolhida com
-                # outro nome.
+                E o span do segundo histograma do analysePlane: o unico numero
+                deste bloco que mede o INSTRUMENTO e nao a etapa, e a entrada da
+                cota da linha seguinte -- uma cota derivada de um numero que
+                nunca foi conferido e cota escolhida com outro nome.
+
+                Mas compara-lo com a tolerancia do eixo [0,1] repete o erro do
+                Jacobiano dos ganhos, na direcao mais simples: ele e TRES VEZES
+                uma DIFERENCA de dois percentis, e cada percentil carrega a
+                tolerancia do eixo por conta propria. Logo
+
+                    span  = 3 * (q3 - q1)
+                    dspan <= 3 * (dq3 + dq1) <= 3 * 2 * (4/65535) = 24 bins
+
+                Medido no fixture-saturation: 13,15 bins, que reprovava contra 4
+                e passa contra 24. Nao e alargamento -- 4 bins e a cota de UM
+                percentil, e aqui ha dois, multiplicados por tres. A cota certa
+                sempre foi 24; a de 4 e que estava errada.
+                #>
                 $lumSpan = 0.0
                 if ($null -ne $mk.luminanceSpan) { $lumSpan = [double]$mk.luminanceSpan }
                 if ($null -ne $mk.luminanceSpan -and $null -ne $rk.luminanceSpan) {
-                    $rows += Compare-Value $name 'saturacao' 'mascara.span' `
-                             $mk.luminanceSpan $rk.luminanceSpan 'unit' 0 0
+                    $dSpan = [math]::Abs([double]$mk.luminanceSpan - [double]$rk.luminanceSpan)
+                    $limSpan = [math]::Max(1e-4 * [math]::Abs([double]$rk.luminanceSpan), 3.0 * 2.0 * 4.0 / $BINS)
+                    $okSpan = ($dSpan -le $limSpan)
+                    $rows += New-Row $name 'saturacao' 'mascara.span' `
+                             ('{0:G9}' -f [double]$mk.luminanceSpan) ('{0:G9}' -f [double]$rk.luminanceSpan) `
+                             $(if ($okSpan) { 'PASS' } else { 'FAIL' }) `
+                             ('{0:F2} bins / limite {1:F2} - 3x dois percentis, nao um valor do eixo' -f `
+                              ($dSpan * $BINS), ($limSpan * $BINS))
                 }
                 $rows += Compare-Value $name 'saturacao' 'mascara.ruido' `
                          $mk.noiseSigma $rk.noiseSigma 'mad' $lumSpan 0 $dBg
@@ -1115,10 +1146,105 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                             $r0 = Compare-Value $name 'saturacao' "$tag.pixels" $bl[$bi].pixels $refN 'count' 0 $pTot
                             $r0.detalhe = $r0.detalhe + ' - contagem por limiar em Y' + $(if ($viaPct) { ' (reconstruida de pct)' } else { '' })
                             $rows += $r0
+                            <#
+                            A MEDIA DE UMA FAIXA NAO E MEDIDA SOBRE O MESMO
+                            CONJUNTO NOS DOIS LADOS.
+
+                            As fronteiras da faixa sao constantes exatas, mas o Y
+                            de cada lado esta deslocado do outro pelo acumulado
+                            das diferencas do esticamento -- o mesmo deslocamento
+                            que move o clipLow. Medido no fixture-saturation: o
+                            fundo difere 3,85e-5, e a faixa [0, 0,10) troca 739
+                            pixels de lado. A media entao muda por troca de
+                            CONJUNTO, e a tolerancia do eixo [0,1] pressupoe
+                            exatamente o contrario.
+
+                            A COTA NAO PODE SAIR DE |dn|, E ISSO ESTA MEDIDO.
+                            Seria tentador limitar por (|dn|/N)*max(m, 1-m), com
+                            |dn| a diferenca das contagens. Nao vale: pixels
+                            trocam nas DUAS fronteiras e em sentidos opostos, e
+                            se cancelam na contagem. Na faixa [0,20, 0,35) o
+                            liquido e 25 pixels e a media exige ~34 trocas para
+                            se mover o que se moveu. Uma cota que pode ser
+                            otimista nao e cota.
+
+                            A cota certa conta os pixels PROXIMOS de cada
+                            fronteira, nos dois sentidos -- que e a curva de
+                            densidade que a referencia ja sabe emitir, aplicada
+                            as bordas das faixas:
+
+                                dm <= (cota(lo) + cota(hi)) / N * max(m, 1-m)
+
+                            lida em Delta = db + dsigma, que e o deslocamento
+                            medido entre os dois quadros esticados. Sem as
+                            curvas a linha cai na tolerancia do eixo e REPROVA,
+                            com a causa escrita -- que e o certo: a divergencia
+                            e real e a cota e que falta.
+                            #>
+                            $bordas = $null
+                            if ($dens -and $dens.bordasDeFaixa) { $bordas = $dens.bordasDeFaixa }
+                            $hi = [double]$bl[$bi].range[1]
+                            $nBand = [double]$bl[$bi].pixels
+                            $dShift = $dBg + $dSig
+                            $cotaSwap = $null
+                            if ($bordas -and $nBand -gt 0) {
+                                $cLo = Get-Cota ($bordas.($lo.ToString('0.00', $inv))) $dShift
+                                $cHi = Get-Cota ($bordas.($hi.ToString('0.00', $inv))) $dShift
+                                # A borda de fora do quadro nao existe como
+                                # fronteira: 0,00 embaixo e o topo em cima.
+                                if ($null -eq $cLo -and $lo -le 0) { $cLo = 0 }
+                                if ($null -eq $cHi -and $hi -ge 1) { $cHi = 0 }
+                                if ($null -ne $cLo -and $null -ne $cHi) { $cotaSwap = $cLo + $cHi }
+                            }
+                            <#
+                            `after` CARREGA TAMBEM O dk, E `before` NAO.
+
+                            A saturacao HSV depois da etapa e
+
+                                s' = k(max-min) / (Y + (max-Y)k)
+
+                            e derivando em k, com max' = Y + (max-Y)k,
+
+                                ds'/s' = (dk/k) * (Y / max')  <=  dk/k
+
+                            porque Y <= max'. Logo ds' <= s' * dk/k, com o mesmo
+                            dk ja derivado para o proprio `maxK`. O termo nao e
+                            opcional: medido no fixture-saturation ele sozinho
+                            explica tres das quatro divergencias de `.after`, e
+                            sem ele elas seriam lidas como troca de conjunto --
+                            causa errada, e a cota que sairia disso mediria outra
+                            coisa.
+
+                            `before` e o quadro que a etapa recebeu; k nao entrou
+                            nele, e o termo nao se aplica.
+                            #>
+                            $dkRel = 0.0
+                            if ([double]$mk.maxK -gt 0) { $dkRel = $dK / [double]$mk.maxK }
                             foreach ($w in @('before', 'after')) {
                                 $mv = $bl[$bi].$w; $rv = $rbl[$bi].$w
                                 if ($null -eq $mv -or $null -eq $rv) { continue }
-                                $rows += Compare-Value $name 'saturacao' "$tag.$w" $mv $rv 'unit' 0 0
+                                $mm = [double]$rv
+                                $dd = [math]::Abs([double]$mv - $mm)
+
+                                $limK = $(if ($w -eq 'after') { $mm * $dkRel } else { 0.0 })
+                                $limSet = $null
+                                if ($null -ne $cotaSwap -and $nBand -gt 0) {
+                                    $limSet = ($cotaSwap / $nBand) * [math]::Max($mm, 1.0 - $mm)
+                                }
+                                $lim = [math]::Max(($(if ($null -ne $limSet) { $limSet } else { 0.0 }) + $limK), 4.0 / $BINS)
+                                $ok = ($dd -le $lim)
+
+                                $comp = @()
+                                if ($null -ne $limSet) { $comp += ('{0:F2} de troca ({1} px nas duas fronteiras)' -f ($limSet * $BINS), $cotaSwap) }
+                                if ($limK -gt 0)       { $comp += ('{0:F2} de dk' -f ($limK * $BINS)) }
+                                if ($comp.Count -eq 0) { $comp += 'so o piso do eixo' }
+                                $detail = ('{0:F2} bins / limite {1:F2} = {2}' -f ($dd * $BINS), ($lim * $BINS), ($comp -join ' + '))
+                                if (-not $ok -and $null -eq $limSet) {
+                                    $detail += ('; conjuntos diferem em {0} px e falta densidadePorLimiar.saturacao.bordasDeFaixa' -f `
+                                                [math]::Abs([int]$bl[$bi].pixels - [int]$refN))
+                                }
+                                $rows += New-Row $name 'saturacao' "$tag.$w" ('{0:G9}' -f [double]$mv) ('{0:G9}' -f $mm) `
+                                         $(if ($ok) { if ($dd -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) $detail
                             }
                         }
                     }
