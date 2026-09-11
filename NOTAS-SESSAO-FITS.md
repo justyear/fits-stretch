@@ -1353,6 +1353,82 @@ ausente na saída, e pior na cabeça de quem o mandou.
 momento em que passa*. Um número que não muda veredito é o mais fácil de não
 mencionar, e o mais caro de descobrir depois.
 
+## Recuperar parâmetros de um artefato: medir, não adivinhar
+
+O `docs/before-after.png` precisava ser refeito com a saída nova, e o script que
+o gera trazia três constantes de aparência — fonte, tamanho, cor do rótulo —
+escritas de memória. **Todas as três estavam erradas**, e as três foram
+recuperadas medindo a imagem antiga. Vale registrar o *método*, porque ele se
+repete sempre que um artefato precede o script que deveria tê-lo gerado.
+
+### A família da fonte: posição de início de palavra, não largura total
+
+Largura total é uma medida só, e ela não discrimina: Segoe UI 16px dá 287 px,
+Arial 16px dá 282, Tahoma 16px dá 294. Todas "batem" com os 284 do original
+dentro de 4%, e escolher entre elas por esse número é escolher pelo ruído.
+
+**As posições onde cada palavra começa são impressão digital das larguras de
+avanço** — sete medidas ao longo de 284 px em vez de uma:
+
+| | posições de início |
+|---|---|
+| original | 31, 70, 96, 113, 133, 196, 240 |
+| **Segoe UI 16px** | **30, 71, 97, 113, 134, 198, 242** |
+| Verdana 14px | 20, 33, 41, 49, 62, 75, … |
+| Arial 16px | 19, 32, 40, 49, 62, 74, … |
+
+Seis das sete dentro de 2 px para Segoe; as outras duas erram **desde a
+primeira**. O que era empate vira decisão.
+
+**A generalização:** quando várias hipóteses batem num agregado, procure a
+medida que tem *estrutura interna* — uma sequência, um perfil, uma distribuição
+— em vez de um escalar. Um agregado tem uma chance em N de coincidir; uma
+sequência de sete, uma em N⁷.
+
+### A cor: um pixel atingindo os três canais decide
+
+O script dizia `(168, 176, 190)`. Medido, **nenhum canal da imagem antiga passa
+de 139/151/168 em lugar nenhum da faixa do rótulo**, e existe um pixel que
+atinge os três ao mesmo tempo.
+
+O argumento que fecha: texto de 13–16 px é antialiasado, então a cor observada é
+`bg + a·(fill − bg)` com `a ∈ [0,1]` a cobertura do pixel. Se o preenchimento
+fosse `(168,176,190)`, o pixel mais claro daria
+
+```
+a_R = (139−11)/157 = 0,815
+a_G = (151−14)/162 = 0,846
+a_B = (168−19)/171 = 0,871
+```
+
+— **três coberturas diferentes para o mesmo pixel**, o que só acontece com
+antialiasing subpixel, e aí o máximo por canal não coincidiria num único pixel.
+Com preenchimento `(139,151,168)` sai `a = 1` nos três, que é um pixel de
+cobertura total: consistente, e a explicação mais simples que cabe nos dados.
+
+**A generalização:** um máximo observado é teto de instrumento *ou* valor real, e
+o que separa os dois é a **consistência entre canais**. Um teto de antialiasing
+deixa assinatura; cobertura total não deixa nenhuma.
+
+### O resíduo que não se persegue
+
+Rasterizado por GDI+ o rótulo sai **3 px mais largo** (287 contra 284) e **2 px
+mais alto** (16 contra 14) que o original, feito por FreeType. A cor bate exata.
+
+Não vale perseguir, e a razão é que **o teste da imagem não é o rótulo**: são as
+três medidas que os dois scripts imprimem — 1414×555, mediana 4 no painel
+esquerdo, 21 no direito, fundo (11,14,19). Elas saem da imagem gerada e não das
+constantes, e é isso que impede os dois geradores de divergirem.
+
+Perseguir os 3 px significaria ajustar tamanho ou hinting até a largura fechar,
+o que **piora** a identificação: o 16 px foi determinado pelas sete posições de
+palavra, e mexer nele para consertar um agregado desfaz a medida que decidiu a
+questão. Mesmo formato da tolerância alargada até caber — o número fecha e a
+evidência some.
+
+**A regra:** decida antes de medir qual é o critério de "certo", e escreva-o no
+verificador. Sem isso, qualquer resíduo vira convite para ajustar até sumir.
+
 ## Em aberto
 
 
