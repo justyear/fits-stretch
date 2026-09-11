@@ -387,6 +387,94 @@ function buildLog(ctx){
           ', which breaks the banding a subtracted surface would otherwise leave. ' +
           'The seed is fixed, so the same file always produces the same image.'
         : ''));
+
+  /* --- the half-scale copy ------------------------------------------
+   *
+   * AFTER the output line, and the order is the argument. The line above
+   * describes the file the main button hands over: full resolution, no
+   * resampling. This block describes a SECOND file that exists only if someone
+   * asks for it. Putting it first would read as a correction to the line above
+   * -- two true sentences that together say something false, which this project
+   * has paid for once already.
+   *
+   * The last sentence is the one that has to survive edits. A reduced copy
+   * looks better because it hid noise, and a tool that offers it without saying
+   * so has quietly started doing the thing it promises not to do.
+   */
+  // Pelo id, com o mesmo laco que os outros blocos deste arquivo usam. log.js
+  // nao chama o recordById de run.js: o bundle junta os dois, mas o log e o
+  // unico artefato que sai daqui e nao deve depender da ordem de concatenacao.
+  var hs = null;
+  for (var hi = 0; hi < ctx.records.length; hi++){
+    if (ctx.records[hi].id === 'half-scale') hs = ctx.records[hi];
+  }
+  if (hs && hs.applied && hs.noise){
+    var hn = hs.noise;
+    var ratioTxt = (hn.ratio === null) ? null : fx(hn.ratio, 2);
+    L.push('• Half-scale copy, ' + (hs.offered
+             ? 'offered as a second download and not applied to the file above'
+             : 'built and measured, and NOT offered -- see below') + ': ' +
+           hs.inputSize[0] + ' × ' + hs.inputSize[1] + ' reduced to ' +
+           hs.outputSize[0] + ' × ' + hs.outputSize[1] + ' by averaging each 2 × 2 block.');
+    if (ratioTxt !== null){
+      // "Quatro pixels independentes" e uma afirmacao sobre o QUADRO, e so a
+      // segunda metade da frase e aritmetica. Quando a razao sai fora da faixa,
+      // a causa quase nunca e a media -- ela e exata por construcao -- e sim a
+      // premissa. Culpar a media aqui seria apontar o lugar errado, que e a
+      // classe de defeito que este projeto mais registra.
+      var premiseBroken = (hn.whiteness !== null && hn.whiteness < 0.97);
+      L.push('    Four ' + (premiseBroken ? '' : 'independent ') +
+             'pixels become one, so the noise in the sky falls by a ' +
+             'factor of ' + ratioTxt + ' — measured on this frame, across ' +
+             grp(hn.samplesBefore) + ' pairs of neighbouring sky pixels, against the ' +
+             fx(hn.expectedRatio, 2) + ' that exact averaging predicts for independent ' +
+             'samples. ' +
+             (hn.withinBand
+               ? 'That is the arithmetic of sampling, not a filter: the average is exact ' +
+                 'and nothing was smoothed.'
+               : 'THAT IS OUTSIDE ' + fx(hn.band[0], 1) + '–' + fx(hn.band[1], 1) + '. ' +
+                 (premiseBroken
+                   ? 'The averaging is still exact — what does not hold on this frame is ' +
+                     'the independence it assumes. The difference between neighbouring ' +
+                     'sky pixels reads only ' + fx(hn.whiteness, 3) + ' of what it reads ' +
+                     'between pixels ' + hn.whitenessLag + ' apart, so each pixel shares ' +
+                     'part of its noise with the one beside it. A demosaiced frame is the ' +
+                     'usual reason: two of every three colour samples per pixel were ' +
+                     'reconstructed from neighbours, so the four going into a block were ' +
+                     'never four measurements.'
+                   : 'The factor should not be trusted on this frame.')));
+    } else {
+      L.push('    There was not enough sky on this frame to measure the noise ratio, so ' +
+             'the factor of 2 that exact averaging predicts is stated here unverified — ' +
+             'which is worth less than a measurement and is being said so.');
+    }
+    if (hs.offered){
+      L.push('    No detail was removed: averaging resamples, it does not smooth, and the ' +
+             'full-resolution file above has everything this one has.' +
+             ((hs.droppedRow || hs.droppedColumn)
+               ? ' The last ' + (hs.droppedRow && hs.droppedColumn ? 'row and column were'
+                   : hs.droppedRow ? 'row was' : 'column was') +
+                 ' dropped rather than interpolated, because interpolating would correlate ' +
+                 'neighbouring pixels and the number above would stop meaning anything.'
+               : ''));
+      L.push('    This copy is offered because it is easier to share, not because it is ' +
+             'better. The full-resolution one is the honest size of what your telescope ' +
+             'recorded.');
+    } else {
+      // O LOG DIZ TUDO, INCLUSIVE QUE O BOTAO NAO APARECEU. Uma copia que foi
+      // construida, medida e descartada e um evento, e omiti-lo deixaria o
+      // leitor sem saber que a ferramenta chegou a considerar a reducao.
+      L.push('    THE COPY WAS NOT OFFERED. It was built and measured, and the measurement ' +
+             'is the reason: the button says "half-scale" and a person clicks it to get ' +
+             'less noise, so offering it where the noise would fall by ' +
+             (hs.noise.ratio === null ? 'an unmeasured amount' : fx(hs.noise.ratio, 2) + '×') +
+             ' instead of ' + fx(hs.noise.expectedRatio, 0) + '× would be promising the ' +
+             'difference. Saying so here and offering it anyway would be telling the truth ' +
+             'in a place most people do not read.');
+      L.push('    Nothing was lost: the full-resolution download is unaffected, and it is ' +
+             'the one this tool considers honest anyway.');
+    }
+  }
   // Generated, not written: the complement between the catalogue in
   // steps/registry.js and the steps that reported themselves applied. A step
   // added to the chain drops out of this sentence on its own, which is the

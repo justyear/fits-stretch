@@ -76,6 +76,16 @@ function plainRecords(records){
       // por faixa de luminancia, que e a metrica do produto -- ela e o que
       // permite comparar a saida contra uma entrega manual sem olhar a imagem.
       mask: r.mask || null,
+      // Meia escala: o tamanho de entrada e saida, o que foi descartado por
+      // dimensao impar, e a razao de ruido MEDIDA contra a prevista -- que e a
+      // verificacao da etapa e o numero que o bloco do log afirma.
+      inputSize: r.inputSize || null,
+      outputSize: r.outputSize || null,
+      droppedRow: r.droppedRow || false,
+      droppedColumn: r.droppedColumn || false,
+      noise: r.noise || null,
+      offered: (r.offered === undefined) ? null : r.offered,
+      offerReason: r.offerReason || null,
       hueFidelity: r.hueFidelity || null,
       chromaNoise: r.chromaNoise || null,
       saturationByLuminance: r.saturationByLuminance || null,
@@ -346,6 +356,11 @@ async function openFile(buffer, fileName, opts, post){
     satSnrHigh: 25.0,
     satHighlightKnee: 0.80,
     satHighlightFloor: 0.35,
+    // Copia em meia escala. LIGADA, e isso nao troca o padrao: ela e um SEGUNDO
+    // arquivo, oferecido num segundo botao, e a saida cheia continua sendo a que
+    // o botao principal entrega. Desligar aqui nao muda a imagem de ninguem --
+    // so faz o botao nao aparecer.
+    halfScale: true,
     dither: true
   };
 
@@ -528,6 +543,38 @@ async function runChain(params, mode, post){
     mark('saturation', step);
   }
 
+  /* Half-scale copy ----------------------------------------------------
+   *
+   * A SECOND OUTPUT, NOT A REPLACEMENT. `work` is not reassigned: the chain
+   * continues on the full frame, which stays the default download. This step
+   * builds a reduced copy beside it and the person chooses.
+   *
+   * Here and not later, because averaging has to happen on the float. After
+   * `quantise` the four values feeding each output pixel are already 8-bit
+   * integers, and averaging four copies of the same integer recovers nothing.
+   *
+   * Full runs only. The preview is already a downscale of the source, so a
+   * half-scale of it would describe a frame nobody asked about, and its noise
+   * ratio would be measured on pixels that were averaged twice.
+   */
+  var halfRgba = null, halfW = 0, halfH = 0;
+  if (full && params.halfScale){
+    await yieldNow();
+    step = Date.now();
+    stage('Building the half-scale copy', 82);
+    var halfImg = stepHalfScale(work, { stride: SESSION.statStride }, report);
+    if (halfImg){
+      // `report` is deliberately NOT passed to this quantise. Two records with
+      // id 'quantise' would make `recordById` return whichever came first, and
+      // the log and the diagnostics read that record for the clip counts of the
+      // frame they describe -- which is the full one. The reduced frame's own
+      // statistics are in the half-scale record's `after`.
+      halfRgba = quantise(halfImg, { dither: params.dither }, null);
+      halfW = halfImg.w; halfH = halfImg.h;
+    }
+    mark('halfScale', step);
+  }
+
   // Quantise ----------------------------------------------------------
   await yieldNow();
   step = Date.now();
@@ -595,6 +642,7 @@ async function runChain(params, mode, post){
   SESSION.autoRunDone = true;
 
   var transfer = (view.factor === 1) ? [view.data.buffer] : [view.data.buffer, rgba.buffer];
+  if (halfRgba) transfer.push(halfRgba.buffer);
 
   post({
     type: 'rendered',
@@ -603,6 +651,11 @@ async function runChain(params, mode, post){
     view: { w: view.w, h: view.h, factor: view.factor },
     viewData: view.data.buffer,
     rgba: (view.factor === 1) ? null : rgba.buffer,
+    // A copia reduzida, pronta em 8 bits. Vai transferida como as outras: ela
+    // so existe para ser salva, e o host nao mede nada nela -- todo numero que
+    // o log diz sobre ela saiu do record, calculado aqui sobre o float.
+    half: halfRgba ? { w: halfW, h: halfH } : null,
+    halfData: halfRgba ? halfRgba.buffer : null,
     log: log,
     // Preview measures a smaller frame, so its numbers describe that frame and
     // not the one the log is about. Handing back a diagnostics panel built from

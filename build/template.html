@@ -234,9 +234,11 @@
       <div class="logbox"><pre id="logtext"></pre></div>
       <div class="actions">
         <button class="btn primary" id="dlpng">Download PNG</button>
+        <button class="btn" id="dlhalf" hidden>Download half-scale PNG</button>
         <button class="btn" id="copylog">Copy processing log</button>
         <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
       </div>
+      <p class="hint" id="halfhint" hidden></p>
       <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
         unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
       <p class="hint">Paste the log alongside your image. Every value in it was measured from the file you dropped.</p>
@@ -278,7 +280,7 @@ var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
 var elDiag = $('diag'), elDiagBody = $('diagbody');
 var elToast = $('toast');
 
-var state = { log: '', diag: null, full: null, view: null, w: 0, h: 0, name: '' };
+var state = { log: '', diag: null, full: null, half: null, view: null, w: 0, h: 0, name: '' };
 
 /* ------------------------------------------------------------------ *
  * Friendly errors
@@ -483,6 +485,29 @@ function finish(m){
   state.h = m.height;
   state.view = { data: new Uint8ClampedArray(m.viewData), w: m.view.w, h: m.view.h };
   state.full = m.rgba ? new Uint8ClampedArray(m.rgba) : null;
+  // A copia em meia escala, se a rodada produziu uma. Fica guardada e nao e
+  // desenhada em lugar nenhum: o que a tela mostra continua sendo o quadro
+  // cheio, porque e ele que o botao principal entrega. Este buffer so existe
+  // para o segundo botao.
+  state.half = m.half ? { data: new Uint8ClampedArray(m.halfData), w: m.half.w, h: m.half.h } : null;
+  $('dlhalf').hidden = !state.half;
+  if (state.half) $('dlhalf').textContent = 'Download half-scale PNG (' + state.half.w + ' × ' + state.half.h + ')';
+
+  // NUNCA SILENCIO. Quando a etapa mediu e recusou, o botao some e a frase toma
+  // o lugar dele -- confusao 10 da lista: um botao que some sem explicacao lê
+  // como funcionalidade quebrada, e a pessoa nao tem como saber que o que
+  // aconteceu foi a ferramenta se recusando a prometer.
+  var hsRec = null;
+  for (var hri = 0; m.records && hri < m.records.length; hri++){
+    if (m.records[hri].id === 'half-scale') hsRec = m.records[hri];
+  }
+  var hsHint = $('halfhint');
+  if (hsRec && hsRec.offered === false && hsRec.offerReason){
+    hsHint.textContent = hsRec.offerReason + '. The full-resolution download above is unaffected.';
+    hsHint.hidden = false;
+  } else {
+    hsHint.hidden = true;
+  }
 
   // A preview render carries no log and no diagnostics, because it measured a
   // smaller frame than the one they would claim to describe. It repaints the
@@ -608,6 +633,49 @@ $('dlpng').addEventListener('click', function(){
       btn.disabled = false;
       btn.textContent = 'Download PNG';
       if (scaled) toast('Exported at ' + w + ' × ' + h + ' — full size exceeded this browser');
+    }, 'image/png');
+  }, 30);
+});
+
+/* O SEGUNDO BOTAO, E ELE E DELIBERADAMENTE O SEGUNDO.
+ *
+ * A copia reduzida parece melhor e e a que a pessoa vai postar -- e ela parece
+ * melhor porque escondeu ruido. Por isso o botao principal continua entregando
+ * a resolucao cheia, este fica ao lado sem `primary`, e o bloco do log diz a
+ * escala e diz por que a copia existe.
+ *
+ * Nada e reprocessado aqui: os bytes ja vieram prontos do worker, quantizados
+ * a partir do float depois da media de caixa. O host nao sabe reduzir imagem e
+ * nao deve aprender -- reduzir em 8 bits produziria outro arquivo, e o numero
+ * do ruido que o log afirma nao valeria para ele.
+ */
+$('dlhalf').addEventListener('click', function(){
+  var btn = this;
+  if (!state.half) return;
+  var label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Preparing PNG…';
+
+  setTimeout(function(){
+    var hw = state.half.w, hh = state.half.h;
+    var canvas = document.createElement('canvas');
+    canvas.width = hw; canvas.height = hh;
+    canvas.getContext('2d').putImageData(new ImageData(state.half.data, hw, hh), 0, 0);
+    canvas.toBlob(function(blob){
+      if (!blob){
+        toast('This browser could not encode the half-scale PNG');
+        btn.disabled = false; btn.textContent = label;
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      // Sufixo no nome, para que os dois arquivos nao se confundam na pasta de
+      // downloads. Qual e qual tem que ser legivel sem abrir.
+      a.download = state.name.replace(/\.(fits?|fts)$/i, '') + '-half.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      btn.disabled = false;
+      btn.textContent = label;
     }, 'image/png');
   }, 30);
 });

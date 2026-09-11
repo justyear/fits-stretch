@@ -1429,6 +1429,118 @@ evidência some.
 **A regra:** decida antes de medir qual é o critério de "certo", e escreva-o no
 verificador. Sem isso, qualquer resíduo vira convite para ajustar até sumir.
 
+## Classe: a premissa de uma afirmação tem que ser medida, não assumida
+
+A cópia em meia escala diz, no log: *"quatro pixels independentes viram um,
+então o ruído cai por 2"*. A frase tem duas metades e **só a segunda é
+aritmética**. A primeira — que os quatro pixels são independentes — é uma
+afirmação sobre o quadro, e num quadro debayerizado ela é **falsa**: o demosaico
+reconstrói dois de cada três valores de cor por pixel a partir dos vizinhos.
+
+Medido nos nove fixtures, a razão de ruído em execução:
+
+```
+oito fixtures     1,93 a 2,05     dentro da faixa
+fixture-seestar   1,29            FORA
+```
+
+O `seestar` é o único mosaico CFA da suíte. A faixa disparou na primeira rodada,
+no único quadro onde a física diz que deveria.
+
+### A tentação, e por que ela é o defeito
+
+A frase que eu ia gravar no log era *"a redução não está se comportando como
+média de caixa exata"*. **Falsa.** A média é exata — quatro termos e uma divisão,
+e isso não tem como estar errado. O que falha é a premissa.
+
+É a classe que este projeto mais registra: **a coisa quebrada e a coisa que
+reclama são objetos diferentes, e o rastro leva ao segundo.** Se eu tivesse
+gravado aquela frase, quem lesse iria auditar o filtro — onde não há nada.
+
+### O conserto: medir a premissa
+
+`whiteness` = σ(lag 1) / σ(lag L) no pior L ∈ {2, 3, 4}. Vale 1,0 para ruído
+branco; abaixo disso os vizinhos compartilham ruído e o lag 1 lê menos do que há.
+
+| | 0,753 | 0,955–1,000 |
+|---|---|---|
+| quem | `seestar` | os outros oito |
+| razão | 1,29 | 1,93–2,05 |
+
+**Os lags vêm do bloco, não dos dados.** A redução tem bloco 2×2, então a
+independência tem que valer sobre ele e sobre o vizinho imediato: L = 2, 3, 4.
+Escolher o lag que mostra o efeito num fixture seria ajustar o diagnóstico à
+resposta que já se conhece — e o número sairia impressionante e não significaria
+nada.
+
+**A prova de que a medida é a certa:** o perfil do `seestar` dá σ(lag 3)/σ(lag 1)
+= **1,291**, e a razão de ruído medida na redução deu **1,2903**. São duas
+medições independentes — uma na autocorrelação do quadro cheio, outra na redução
+inteira — e caem no mesmo número. O ruído que a média não consegue cancelar é
+exatamente o que o vizinho já compartilhava.
+
+## Limiar derivado que os dados não sustentam: dizer, não inventar
+
+Decidido que o botão não aparece quando a promessa não se sustenta, faltava o
+limiar. O caminho pedido era derivá-lo: *a faixa aceita é 1,8–2,2, a razão segue
+a brancura, então corte na brancura que produz razão 1,8*.
+
+Tentado com os nove fixtures. **A relação não suporta o ajuste:**
+
+| ajuste | n | r | r² | brancura em razão 1,8 |
+|---|---|---|---|---|
+| nove fixtures | 9 | 0,979 | 0,957 | **0,920** |
+| sem o `seestar` | 8 | 0,262 | 0,069 | **0,628** |
+
+O r² de 0,957 é **ponto de alavanca**: tirar um ponto de nove move o limiar de
+0,92 para 0,63. Os outros oito ocupam 0,045 de largura em brancura, e ali o
+espalhamento é ruído de medição — r = 0,26 entre si. Pior: o 0,920 cai numa
+lacuna de 0,20 de largura **sem nenhuma observação**.
+
+Nove pontos em dois aglomerados não são uma curva. São dois pontos com
+testemunhas.
+
+### E a derivação certa era não precisar da curva
+
+O critério tinha sido definido como *"a brancura que produz razão 1,8"*. Mas **a
+razão é medida em todo quadro, antes de o botão aparecer.** Passar pela brancura
+substitui a grandeza que o botão promete por um proxy ajustado dela — e perde
+informação em troca de nada.
+
+O portão é `ratio >= 1.8`, o mesmo 1,8 da faixa. **Nenhuma constante nova.** A
+brancura fica como *explicação* — é o que diz por que a razão caiu — e não como
+critério.
+
+**A regra, e ela generaliza:** quando um limiar derivado exige ajustar uma
+relação, primeiro pergunte se a grandeza final já está sendo medida. Se estiver,
+o intermediário é sempre pior: ele só pode adicionar erro de ajuste a um número
+que já se tem.
+
+## Dizer a verdade num texto que ninguém lê não é o mesmo que não prometer
+
+A primeira versão desta etapa oferecia a cópia reduzida sempre e explicava no
+log quando o fator não valia. Parecia suficiente — o log é a razão de existir
+deste produto, e ele dizia tudo, com a palavra *"independent"* removida da frase
+no quadro onde ela não vale.
+
+**Não é suficiente, e o argumento é de produto:** o botão diz *"half-scale"* e a
+pessoa clica porque quer menos ruído. Num quadro debayerizado ela recebe 1,29 em
+vez de 2,0 — metade do benefício que o botão sugere — e a correção mora num
+parágrafo que a maioria não vai ler.
+
+A divisão que ficou:
+
+> **O log explica. O botão não promete.**
+
+Quando a razão medida fica abaixo de 1,8, o botão **não aparece**, e uma frase
+toma o lugar dele ali mesmo — nunca silêncio, que é a confusão 10 da lista: um
+botão que some sem explicação lê como funcionalidade quebrada, e a pessoa não
+tem como saber que o que aconteceu foi a ferramenta se recusando a prometer.
+
+E isto **mede o quadro, não o formato**. Não é exceção por nome: um FITS já
+demosaicado por outro programa chega como três planos, sem `BAYERPAT`, e dispara
+igual — porque o que se mede é a correlação entre vizinhos e não o cabeçalho.
+
 ## Em aberto
 
 
