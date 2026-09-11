@@ -86,6 +86,21 @@ function plainRecords(records){
       noise: r.noise || null,
       offered: (r.offered === undefined) ? null : r.offered,
       offerReason: r.offerReason || null,
+      // Recorte sugerido: o retangulo, os componentes e o que o recorte faria
+      // com a cobertura do objeto. "suggested" e estado novo e nao e "applied".
+      suggested: (r.suggested === undefined) ? null : r.suggested,
+      reason: r.reason || null,
+      frameSize: r.frameSize || null,
+      signalPixels: (r.signalPixels === undefined) ? null : r.signalPixels,
+      extendedPixels: (r.extendedPixels === undefined) ? null : r.extendedPixels,
+      components: (r.components === undefined) ? null : r.components,
+      componentsAboveMin: (r.componentsAboveMin === undefined) ? null : r.componentsAboveMin,
+      componentList: r.componentList || null,
+      rect: r.rect || null,
+      objectRect: r.objectRect || null,
+      coverageBefore: (r.coverageBefore === undefined) ? null : r.coverageBefore,
+      coverageAfter: (r.coverageAfter === undefined) ? null : r.coverageAfter,
+      coverageGuard: r.coverageGuard || null,
       hueFidelity: r.hueFidelity || null,
       chromaNoise: r.chromaNoise || null,
       saturationByLuminance: r.saturationByLuminance || null,
@@ -359,6 +374,25 @@ async function openFile(buffer, fileName, opts, post){
     // Copia em meia escala. LIGADA, e isso nao troca o padrao: ela e um SEGUNDO
     // arquivo, oferecido num segundo botao, e a saida cheia continua sendo a que
     // o botao principal entrega. Desligar aqui nao muda a imagem de ninguem --
+    // Recorte SUGERIDO. Os parametros sao os da secao 3.1 do Modulo 5a; a
+    // janela e a fracao de densidade sao as MESMAS do filtro de extenso do
+    // Modulo 2, e isso nao e coincidencia -- e a mesma medicao, lida ao
+    // contrario. Ligado por padrao porque sugerir nao faz nada: o record sai,
+    // e so o clique aplica, e o clique ainda nao existe.
+    crop: true,
+    cropSigma: 2.5,
+    cropWindow: 25,
+    cropDensity: 0.50,
+    cropMargin: 0.08,
+    cropMinFrame: 0.20,
+    // O parametro cropMaxCoverage saiu: a salvaguarda dele e vazia por
+    // construcao da cadeia -- ver o comentario em steps/crop.js -- e um
+    // parametro que nao governa nada e uma salvaguarda aparente. O record
+    // explica no lugar dele, com o numero medido.
+    //
+    // Copia em meia escala. LIGADA, e isso nao troca o padrao: ela e um SEGUNDO
+    // arquivo, oferecido num segundo botao, e a saida cheia continua sendo a que
+    // o botao principal entrega. Desligar aqui nao muda a imagem de ninguem --
     // so faz o botao nao aparecer.
     halfScale: true,
     dither: true
@@ -573,6 +607,35 @@ async function runChain(params, mode, post){
       halfW = halfImg.w; halfH = halfImg.h;
     }
     mark('halfScale', step);
+  }
+
+  /* Recorte sugerido ----------------------------------------------------
+   *
+   * DEPOIS do esticamento, porque a mascara de sinal e `Y > ceu + 2,5 sigma` e
+   * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
+   * o objeto inteiro mora nos primeiros centesimos do eixo.
+   *
+   * NAO reatribui `work`, e nao tem como: a etapa nao toca em pixel nenhum. Ela
+   * mede, escreve o retangulo no record, e devolve o mesmo quadro. Aplicar e um
+   * clique, e o clique e o passo 5.
+   *
+   * Antes ou depois da meia escala e indiferente hoje -- nenhuma das duas le a
+   * outra. Fica depois porque a meia escala e a que produz arquivo, e a ordem
+   * do log segue a ordem em que as coisas acontecem com os pixels.
+   */
+  if (full && params.crop){
+    await yieldNow();
+    step = Date.now();
+    stage('Looking for the object', 85);
+    stepCrop(work, {
+      sigma: params.cropSigma,
+      window: params.cropWindow,
+      density: params.cropDensity,
+      margin: params.cropMargin,
+      minFrame: params.cropMinFrame,
+      stride: SESSION.statStride
+    }, report);
+    mark('crop', step);
   }
 
   // Quantise ----------------------------------------------------------

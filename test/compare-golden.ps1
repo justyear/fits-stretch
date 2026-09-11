@@ -94,7 +94,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture'),
     [switch]   $Detail
 )
 

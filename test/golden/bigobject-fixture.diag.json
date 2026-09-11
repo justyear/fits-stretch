@@ -1,0 +1,188 @@
+{
+  "file": "fixture-bigobject.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 1601,
+    "NAXIS2": 1200,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Big object",
+    "EXPTIME": 600,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 1601,
+    "height": 1200,
+    "planes": 3,
+    "rawMin": 0.0011966839665547013,
+    "rawMax": 0.4077775478363037,
+    "nonFinite": 0,
+    "normMin": 0.0011966839665547013,
+    "normMax": 0.4077775478363037,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.04938328119834185,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.043427176317998015,
+      "madn": 0.004469535270160388,
+      "q1": 0.04081788357366293,
+      "q3": 0.04704356450751507,
+      "shadows": 0.03417653384796997,
+      "midtones": 0.10623176548112126,
+      "target": 0.085,
+      "pixelsBlack": 1369,
+      "pixelsWhite": 0,
+      "totalPixels": 1921200,
+      "statSamples": 1920000,
+      "statStride": 1,
+      "nonFinite": 1200
+    },
+    {
+      "channel": "G",
+      "median": 0.04490730144197757,
+      "madn": 0.003698348474323951,
+      "q1": 0.042633707179369804,
+      "q3": 0.047684443427176315,
+      "shadows": 0.03417653384796997,
+      "midtones": 0.10623176548112126,
+      "target": 0.085,
+      "pixelsBlack": 1369,
+      "pixelsWhite": 0,
+      "totalPixels": 1921200,
+      "statSamples": 1920000,
+      "statStride": 1,
+      "nonFinite": 1200
+    },
+    {
+      "channel": "B",
+      "median": 0.046890974288548104,
+      "madn": 0.003107675715853401,
+      "q1": 0.04489204242008087,
+      "q3": 0.04908827344167239,
+      "shadows": 0.03417653384796997,
+      "midtones": 0.10623176548112126,
+      "target": 0.085,
+      "pixelsBlack": 1369,
+      "pixelsWhite": 0,
+      "totalPixels": 1921200,
+      "statSamples": 1920000,
+      "statStride": 1,
+      "nonFinite": 1200
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.04472419317921721,
+      "luminanceMADN": 0.00376702118973116,
+      "shadows": 0.03417653384796997,
+      "midtones": 0.10623176548112126,
+      "target": 0.085,
+      "luminanceSpan": 0.015518425268940247,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 1369,
+      "clipHigh": 0,
+      "highlightCut": 0.054398413061722745
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 0.9898464613305157,
+        "bOverG": 1.0134596752189424
+      },
+      "ratiosAfter": {
+        "rOverG": 0.989328150802039,
+        "bOverG": 1.0141310378936967
+      },
+      "maxRatioDrift": 2.220446049250313e-16,
+      "driftSamples": 1919792,
+      "highlightPixels": 19214,
+      "pixelsRescaled": 0
+    }
+  },
+  "view": {
+    "width": 1601,
+    "height": 1200,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 0,
+    "decode": 68,
+    "preview": 47,
+    "stats": 95,
+    "background": 519,
+    "colour": 690,
+    "transfer": 893,
+    "saturation": 559,
+    "halfScale": 607,
+    "crop": 149,
+    "quantise": 94,
+    "downscale": 0,
+    "total": 3056
+  },
+  "historyCards": [
+    "CROP synthetic frame for the suggested-crop step.",
+    "CROP WIDTH IS ODD (1601) on purpose: it exercises the",
+    "CROP droppedColumn path of the half-scale reduction, which",
+    "CROP every other fixture leaves at false on both sides.",
+    "CROP Objects have a SHARP edge at r = 1 of the ellipse, so",
+    "CROP the expected bounding box is the ellipse box below and",
+    "CROP it came from neither implementation.",
+    "OBJ1 cx=800 cy=600 rx=700 ry=500",
+    "OBJ1 box x=100 y=100 w=1400 h=1000",
+    "BIG one object already covering more than cropMaxCoverage.",
+    "BIG There is nothing to crop to, so the step must NOT suggest."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                 1601",
+    "NAXIS2  =                 1200",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Big object'",
+    "EXPTIME =                 600. / seconds",
+    "HISTORY CROP synthetic frame for the suggested-crop step.",
+    "HISTORY CROP WIDTH IS ODD (1601) on purpose: it exercises the",
+    "HISTORY CROP droppedColumn path of the half-scale reduction, which",
+    "HISTORY CROP every other fixture leaves at false on both sides.",
+    "HISTORY CROP Objects have a SHARP edge at r = 1 of the ellipse, so",
+    "HISTORY CROP the expected bounding box is the ellipse box below and",
+    "HISTORY CROP it came from neither implementation.",
+    "HISTORY OBJ1 cx=800 cy=600 rx=700 ry=500",
+    "HISTORY OBJ1 box x=100 y=100 w=1400 h=1000",
+    "HISTORY BIG one object already covering more than cropMaxCoverage.",
+    "HISTORY BIG There is nothing to crop to, so the step must NOT suggest.",
+    "END"
+  ]
+}
