@@ -320,15 +320,27 @@ async function openFile(buffer, fileName, opts, post){
     ccExtendedWindow: 25,
     ccExtendedFrac: 0.50,
     ccReference: 'green',
-    // Saturacao seletiva. DESLIGADA nesta entrega: os passos 1 a 3 da secao 6
-    // do Modulo 4 produzem a operacao, a mascara e a queda, e os passos 4 a 9 --
-    // salvaguardas, fixture, registry, bloco do log -- sao o que permite
-    // publicar. Ligar antes do bloco do log seria uma etapa que o log deixa de
-    // negar sem descrever.
+    // Saturacao seletiva. LIGADA a partir da v1.3.0, e a etapa so chegou aqui
+    // depois dos nove passos da secao 6 do Modulo 4 -- em particular do nono,
+    // que e a segunda implementacao. Ate ele fechar a etapa estava verificada
+    // contra si mesma (goldens, controles negativos, teoremas) e nao contra
+    // codigo que nao e este; ligar antes teria rebaixado o padrao que as outras
+    // tres etapas da cadeia ja cumpriam.
+    //
+    // O que a autoriza, em ordem de peso:
+    //   - matiz contra os cards do fixture: nucleo 0,0832 e nebulosa 0,9929,
+    //     identicos antes e depois da etapa. Verdade EXTERNA, que nao saiu de
+    //     nenhuma das duas implementacoes.
+    //   - 426 comparacoes contra reference_m23.py, 0 FAIL.
+    //   - a salvaguarda de ruido de croma com controle permanente que a ve
+    //     recusar (compare-safeguards), e nao so prometer.
     //
     // amount 1.45 saiu da medicao da secao 1 contra uma entrega manual, nao de
-    // escolha: se ele mudar, a medicao que o justifica muda junto.
-    saturation: false,
+    // escolha: se ele mudar, a medicao que o justifica muda junto. E o log diz
+    // em voz alta que esta e a unica etapa da cadeia que e preferencia e nao
+    // medicao -- as restricoes medidas impedem a preferencia de mentir, nao a
+    // convertem em medicao.
+    saturation: true,
     satAmount: 1.45,
     satSnrLow: 3.0,
     satSnrHigh: 25.0,

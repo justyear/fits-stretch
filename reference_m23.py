@@ -297,7 +297,7 @@ def linked_stretch(planes, params=None, non_linear=False):
 
 # ------------------------------------------------- curva de densidade
 
-def threshold_density(values, threshold, deltas=(1e-7, 1e-6, 2.4e-6, 6.1e-6, 1e-5, 1e-4, 1e-3, 1e-2)):
+def threshold_density(values, threshold, deltas=(1e-7, 1e-6, 2.4e-6, 6.1e-6, 1e-5, 6.8e-5, 1e-4, 1e-3, 1e-2)):
     """#{ i : |q_i - T| <= d } para cada d.
 
     E a tolerancia de uma contagem por limiar, calculada em vez de

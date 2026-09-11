@@ -156,6 +156,26 @@ instrumento. Se o Delta_T reportado passar de Delta_q, isso e achado.
 # A leitura da curva, isolada, porque tres lugares precisam da COTA e nao da
 # linha: o limiar simples, a faixa entre duas fronteiras, e a media sobre um
 # conjunto definido por fronteiras.
+# A referencia entrega `bordasDeFaixa` como LISTA de {threshold, density}, e a
+# fronteira e o campo `threshold`, nao o nome da propriedade. E a forma melhor:
+# uma chave de objeto obrigaria as duas pontas a concordarem sobre como um float
+# vira string ("0.1" ou "0.10"?), que e uma maneira boba de perder uma rodada.
+# A busca aceita as duas formas para nao depender disso.
+function Find-Borda($bordas, $edge) {
+    if ($null -eq $bordas) { return $null }
+    if ($bordas -is [System.Collections.IEnumerable] -and $bordas -isnot [string]) {
+        foreach ($b in $bordas) {
+            if ($null -ne $b.threshold -and [math]::Abs([double]$b.threshold - [double]$edge) -le 1e-9) { return $b }
+        }
+        return $null
+    }
+    foreach ($fmt in @('0.00', '0.0', 'G')) {
+        $k = ([double]$edge).ToString($fmt, $inv)
+        if ($bordas.PSObject.Properties[$k]) { return $bordas.$k }
+    }
+    return $null
+}
+
 function Get-Cota($curve, $delta) {
     if (-not $curve -or -not $curve.density) { return $null }
     # A curva e tabelada; le-se o primeiro ponto >= Delta, que e conservador por
@@ -1188,8 +1208,8 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                             $dShift = $dBg + $dSig
                             $cotaSwap = $null
                             if ($bordas -and $nBand -gt 0) {
-                                $cLo = Get-Cota ($bordas.($lo.ToString('0.00', $inv))) $dShift
-                                $cHi = Get-Cota ($bordas.($hi.ToString('0.00', $inv))) $dShift
+                                $cLo = Get-Cota (Find-Borda $bordas $lo) $dShift
+                                $cHi = Get-Cota (Find-Borda $bordas $hi) $dShift
                                 # A borda de fora do quadro nao existe como
                                 # fronteira: 0,00 embaixo e o topo em cima.
                                 if ($null -eq $cLo -and $lo -le 0) { $cLo = 0 }

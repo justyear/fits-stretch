@@ -160,19 +160,20 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 3,
-    "decode": 156,
+    "header": 2,
+    "decode": 92,
     "roworder": 2,
-    "cfa": 113,
-    "debayer": 213,
-    "preview": 62,
-    "stats": 113,
-    "background": 621,
-    "colour": 866,
-    "transfer": 1145,
-    "quantise": 130,
-    "downscale": 0,
-    "total": 2590
+    "cfa": 61,
+    "debayer": 198,
+    "preview": 52,
+    "stats": 168,
+    "background": 614,
+    "colour": 918,
+    "transfer": 1139,
+    "saturation": 551,
+    "quantise": 122,
+    "downscale": 1,
+    "total": 3066
   },
   "historyCards": [],
   "allCards": [
