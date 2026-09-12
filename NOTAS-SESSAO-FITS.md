@@ -1738,8 +1738,162 @@ precisa de uma asserção, não de uma comparação. Comparar contra o golden s�
 pergunta *"mudou?"*; a asserção pergunta *"é possível?"*. O `nonFinite` respondia
 3600 havia três commits e ninguém tinha feito a segunda pergunta.
 
+## Classe: o golden compara contra si mesmo
+
+**Um golden pega MUDANÇA. Ele não pega erro que já estava lá quando a foto foi
+tirada.**
+
+O caso, e ele é o mais caro da sessão: três fixtures saíam com **1.200 pixels
+pretos numa coluna inteira** — a última coluna, num quadro de largura ímpar. Os
+goldens foram capturados com o defeito, promovidos com o defeito, commitados com
+o defeito, e o `compare-golden` dava **52/52 byte a byte**.
+
+A suíte estava verde **sobre** um defeito. Não havia nada de errado com ela: ela
+respondia exatamente a pergunta que sabe responder — *"a saída de hoje é igual à
+de ontem?"* — e a resposta era sim, porque ontem já estava errada.
+
+O que achou foi **uma segunda implementação divergindo em exatamente 1200**. Não
+foi o olho, não foi o golden, não foi revisão de código: foi o número de outra
+ponta batendo de frente com o meu.
+
+**A consequência operacional:** um golden recém-capturado não é evidência de
+nada além de reprodutibilidade. Ele vira evidência quando alguma outra coisa —
+referência independente, afirmação de invariante, verdade externa nos cards —
+diz que os números que ele congelou estavam certos **no momento em que foram
+congelados**. Promover um golden é gravar uma resposta; não é conferi-la.
+
+## Classe: afirmação sobre o impossível pega o que comparação nenhuma pega
+
+Corolário do anterior, e é a saída barata.
+
+`quantise` já contava `clamped.nonFinite` — quantos valores chegaram não-finitos
+e viraram zero. O campo dizia **3600** havia três commits. Ninguém tinha feito a
+pergunta, porque toda comparação da suíte pergunta *"os dois lados concordam?"* e
+os dois lados concordavam.
+
+| pergunta | mecanismo | o que escapa |
+|---|---|---|
+| *mudou?* | golden contra golden | o que já estava errado na captura |
+| *os dois concordam?* | contra uma segunda implementação | o defeito que as duas têm |
+| ***é possível?*** | **afirmação, sem referência** | **nada desta classe** |
+
+Um valor não-finito na saída **nunca** é o resultado certo. Não existe caso em
+que aquele número deva ser diferente de zero — então ele não precisa de
+referência para ser julgado, **e é por não precisar que ele pega um defeito que a
+referência também poderia ter**.
+
+Hoje a afirmação existe dos dois lados: aqui sobre todo record de todo golden, e
+na referência como `naoFinitos.total` da varredura dela. As duas juntas são o que
+fecha o caso do NaN que estivesse presente em ambas.
+
+**A regra:** todo campo que existe para contar algo que **nunca deveria
+acontecer** merece uma afirmação, não uma comparação. Se o número certo é sempre
+o mesmo, comparar é desperdiçar a única verificação que não depende de ninguém
+estar certo.
+
+## Item de revisão: ao consertar uma fórmula, procure a segunda cópia ANTES de recapturar
+
+**Terceira vez nesta sessão**, e a terceira em código cada vez mais alheio:
+
+| | onde | como apareceu |
+|---|---|---|
+| 1 | pré-passada do ruído de croma duplicava o `k` | o controle negativo pegou: a cópia intacta aprovou a máscara quebrada |
+| 2 | `records[0]` contra busca por id | uma etapa inserida à frente entregou a medição errada |
+| 3 | bilinear da grade do fundo, **duas cópias** | consertei `bgSampleGrid`, recapturei, o NaN continuou |
+
+A terceira é a que vira regra, porque o custo foi um ciclo inteiro de captura —
+oito minutos de navegador — para descobrir que o conserto tinha ido para metade
+do problema. E era código que eu não tinha escrito, então "eu lembraria" não
+valia.
+
+**A regra, em uma linha:** *ao consertar qualquer fórmula, procure a segunda
+cópia antes de recapturar.* Grep pelo trecho característico — no caso,
+`[gx + 1]` e `+ gw` — e conte. Se o grep der mais de um, conserte os dois na
+mesma edição ou junte-os numa função antes de tocar em qualquer coisa.
+
+E a pergunta que vem junto, porque foi ela que deixou a duplicação existir: a
+segunda cópia do fundo existe **por desempenho** — `gx` e `tx` dependem só de x
+e são pré-computados para o quadro inteiro em vez de por pixel por canal. É uma
+razão boa. **Uma duplicação com razão boa continua sendo duplicação**, e o que
+falta nela é a anotação que diz onde está a irmã.
+
+## Classe: entregar um número pedido sem verificar que ele fecha
+
+**É a mesma doença de entregar um número que ninguém lê** — e é pior, porque o
+outro lado para de procurar.
+
+O caso: sobrou um FAIL com a causa nomeada, e o que faltava para fechá-lo era o
+span da distribuição de `|d|`. Pedido, e entregue — **com a verificação junto**:
+
+```
+diferença observada    6,155e-5
+cota 8*span/65535      3,461e-5      1,78x a cota
+termo da mediana       2,98e-8       não salva
+```
+
+**O span não fecha.** Se ele tivesse chegado sem essa conta, eu teria escrito a
+linha do comparador, recapturado, visto o FAIL continuar e gasto uma rodada
+procurando erro na minha aritmética — quando a hipótese inteira estava errada.
+
+O número entregue com a conta junto **descartou duas hipóteses** (quantização do
+estimador e incerteza da mediana) e deixou o achado de pé, que é mais do que o
+número sozinho teria feito.
+
+**A regra:** quando alguém pede um número para fechar um buraco, meça se ele
+fecha **antes de mandar**, e mande a conta junto. Um número que não fecha,
+entregue em silêncio, transfere a investigação para quem vai confiar nele.
+
+É simétrico ao "Um número entregue e não usado é pior que um faltando", acima: lá o remetente achava que estava
+coberto; aqui o destinatário acharia. As duas se consertam com a mesma frase —
+**diga qual valor entrou e o que ele fez.**
+
 ## Em aberto
 
+
+**Módulo 5a: os sete passos fechados, com UM FAIL nomeado.**
+
+A meia escala e o recorte sugerido estão na cadeia, no log, no registry e na
+referência Python. `compare-reference` dá **865 comparações, 1 FAIL**.
+
+O que ficou aberto, em ordem de peso:
+
+**1. `nonlinear | meiaEscala | ruido.antes` — 4,04 de 4,00 bins, 1% acima.**
+
+Achado, não tolerância. Três hipóteses medidas e descartadas:
+
+| hipótese | medição | veredito |
+|---|---|---|
+| o histograma deste lado | mediana do `analysePlane` contra exata no MESMO array: **−0,53 bin** | descartada |
+| quantização do estimador | cota `8·span/65535` = 3,461e-5 contra 6,155e-5 observados — **1,78×** | descartada |
+| incerteza da mediana | `skyMedian` difere em **2,98e-8**; o termo não acrescenta nada | descartada |
+
+O que se sabe: a diferença é dos **quadros**, e o `nonlinear` é o ramo
+não-linear, onde o alvo sai da própria mediana do quadro e uma diferença pequena
+na entrada é amplificada pela transferência — a mesma amplificação já registrada
+no `colour`, onde 1,9e-6 na mediana virou 2,4e-4 em `midtones`.
+
+E a pista que ainda não foi seguida: das doze, o `nonlinear` tem o **maior span**
+da distribuição de `|d|` — **0,2835 contra 0,028 a 0,098** em todas as outras.
+Três a dez vezes mais larga.
+
+**A próxima medição não é quantos pixels do céu diferem, é QUAIS.** Se o conjunto
+for o mesmo e o sigma divergir mesmo assim, a causa é a **forma** da distribuição;
+se o conjunto diferir na cauda, é **seleção**. As duas pedem consertos diferentes
+e nenhuma das duas foi eliminada.
+
+**2. Cota parcial em `components` e `extenso.pixels`.** A curva de
+`extendedPixels` no limiar de ocupação chegou e está em uso, mas a cota ainda não
+cobre as duas fronteiras ao mesmo tempo — a do sinal e a da ocupação — e a linha
+diz isso. Fecha somando as duas densidades, como foi feito no `amountCheio` do
+Módulo 4.
+
+**3. A salvaguarda `cropMaxCoverage` continua vazia por construção**, e isso está
+fechado e não é dívida — ver a classe acima. Registrado aqui só para que a lista
+de salvaguardas do Módulo 5a não pareça ter três quando tem duas.
+
+**4. Sem desfazer no recorte aplicado.** A pessoa reabre o arquivo. Deliberado
+por enquanto: um "desfazer" que reconstruísse estado a partir da tela seria o
+começo de uma segunda fonte de verdade.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda

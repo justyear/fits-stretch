@@ -87,6 +87,8 @@
           "skyHighFreqBefore": 0.03671617630226908,
           "skyHighFreqAfter": 0.00398516565700119,
           "ratio": 9.21321206253136,
+          "skyHighFreqSpanBefore": 0.04881058260798454,
+          "skyHighFreqSpanAfter": 0.013983428478240967,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -306,6 +308,8 @@
           "skyHighFreqBefore": 0.02154679750909361,
           "skyHighFreqAfter": 0.010496599284014406,
           "ratio": 2.052740790239358,
+          "skyHighFreqSpanBefore": 0.07585673779249191,
+          "skyHighFreqSpanAfter": 0.03689419850707054,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -3450,6 +3454,8 @@
           "skyHighFreqBefore": 0.07931575365532524,
           "skyHighFreqAfter": 0.03944704596767263,
           "ratio": 2.010689310432156,
+          "skyHighFreqSpanBefore": 0.2835249826312065,
+          "skyHighFreqSpanAfter": 0.13971065171062946,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -4240,6 +4246,8 @@
           "skyHighFreqBefore": 0.023627338484984075,
           "skyHighFreqAfter": 0.011911238658895604,
           "ratio": 1.9836172510353154,
+          "skyHighFreqSpanBefore": 0.08350267633795738,
+          "skyHighFreqSpanAfter": 0.04204831179231405,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -9441,6 +9449,8 @@
           "skyHighFreqBefore": 0.00764807846906287,
           "skyHighFreqAfter": 0.003954398660946782,
           "ratio": 1.9340686473001507,
+          "skyHighFreqSpanBefore": 0.028074726462364197,
+          "skyHighFreqSpanAfter": 0.014876045286655426,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -15181,6 +15191,8 @@
           "skyHighFreqBefore": 0.02077508017127345,
           "skyHighFreqAfter": 0.010288127305163893,
           "ratio": 2.0193257290708164,
+          "skyHighFreqSpanBefore": 0.0731948520988226,
+          "skyHighFreqSpanAfter": 0.03657037764787674,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -15738,6 +15750,8 @@
           "skyHighFreqBefore": 0.012665973224141171,
           "skyHighFreqAfter": 0.006394928721859993,
           "ratio": 1.9806277403600547,
+          "skyHighFreqSpanBefore": 0.044849758967757225,
+          "skyHighFreqSpanAfter": 0.02255709283053875,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -22583,6 +22597,8 @@
           "skyHighFreqBefore": 0.0278674702929642,
           "skyHighFreqAfter": 0.013928923653826728,
           "ratio": 2.0006908635261347,
+          "skyHighFreqSpanBefore": 0.09832261316478252,
+          "skyHighFreqSpanAfter": 0.04907276853919029,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -23000,6 +23016,8 @@
           "skyHighFreqBefore": 0.012428366719958612,
           "skyHighFreqAfter": 0.006275791555302774,
           "ratio": 1.9803663984756115,
+          "skyHighFreqSpanBefore": 0.0440641175955534,
+          "skyHighFreqSpanAfter": 0.022193100303411484,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -26805,6 +26823,8 @@
           "skyHighFreqBefore": 0.009845469980869546,
           "skyHighFreqAfter": 0.005027306847042141,
           "ratio": 1.9583984587418237,
+          "skyHighFreqSpanBefore": 0.0349862203001976,
+          "skyHighFreqSpanAfter": 0.01776142045855522,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -30367,6 +30387,8 @@
           "skyHighFreqBefore": 0.012874246025941827,
           "skyHighFreqAfter": 0.006468497303755769,
           "ratio": 1.9902993572350602,
+          "skyHighFreqSpanBefore": 0.04558187909424305,
+          "skyHighFreqSpanAfter": 0.022876091301441193,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -30772,6 +30794,8 @@
           "skyHighFreqBefore": 0.011808603896733905,
           "skyHighFreqAfter": 0.0060530842755360005,
           "ratio": 1.9508408208455439,
+          "skyHighFreqSpanBefore": 0.0423734737560153,
+          "skyHighFreqSpanAfter": 0.021501626819372177,
           "expectedRatio": 2.0,
           "band": [
             1.8,
@@ -34440,9 +34464,5 @@
         }
       }
     }
-  },
-  "naoFinitos": {
-    "total": 0,
-    "nota": "varredura de toda a cadeia nos onze fixtures, etapa a etapa: zero nao-finitos. A interpolacao bilinear desta implementacao faz clip do indice superior ANTES de indexar, entao o caso do no inexistente nao e alcancavel."
   }
 }
