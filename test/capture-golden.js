@@ -100,7 +100,11 @@ window.__GOLDEN = [
   // descarte de coluna da meia escala, deixado sem caso pelo passo 1.
   ['twoobjects-fixture', '/f/test/fixtures/fixture-twoobjects.fit'],
   ['bigobject-fixture',  '/f/test/fixtures/fixture-bigobject.fit'],
-  ['oneobject-fixture',  '/f/test/fixtures/fixture-oneobject.fit']
+  ['oneobject-fixture',  '/f/test/fixtures/fixture-oneobject.fit'],
+  // O TERCEIRO ESTADO do recorte: aplicado. O unico golden com cropApply, e o
+  // unico caso permanente em que a palavra 'cropping' SAI da frase -- porque a
+  // ferramenta recortou. Sem ele o estado existe no codigo e nao na suite.
+  ['cropped-fixture',    '/f/test/fixtures/fixture-oneobject.fit', { cropApply: true }]
 ];
 
 /* ------------------------------------------------------------------ *

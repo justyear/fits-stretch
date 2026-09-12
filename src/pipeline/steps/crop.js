@@ -301,14 +301,40 @@ function stepCrop(img, params, report){
   var coverageBefore = obj.pixels / frameArea;
   var coverageAfter = obj.pixels / (rw * rh);
 
+  /* --- APLICAR, e so por pedido explicito -----------------------------
+   *
+   * `params.apply` so chega aqui vindo de um clique. A cadeia nunca o liga
+   * sozinha, e a diferenca entre este ramo e o de cima e a diferenca entre uma
+   * sugestao e o recorte automatico que seria errado.
+   *
+   * O quadro e recortado DEPOIS de tudo que mede: as medianas, o esticamento e
+   * a cor do log descrevem o quadro INTEIRO, e o bloco do log diz isso. Recortar
+   * antes mudaria os numeros que a pessoa ja viu, e a mesma imagem passaria a
+   * ter dois logs diferentes conforme o clique.
+   */
+  var out = img;
+  if (params.apply){
+    var cw = rw, chh = rh, cN = cw * chh;
+    var cut2 = alloc(Float32Array, cN * ch, 'the cropped frame');
+    for (var cc = 0; cc < ch; cc++){
+      var sB = cc * N, dB = cc * cN;
+      for (var yy = 0; yy < chh; yy++){
+        var sRow = sB + (cy0 + yy) * w + cx0, dRow = dB + yy * cw;
+        for (var xx = 0; xx < cw; xx++) cut2[dRow + xx] = data[sRow + xx];
+      }
+    }
+    out = new Image(cut2, cw, chh, ch);
+  }
+
   report({
     id: 'crop',
     name: 'Suggested crop',
-    // SUGGESTED IS NOT APPLIED. Nothing happened to a single pixel, and the
-    // "Not applied" sentence is unaffected: `notAppliedLabels` drops a label
-    // only for a record claiming `applied`. Section 3.3, and it is the whole
-    // difference between this and the automatic crop that would be wrong.
-    applied: false,
+    // SUGERIR NAO E APLICAR. Com `applied: false` a frase "Not applied" fica
+    // intacta, porque `notAppliedLabels` so derruba um rotulo para um record que
+    // reivindica `applied` -- secao 3.3, e e a diferenca inteira entre isto e o
+    // recorte automatico. Com o clique, `applied` vira true e a palavra sai da
+    // frase, que e o comportamento certo: aí o recorte aconteceu.
+    applied: !!params.apply,
     suggested: true,
     reason: null,
     params: effective,
@@ -323,8 +349,9 @@ function stepCrop(img, params, report){
     coverageBefore: coverageBefore,
     coverageAfter: coverageAfter,
     coverageGuard: coverageGuard,
+    outputSize: params.apply ? [rw, rh] : null,
     notes: []
   });
 
-  return img;
+  return out;
 }

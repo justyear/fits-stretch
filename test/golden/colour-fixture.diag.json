@@ -133,19 +133,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 66,
-    "preview": 45,
-    "stats": 90,
-    "background": 345,
-    "colour": 504,
-    "transfer": 708,
-    "saturation": 502,
-    "halfScale": 398,
-    "crop": 147,
-    "quantise": 82,
+    "header": 1,
+    "decode": 32,
+    "preview": 29,
+    "stats": 87,
+    "background": 319,
+    "colour": 667,
+    "transfer": 848,
+    "saturation": 373,
+    "crop": 128,
+    "halfScale": 346,
+    "quantise": 100,
     "downscale": 0,
-    "total": 2210
+    "total": 2125
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",

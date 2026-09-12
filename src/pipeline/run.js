@@ -385,6 +385,9 @@ async function openFile(buffer, fileName, opts, post){
     cropDensity: 0.50,
     cropMargin: 0.08,
     cropMinFrame: 0.20,
+    // Aplicar o recorte. FALSO, e so um clique muda isso. Enquadramento e
+    // autoria: a cadeia sugere e nunca decide.
+    cropApply: false,
     // O parametro cropMaxCoverage saiu: a salvaguarda dele e vazia por
     // construcao da cadeia -- ver o comentario em steps/crop.js -- e um
     // parametro que nao governa nada e uma salvaguarda aparente. O record
@@ -577,6 +580,37 @@ async function runChain(params, mode, post){
     mark('saturation', step);
   }
 
+  /* Recorte sugerido ----------------------------------------------------
+   *
+   * DEPOIS do esticamento, porque a mascara de sinal e `Y > ceu + 2,5 sigma` e
+   * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
+   * o objeto inteiro mora nos primeiros centesimos do eixo.
+   *
+   * ANTES da meia escala, porque se o recorte for aplicado a copia reduzida tem
+   * que ser do quadro recortado. Sem isso o segundo botao entregaria um enquadr-
+   * amento que a pessoa acabou de descartar.
+   *
+   * `work` so e reatribuido quando `cropApply` vem de um clique. Sem ele a etapa
+   * nao toca em pixel nenhum: mede, escreve o retangulo no record, e devolve o
+   * mesmo quadro.
+   */
+  if (full && params.crop){
+    await yieldNow();
+    step = Date.now();
+    stage('Looking for the object', 85);
+    work = stepCrop(work, {
+      sigma: params.cropSigma,
+      window: params.cropWindow,
+      density: params.cropDensity,
+      margin: params.cropMargin,
+      minFrame: params.cropMinFrame,
+      // So chega true vindo de um clique. A cadeia nunca liga sozinha.
+      apply: !!params.cropApply,
+      stride: SESSION.statStride
+    }, report);
+    mark('crop', step);
+  }
+
   /* Half-scale copy ----------------------------------------------------
    *
    * A SECOND OUTPUT, NOT A REPLACEMENT. `work` is not reassigned: the chain
@@ -607,35 +641,6 @@ async function runChain(params, mode, post){
       halfW = halfImg.w; halfH = halfImg.h;
     }
     mark('halfScale', step);
-  }
-
-  /* Recorte sugerido ----------------------------------------------------
-   *
-   * DEPOIS do esticamento, porque a mascara de sinal e `Y > ceu + 2,5 sigma` e
-   * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
-   * o objeto inteiro mora nos primeiros centesimos do eixo.
-   *
-   * NAO reatribui `work`, e nao tem como: a etapa nao toca em pixel nenhum. Ela
-   * mede, escreve o retangulo no record, e devolve o mesmo quadro. Aplicar e um
-   * clique, e o clique e o passo 5.
-   *
-   * Antes ou depois da meia escala e indiferente hoje -- nenhuma das duas le a
-   * outra. Fica depois porque a meia escala e a que produz arquivo, e a ordem
-   * do log segue a ordem em que as coisas acontecem com os pixels.
-   */
-  if (full && params.crop){
-    await yieldNow();
-    step = Date.now();
-    stage('Looking for the object', 85);
-    stepCrop(work, {
-      sigma: params.cropSigma,
-      window: params.cropWindow,
-      density: params.cropDensity,
-      margin: params.cropMargin,
-      minFrame: params.cropMinFrame,
-      stride: SESSION.statStride
-    }, report);
-    mark('crop', step);
   }
 
   // Quantise ----------------------------------------------------------

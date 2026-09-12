@@ -26,10 +26,11 @@ Processing log — fixture-gradient.fit
     20 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
     This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• No crop suggested: the largest extended object covers 8.4% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at.
 • Half-scale copy, offered as a second download and not applied to the file above: 1600 × 1200 reduced to 800 × 600 by averaging each 2 × 2 block.
     Four independent pixels become one, so the noise in the sky falls by a factor of 1.98 — measured on this frame, across 1,773,246 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
     No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has.
     This copy is offered because it is easier to share, not because it is better. The full-resolution one is the honest size of what your telescope recorded.
-• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
+• Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.

@@ -25,10 +25,11 @@ Processing log — fixture-twoobjects.fit
     Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 3.2e-14 of a turn across 1,920,000 pixels. Background chroma noise grew 0.00%.
     This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• No crop suggested: this frame has 2 extended objects large enough to be the subject, and choosing one of them would be deciding the composition for you — two objects in a frame are usually there on purpose.
 • Half-scale copy, offered as a second download and not applied to the file above: 1601 × 1200 reduced to 800 × 600 by averaging each 2 × 2 block.
     Four independent pixels become one, so the noise in the sky falls by a factor of 1.96 — measured on this frame, across 1,282,972 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
     No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has. The last column was dropped rather than interpolated, because interpolating would correlate neighbouring pixels and the number above would stop meaning anything.
     This copy is offered because it is easier to share, not because it is better. The full-resolution one is the honest size of what your telescope recorded.
-• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
+• Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.

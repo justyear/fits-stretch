@@ -48,6 +48,27 @@ var CATALOGUE = [
    */
   { id: 'saturation',    label: 'saturation' },
   { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
+  /* CROPPING ENTRA NA FRASE, e o estado novo nao muda o mecanismo.
+   *
+   * A secao 3.3 do Modulo 5a pede que o registry trate "applied: false" com
+   * "suggested: true". Medido: nao precisa de nada. `notAppliedLabels` derruba
+   * um rotulo quando um record reivindica "applied", e um record que apenas
+   * SUGERE nao reivindica -- entao a frase continua negando o recorte, que e
+   * exatamente o certo, porque nada foi recortado.
+   *
+   *   nao sugeriu           nega        nada foi feito
+   *   sugeriu, nao aplicou  NEGA        nada foi feito -- sugerir nao e fazer
+   *   aplicou               nao nega    o recorte aconteceu
+   *
+   * A segunda linha e a que importa e e a que um "suggested" mal tratado
+   * quebraria: uma ferramenta que parasse de afirmar que nao recorta porque
+   * OFERECEU recortar estaria cobrando pelo que nao entregou.
+   *
+   * Isto acrescenta uma palavra a uma frase que gente ja colou em publico, e e
+   * de proposito: a ferramenta agora sabe recortar, entao negar que recortou e
+   * informacao nova e verdadeira.
+   */
+  { id: 'crop',          label: 'cropping' },
   { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
   { id: 'background',    label: 'background extraction' },
   // The debt below came due in Module 2. `colour-cal` no longer answers for the
