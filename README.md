@@ -120,7 +120,12 @@ Processing log — fixture-gradient.fit
     649 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
     This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
-• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
+• No crop suggested: the largest extended object covers 8.6% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at.
+• Half-scale copy, offered as a second download and not applied to the file above: 1600 × 1200 reduced to 800 × 600 by averaging each 2 × 2 block.
+    Four independent pixels become one, so the noise in the sky falls by a factor of 1.98 — measured on this frame, across 1,768,443 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
+    No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has.
+    This copy is offered because it is easier to share, not because it is better. The full-resolution one is the honest size of what your telescope recorded.
+• Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.
 ```
@@ -155,19 +160,27 @@ the two apart.
 
 The log every image comes with ends with a sentence like this one:
 
-> Not applied: noise reduction, sharpening, deconvolution, star removal,
-> colour grading, or any AI or generative step.
+> Not applied: noise reduction, sharpening, deconvolution, cropping, star
+> removal, colour grading, or any AI or generative step.
 
 That sentence is generated, not typed. It is the list of everything the tool
 knows how to name, minus whatever actually ran. If a step is ever added and it
 runs, the sentence drops that word by itself. It cannot go stale, because
 nobody maintains it.
 
-**That is not a claim about the future — it already happened.** Up to v1.2.0 the
-sentence read *"noise reduction, sharpening, **saturation**, deconvolution…"*.
-Selective saturation shipped in v1.3.0, and the word left the sentence on its
-own, because the step now reports that it ran. Nobody edited that line; the two
-halves of this paragraph are a commit apart.
+**That is not a claim about the future — it has already happened twice, in both
+directions.** Up to v1.2.0 the sentence read *"noise reduction, sharpening,
+**saturation**, deconvolution…"*; selective saturation shipped in v1.3.0 and the
+word **left** on its own, because the step now reports that it ran. In v1.4.0 the
+word **cropping** arrived, because the tool learned to crop and did not — and a
+denial only means something when it names something the tool can actually do.
+Nobody edited that line either time.
+
+**And the arriving word is the one that earns its place.** The page draws a
+rectangle over your image suggesting where to crop. That rectangle lives on the
+screen and never in the file — and the sentence above is the only place where
+"we did not crop it" is written down. Without the word, a reader who saw the
+rectangle would have nowhere to check.
 
 **Nothing here invents detail.** No neural network, no upscaling, no
 "enhancement". Every number in the log was measured from your file, and the log
@@ -201,6 +214,22 @@ What it *does* do, and says so:
   bright core does not become a flat disc of colour. Hue does not move — all
   three channels are scaled by the same number, and the log prints the largest
   hue change it measured on your frame
+- **offers a half-scale copy, as a second button and never as the default.**
+  Averaging each 2 × 2 block turns four independent pixels into one, so the noise
+  in the sky falls by two — and the log prints the factor it *measured* on your
+  frame against the 2.00 that exact averaging predicts. The full-resolution file
+  stays the default, because the reduced one looks better only because it hid
+  noise, and a tool that shipped that by default would be doing the thing it
+  promises not to. When the measured factor does not hold — a demosaiced frame
+  has correlated neighbours and only reaches 1.29 — **the button does not appear
+  at all**, and says why. Telling the truth in a log most people do not read is
+  not the same as not promising
+- **finds the object and suggests a crop, and never applies it.** The rectangle
+  is drawn over the image with the consequence in numbers — *"the object goes
+  from 29 % of the frame to 42 %"* — and nothing happens until you click. Two
+  extended objects in one frame is a deliberate composition, so it does not
+  suggest at all and says so: choosing one of them would be deciding your picture
+  for you
 - writes an 8-bit PNG, and a log describing all of the above with numbers
 
 The sky levelling, the measured colour balance and the linked stretch are the
@@ -250,7 +279,7 @@ automated:
 | command | the question it answers |
 |---|---|
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? |
-| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (426 comparisons across eight test frames; the eleven that stay unanswered are the ones the Python declines to cover, plus one path neither side exercises -- and each says so in its own line rather than being excused here) |
+| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (865 comparisons across twelve test frames, 0 failures; the twenty-five that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
 | `test\compare-safeguards.ps1` | can the two rules that no test frame trips still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing. The second rule is the saturation one: it refuses if scaling chroma would raise the colour noise of the sky by more than 2%, which the correct code cannot do -- so the control runs a deliberately mis-wired mask through the same chain and requires it to refuse at 45% |
