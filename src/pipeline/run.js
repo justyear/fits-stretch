@@ -91,6 +91,8 @@ function plainRecords(records){
       suggested: (r.suggested === undefined) ? null : r.suggested,
       reason: r.reason || null,
       frameSize: r.frameSize || null,
+      skyMedian: (r.skyMedian === undefined) ? null : r.skyMedian,
+      skyMadn: (r.skyMadn === undefined) ? null : r.skyMadn,
       signalPixels: (r.signalPixels === undefined) ? null : r.signalPixels,
       extendedPixels: (r.extendedPixels === undefined) ? null : r.extendedPixels,
       components: (r.components === undefined) ? null : r.components,

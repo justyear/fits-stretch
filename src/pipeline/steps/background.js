@@ -151,9 +151,38 @@ function bgEvalTPS(fit, c, uu, vv){
 // is what the correction will actually use; bgEvalTPS is what it is checked
 // against.
 function bgSampleGrid(surface, c, x, y){
-  var d = surface.divisor, gw = surface.gw, g = surface.grid[c];
+  var d = surface.divisor, gw = surface.gw, gh = surface.gh, g = surface.grid[c];
   var fx = x / d, fy = y / d;
   var gx = fx | 0, gy = fy | 0;
+
+  /* O NO DE CIMA TEM QUE EXISTIR. Bilinear le `gx` e `gx+1`, e quando o pixel
+   * cai EXATAMENTE no ultimo no da grade o `gx+1` nao existe -- a leitura sai
+   * da linha (ou do array, na ultima linha), devolve `undefined`, e
+   * `undefined - numero` e NaN. O `tx` vale 0 ali, mas `NaN * 0` continua NaN.
+   *
+   * Quando isso acontece: `gw = ceil((w-1)/d) + 1`, entao o ultimo no cai em
+   * `x = w-1` exatamente quando `(w-1)` e multiplo do divisor. Com w par e
+   * divisor potencia de dois isso quase nunca acontece; com w = 1601 e divisor
+   * 16, `1600/16 = 100` cai em cheio no ultimo no e a coluna inteira vira NaN.
+   *
+   * MEDIDO antes do conserto: os tres fixtures de largura impar saiam com a
+   * ultima coluna preta -- `quantise.clamped.nonFinite = 3600`, que e 1200
+   * linhas x 3 canais. O numero estava no record desde sempre e nenhuma
+   * comparacao o lia.
+   *
+   * O conserto e recuar o no de baixo e deixar o `tx` compensar: em x = w-1
+   * sai `g[gw-2] + (g[gw-1] - g[gw-2]) * 1`, que e `g[gw-1]` exato. Nao e
+   * aproximacao -- e o mesmo valor, por um caminho que existe.
+   */
+  var mx = gw - 2, my = gh - 2;
+  if (mx < 0) mx = 0;
+  if (my < 0) my = 0;
+  if (gx > mx) gx = mx;
+  if (gy > my) gy = my;
+  // Grade degenerada (um no numa direcao): nao ha par para interpolar e o
+  // proprio no e a resposta.
+  if (gw < 2 || gh < 2) return g[gy * gw + gx];
+
   var tx = fx - gx, ty = fy - gy;
   var i00 = gy * gw + gx;
   var a = g[i00] + (g[i00 + 1] - g[i00]) * tx;
@@ -381,14 +410,30 @@ function bgFitSurface(points, w, h, nch, smoothing, startDivisor){
  * finally decided.
  */
 function bgApplyCorrection(data, surface, w, h, N, nch, mode){
-  var divisor = surface.divisor, gw = surface.gw;
+  var divisor = surface.divisor, gw = surface.gw, gh = surface.gh;
   var rowbuf = new Float64Array(gw);
 
-  // gx and tx depend only on x, so they are computed once for the whole frame
-  // instead of once per pixel per channel.
+  /* O MESMO RECUO DE NO QUE `bgSampleGrid` FAZ, E PELO MESMO MOTIVO.
+   *
+   * Esta e a SEGUNDA copia da interpolacao bilinear da grade -- ela existe
+   * porque `gx` e `tx` so dependem de x e sao calculados uma vez para o quadro
+   * inteiro em vez de uma vez por pixel por canal, o que vale a duplicacao num
+   * laco que roda N*3 vezes.
+   *
+   * Mas duas copias da mesma aritmetica e a classe que este projeto ja pagou:
+   * o conserto do no de borda foi escrito em `bgSampleGrid` e ESTA COPIA
+   * CONTINUOU QUEBRADA. As duas leem `[gx+1]` e `[linha+gw]`, e as duas caem
+   * fora quando o pixel cai exatamente no ultimo no.
+   *
+   * Se esta duplicacao precisar mudar de novo, junte as duas primeiro.
+   */
+  var mxg = gw - 2; if (mxg < 0) mxg = 0;
+  var myg = gh - 2; if (myg < 0) myg = 0;
+
   var gxA = new Int32Array(w), txA = new Float64Array(w);
   for (var x = 0; x < w; x++){
     var fx = x / divisor, gx = fx | 0;
+    if (gx > mxg) gx = mxg;
     gxA[x] = gx; txA[x] = fx - gx;
   }
 
@@ -405,7 +450,9 @@ function bgApplyCorrection(data, surface, w, h, N, nch, mode){
     var negatives = 0, guarded = 0;
 
     for (var y = 0; y < h; y++){
-      var fy = y / divisor, gy = fy | 0, ty = fy - gy;
+      var fy = y / divisor, gy = fy | 0;
+      if (gy > myg) gy = myg;
+      var ty = fy - gy;
       var r0 = gy * gw, r1 = r0 + gw;
       for (var k = 0; k < gw; k++) rowbuf[k] = g[r0 + k] + (g[r1 + k] - g[r0 + k]) * ty;
 

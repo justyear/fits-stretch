@@ -134,18 +134,18 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 5,
+    "decode": 10,
     "preview": 1,
-    "stats": 10,
-    "background": 58,
-    "colour": 65,
-    "transfer": 90,
-    "saturation": 47,
-    "crop": 16,
-    "halfScale": 50,
-    "quantise": 7,
+    "stats": 18,
+    "background": 102,
+    "colour": 97,
+    "transfer": 128,
+    "saturation": 76,
+    "crop": 25,
+    "halfScale": 72,
+    "quantise": 19,
     "downscale": 0,
-    "total": 309
+    "total": 476
   },
   "historyCards": [
     "Small frame: the default edge margin reaches the sample grid.",
