@@ -93,6 +93,13 @@ for fn, label in JOBS:
         signalPixels=dict(count=cr['signalPixels'] if cr else 0,
                           threshold=mY + 2.5*sY,
                           density=threshold_density(Yc, mY + 2.5*sY)))
+    if cr is not None and '_components' in cr:
+        # Curva de COMPONENTES: quantos nascem ou morrem quando o limiar
+        # anda Delta. A cota em pixels era limite superior valido mas 80x
+        # a propria grandeza -- aprovaria 12 contra 0.
+        dens['recorte']['componentes'] = dict(
+            count=cr['components'], threshold=cr['_sigThreshold'],
+            density=cr['_components'])
     if cr is not None and '_occupancy' in cr:
         # A cota de components e extendedPixels precisa das trocas no limiar
         # de OCUPACAO, nao so no de sinal. Delta aqui e adimensional.

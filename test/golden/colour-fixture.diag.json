@@ -133,18 +133,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 78,
-    "preview": 48,
-    "stats": 91,
-    "background": 362,
-    "colour": 525,
-    "transfer": 764,
-    "saturation": 528,
-    "crop": 175,
-    "quantise": 97,
+    "header": 1,
+    "decode": 74,
+    "preview": 47,
+    "stats": 94,
+    "background": 361,
+    "colour": 549,
+    "transfer": 776,
+    "saturation": 545,
+    "crop": 171,
+    "quantise": 93,
     "downscale": 0,
-    "total": 1932
+    "total": 1963
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",

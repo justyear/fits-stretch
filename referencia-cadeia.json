@@ -3286,6 +3286,17 @@
               "1.0e-02": 13253
             }
           },
+          "componentes": {
+            "count": 260,
+            "threshold": 0.15453734928369522,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 1,
+              "1.0e-04": 1,
+              "1.0e-03": 5
+            }
+          },
           "extendedPixels": {
             "count": 50309,
             "threshold": 0.5,
@@ -4076,6 +4087,17 @@
               "1.0e-04": 9,
               "1.0e-03": 112,
               "1.0e-02": 1085
+            }
+          },
+          "componentes": {
+            "count": 46,
+            "threshold": 0.4888327955454588,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 0,
+              "1.0e-04": 0,
+              "1.0e-03": 0
             }
           },
           "extendedPixels": {
@@ -9279,6 +9301,17 @@
               "1.0e-04": 261,
               "1.0e-03": 2695,
               "1.0e-02": 28262
+            }
+          },
+          "componentes": {
+            "count": 447,
+            "threshold": 0.15478174713999032,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 1,
+              "1.0e-05": 2,
+              "1.0e-04": 2,
+              "1.0e-03": 9
             }
           },
           "extendedPixels": {
@@ -15023,6 +15056,17 @@
               "1.0e-02": 25364
             }
           },
+          "componentes": {
+            "count": 496,
+            "threshold": 0.1561477378476411,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 1,
+              "1.0e-04": 3,
+              "1.0e-03": 7
+            }
+          },
           "extendedPixels": {
             "count": 567202,
             "threshold": 0.5,
@@ -15494,6 +15538,17 @@
               "1.0e-04": 13,
               "1.0e-03": 84,
               "1.0e-02": 942
+            }
+          },
+          "componentes": {
+            "count": 17,
+            "threshold": 0.15465743562020362,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 0,
+              "1.0e-04": 0,
+              "1.0e-03": 0
             }
           },
           "extendedPixels": {
@@ -22349,6 +22404,17 @@
               "1.0e-02": 50297
             }
           },
+          "componentes": {
+            "count": 577,
+            "threshold": 0.1559629896376282,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 2,
+              "1.0e-04": 4,
+              "1.0e-03": 11
+            }
+          },
           "extendedPixels": {
             "count": 396091,
             "threshold": 0.5,
@@ -22848,6 +22914,17 @@
               "1.0e-02": 19674
             }
           },
+          "componentes": {
+            "count": 0,
+            "threshold": 0.1548214031085372,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 0,
+              "1.0e-04": 0,
+              "1.0e-03": 0
+            }
+          },
           "extendedPixels": {
             "count": 0,
             "threshold": 0.5,
@@ -22880,7 +22957,7 @@
       }
     },
     "oneobject": {
-      "sha256": "88c6e9241f4bbef2f6f31c87784937ce6e2d5cfe34634df7478e1b1f1abb2061",
+      "sha256": "b8a6a1d643d339f64adceb86682b84e1beebfc837e8583faebcfc166cee0ddba",
       "decode": {
         "width": 1601,
         "height": 1200,
@@ -26570,13 +26647,14 @@
           743
         ],
         "rect": [
-          92,
-          101,
-          1333,
-          999
+          199,
+          181,
+          1119,
+          839
         ],
         "coverageBefore": 0.28987455756818653,
-        "coverageAfter": 0.41820289907311664
+        "coverageAfter": 0.593185640593029,
+        "coverageGain": 2.0463528968163938
       },
       "densidadePorLimiar": {
         "selecaoEstelar": {
@@ -26655,6 +26733,17 @@
               "1.0e-02": 25070
             }
           },
+          "componentes": {
+            "count": 319,
+            "threshold": 0.15611308029852808,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 1,
+              "1.0e-05": 1,
+              "1.0e-04": 9,
+              "1.0e-03": 17
+            }
+          },
           "extendedPixels": {
             "count": 557460,
             "threshold": 0.5,
@@ -26687,7 +26776,7 @@
       }
     },
     "twoobjects": {
-      "sha256": "22b360b83ecf1707227df18cea5583e82cc06f6c1142ebb242152968dcaff6c9",
+      "sha256": "e22ce4da4f916fdb92e08a91fc8c6ba2924e60b79ebca7084f75625accec2ffa",
       "decode": {
         "width": 1601,
         "height": 1200,
@@ -30219,6 +30308,17 @@
               "1.0e-02": 32362
             }
           },
+          "componentes": {
+            "count": 298,
+            "threshold": 0.16983547079656275,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 0,
+              "1.0e-04": 5,
+              "1.0e-03": 24
+            }
+          },
           "extendedPixels": {
             "count": 643228,
             "threshold": 0.5,
@@ -30251,7 +30351,7 @@
       }
     },
     "bigobject": {
-      "sha256": "df90a23e2ecdc6202d0735b6aeee944f4240745b0fb714e0c53f7a8772c69ade",
+      "sha256": "03c1796ed7ab7ee645535527f869ac6c7642641b92e7203fc6ada80133e79f7b",
       "decode": {
         "width": 1601,
         "height": 1200,
@@ -30626,6 +30726,17 @@
               "1.0e-02": 16348
             }
           },
+          "componentes": {
+            "count": 11,
+            "threshold": 0.15534451117552817,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "1.0e-05": 0,
+              "1.0e-04": 1,
+              "1.0e-03": 10
+            }
+          },
           "extendedPixels": {
             "count": 147,
             "threshold": 0.5,
@@ -30658,7 +30769,7 @@
       }
     },
     "cropped": {
-      "sha256": "88c6e9241f4bbef2f6f31c87784937ce6e2d5cfe34634df7478e1b1f1abb2061",
+      "sha256": "b8a6a1d643d339f64adceb86682b84e1beebfc837e8583faebcfc166cee0ddba",
       "decode": {
         "width": 1601,
         "height": 1200,
@@ -30779,34 +30890,34 @@
       "meiaEscala": {
         "applied": true,
         "inputSize": [
-          1333,
-          999
+          1119,
+          839
         ],
         "outputSize": [
-          666,
-          499
+          559,
+          419
         ],
         "droppedRow": true,
         "droppedColumn": true,
         "noise": {
-          "skyMedian": 0.10198117047548294,
-          "skyMadn": 0.06369943750798703,
-          "skyHighFreqBefore": 0.011808603896733905,
-          "skyHighFreqAfter": 0.0060530842755360005,
-          "ratio": 1.9508408208455439,
-          "skyHighFreqSpanBefore": 0.0423734737560153,
-          "skyHighFreqSpanAfter": 0.021501626819372177,
+          "skyMedian": 0.24543215334415436,
+          "skyMadn": 0.1338188338905573,
+          "skyHighFreqBefore": 0.009266278741614276,
+          "skyHighFreqAfter": 0.0047347274770989985,
+          "ratio": 1.9570880872095708,
+          "skyHighFreqSpanBefore": 0.03419183939695358,
+          "skyHighFreqSpanAfter": 0.017541691660881042,
           "expectedRatio": 2.0,
           "band": [
             1.8,
             2.2
           ],
-          "whiteness": 0.9802530096811655,
+          "whiteness": 0.9772961680281278,
           "whitenessLag": 4,
-          "skyPixels": 924410,
-          "skyPixelsReduced": 226678,
-          "samplesBefore": 914952,
-          "samplesAfter": 224472
+          "skyPixels": 938127,
+          "skyPixelsReduced": 233891,
+          "samplesBefore": 937031,
+          "samplesAfter": 233307
         },
         "offered": true
       },
@@ -34348,13 +34459,14 @@
           743
         ],
         "rect": [
-          92,
-          101,
-          1333,
-          999
+          199,
+          181,
+          1119,
+          839
         ],
         "coverageBefore": 0.28987455756818653,
-        "coverageAfter": 0.41820289907311664
+        "coverageAfter": 0.593185640593029,
+        "coverageGain": 2.0463528968163938
       },
       "densidadePorLimiar": {
         "selecaoEstelar": {
@@ -34433,6 +34545,17 @@
               "1.0e-02": 25070
             }
           },
+          "componentes": {
+            "count": 319,
+            "threshold": 0.15611308029852808,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 1,
+              "1.0e-05": 1,
+              "1.0e-04": 9,
+              "1.0e-03": 17
+            }
+          },
           "extendedPixels": {
             "count": 557460,
             "threshold": 0.5,
@@ -34447,7 +34570,7 @@
         },
         "meiaEscala": {
           "skyPixels": {
-            "count": 924410,
+            "count": 938127,
             "threshold": 0.17033569617941974,
             "density": {
               "1.0e-07": 0,
@@ -34464,5 +34587,10 @@
         }
       }
     }
+  },
+  "decodeRawExato": {
+    "regra": "rawMin e rawMax sao EXATOS, cota zero",
+    "derivacao": "os dois lados leem os mesmos bytes e aplicam valor*BSCALE+BZERO. Nao ha estimador, nao ha limiar, nao ha quantizacao: a operacao e exata dos dois lados. Uma divergencia de 1 ADU significa que um dos dois leu BZERO, BSCALE ou a ordem dos bytes diferente -- que e o que este bloco existe para pegar, e a cota do eixo [0,1] perdoava.",
+    "medido": {}
   }
 }

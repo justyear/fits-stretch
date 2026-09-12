@@ -1786,8 +1786,8 @@
       1080
     ],
     "outputSize": null,
-    "skyMedian": null,
-    "skyMadn": null,
+    "skyMedian": 0.08542000457770657,
+    "skyMadn": 0.027778662776366987,
     "signalPixels": 43752,
     "extendedPixels": 3119,
     "components": 24,

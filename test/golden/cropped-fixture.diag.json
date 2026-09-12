@@ -133,18 +133,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 29,
-    "preview": 23,
-    "stats": 70,
-    "background": 269,
-    "colour": 501,
-    "transfer": 627,
-    "saturation": 258,
-    "crop": 136,
-    "quantise": 53,
+    "header": 1,
+    "decode": 79,
+    "preview": 86,
+    "stats": 111,
+    "background": 1234,
+    "colour": 781,
+    "transfer": 1097,
+    "saturation": 1030,
+    "crop": 446,
+    "quantise": 97,
     "downscale": 0,
-    "total": 1350
+    "total": 3921
   },
   "historyCards": [
     "CROP synthetic frame for the suggested-crop step.",

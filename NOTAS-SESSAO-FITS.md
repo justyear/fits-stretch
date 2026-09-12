@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **270.289 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **270.939 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -1971,7 +1971,7 @@ A etapa da meia escala foi removida — não desligada — depois da primeira ro
 em dado real: ver *"A classe mais cara da sessão"* acima, e a §2 do
 `modulo-5a-spec.md`, que ficou no lugar dela. Saíram `half-scale.js`, o segundo
 botão, o bloco do log, os campos do record, as curvas da referência, o bloco do
-comparador e a entrada do registry. Depois da remoção: **689 comparações,
+comparador e a entrada do registry. Hoje a suíte está em **701 comparações,
 0 FAIL**.
 
 O recorte ficou, com a margem consertada (fração do objeto, não do quadro) e uma
@@ -1979,19 +1979,18 @@ salvaguarda nova de ganho mínimo (1,5×).
 
 O que está aberto, em ordem de peso:
 
-**1. 15 FAIL, e TODOS são deriva de spec — nenhum é defeito.** `compare-reference`
-está em **701 comparações, 572 PASS, 25 N/A, 15 FAIL**. Três causas, todas
-esperadas e todas do lado de lá:
+**1. ~~15 FAIL de deriva de spec~~ — FECHADO. `compare-reference` está em 701
+comparações, 0 FAIL.** A outra ponta recebeu os três fixtures novos, adotou a
+margem como fração da caixa e emitiu as curvas que faltavam; este lado passou a
+gravar a medição do céu também no caminho que recusa. As dez linhas do retângulo
+que tinham virado FAIL ao ganhar a cota certa voltaram a PASS **pelo motivo
+certo**: os dois lados calculam o mesmo retângulo.
 
-| linhas | causa |
-|---|---|
-| `cadeia.sha256` nos três fixtures de recorte (3) | o card `HISTORY` da largura ímpar foi corrigido aqui e os três `.fit` mudaram de sha256 — a outra ponta precisa dos arquivos novos |
-| `recorte.cobertura.depois` em `oneobject` e `cropped` (2) | 0,593 contra 0,418: a margem virou fração do objeto deste lado |
-| `rect(formula)` e `rect.*` nos dois (10) | a mesma causa, agora **visível** — antes eram oito PASS~ |
-
-Fecha quando a referência receber os três fixtures e adotar
-`margem × max(largura, altura) DA CAIXA`. **Nada a consertar deste lado**, e as
-dez linhas novas são o comparador finalmente enxergando a mudança.
+```
+caixa        279,229,960,743   dos dois lados
+retangulo    199,181,1119,839  dos dois lados
+cobertura    29,0% -> 59,3%    ganho 2,05x
+```
 
 **2. ~~As arestas do retângulo são comparadas pela cota errada~~ — FECHADO, e
 sobrou uma varredura.** `rect.x/y/w/h` passavam pela cota de contagem por limiar
@@ -2032,22 +2031,26 @@ de salvaguardas do Módulo 5a não pareça ter quatro quando tem três.
 por enquanto: um "desfazer" que reconstruísse estado a partir da tela seria o
 começo de uma segunda fonte de verdade.
 
-**7. Três pendências saídas da varredura de unidades** — ver a seção própria
-acima. Em ordem de peso:
+**7. ~~Três pendências da varredura de unidades~~ — as três FECHADAS.**
 
-- **`componentes` tem cota em pixels para uma contagem de componentes** (11
-  linhas, até 80× a própria grandeza). Fecha com uma curva
-  `densidadePorLimiar.recorte.componentes` do lado da referência.
-- **`decode.rawMin/rawMax` usam a cota do eixo [0,1] para um valor em ADU** (6
-  linhas, ±2,07 ADU no `seestar`). A cota certa é zero, derivada, e a diferença
-  medida já é zero — falta a decisão de fechar.
-- **418 cotas, 1 controle negativo.** A máquina existe no
-  `negative-controls.ps1` e exercita um campo só. A varredura é: para cada
-  campo, 0,5× a cota esperando PASS e 3× esperando FAIL.
+- **`componentes`** ganhou curva própria na referência
+  (`densidadePorLimiar.recorte.componentes`): a cota do `bigobject` caiu de
+  **960,6 para 1**, e a linha passa por 1 contra 1.
+- **`extenso.pixels`** passou a somar as duas fronteiras, sinal + ocupação, com
+  o Δ da ocupação derivado de `1/janela²` — a resolução daquele eixo.
+- **`decode.rawMin/rawMax`** viraram exatos, cota zero, com a derivação lida do
+  `decodeRawExato` da referência em vez de repetida aqui.
+- **O controle negativo em varredura** existe: `negative-controls-reference.ps1`,
+  53 campos, 0 divergentes.
 
-E uma frase gerada que ficou falsa: `extenso.pixels` e `componentes` dizem
-*"falta densidadePorLimiar.recorte.extendedPixels"* e a curva existe desde o
-passo 7 — o comparador é que não a lê.
+Fica aberto o que a varredura **descobriu**, e é pequeno:
+
+- **A tabela do varredor cobre 53 das 418 linhas com cota** — as 45 propagadas e
+  as 8 de posição, que foi por onde começar. Crescer é uma linha na tabela mais
+  um ramo em `Set-GoldenField`.
+- **A cota de `componentes` cobre a fronteira do sinal**, e cobre a da ocupação
+  **se** a referência recomputa a ocupação ao mover o limiar de sinal. Está
+  escrito na linha. Se não recomputa, falta o termo e ele não tem curva.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -2646,3 +2649,118 @@ desde o passo 7 — `x: 1,0e-04 … 4,0e-02`, no eixo da ocupação — e o comp
 nunca a lê. A linha descreve uma falta que não existe mais e aponta para a outra
 ponta. Fecha somando as duas densidades, como o `amountCheio` do Módulo 4 já
 faz.
+
+## A frase gerada que apontava para a outra ponta
+
+Irmã de *"um número entregue e não lido"*, e mais difícil de pegar: **uma frase
+gerada que nomeia uma falta que já não existe, e a atribui a quem está do outro
+lado.**
+
+`extenso.pixels` e `componentes` imprimiam, em toda rodada:
+
+> `cota PARCIAL: falta densidadePorLimiar.recorte.extendedPixels`
+
+A curva estava na referência **desde o passo 7**. Três coisas a mantiveram viva:
+
+1. **Era verdadeira quando foi escrita.** Envelheceu; não nasceu errada.
+2. **Nomeava uma dívida da OUTRA ponta.** Ninguém deste lado tinha o que fazer
+   com ela, e a outra ponta não lê esta saída linha por linha.
+3. **A linha que ela decorava passava sempre**, porque a cota de que ela caía
+   era grande demais para reprovar qualquer coisa. **Uma frase falsa numa linha
+   verde não tem leitor.**
+
+A terceira é a que liga esta classe à quinta instância da cota no eixo errado:
+as duas sobreviveram pelo mesmo motivo, um PASS que ninguém olha.
+
+**A regra, e ela é a mesma de *"uma frase que nunca muda é decoração"*:** uma
+frase que nomeia um insumo faltando tem que ser **gerada a partir da ausência do
+insumo**, nunca escrita como prosa ao lado. Hoje é: `Compare-Threshold-Sum`
+monta a lista do `PARCIAL, falta:` com os termos cuja curva voltou nula. Se a
+curva chegar, a frase some sozinha — e se sumir, ela volta.
+
+## O controle negativo em varredura, e o que ele achou na primeira rodada
+
+**418 cotas, 1 controle** virou **53 controlados e uma máquina que cresce por
+tabela**: `test/negative-controls-reference.ps1`.
+
+Para cada campo, o golden é **fixado** em `referência + f × cota` — absoluto, não
+somado ao que já diverge — e o veredito é afirmado:
+
+```
+f = 0,5   ->  NAO pode reprovar    (a cota nao e mais apertada do que diz)
+f = 3,0   ->  TEM que reprovar     (a cota nao e carimbo de borracha)
+```
+
+**Duas rodadas, não duas por campo.** Cada linha lê o próprio campo, e nenhuma
+das cotas sai de um campo da tabela — `ganho` e `razao` tiram a delas do
+`acimaDoPedestal` da referência, `rect.*` do `objectRect`, que não é perturbado.
+Então todos os campos se movem juntos: 53 linhas no tempo de duas rodadas.
+
+E a cota vem **da coluna `cota`** que o comparador passou a emitir, não de um
+número copiado para dentro do script. Um número copiado envelheceria em silêncio
+— foi exatamente o que as âncoras de clip do `negative-controls.ps1` já custaram
+uma vez.
+
+### O primeiro achado foi sobre o instrumento
+
+A primeira rodada acusou as oito linhas de `rect.*` de **"COTA QUE NÃO
+REPROVA"** — o pior veredito possível, e falso. A cota delas existe e vale zero;
+o que faltava era ela **chegar na coluna**: o `New-Row` do bloco construía o
+número, imprimia em prosa e não o passava adiante.
+
+Dois consertos, e o segundo é o que vira regra:
+
+- o comparador passa a cota na chamada;
+- **o varredor só dá veredito ao que ele perturbou.** Uma linha da tabela sem
+  cota na coluna sai numa lista à parte, *"não controláveis"*, com o nome.
+
+> **Um instrumento que julga o que não exercitou é pior que um que se cala.** O
+> veredito errado dele é indistinguível do certo, e ele gasta a confiança que
+> existe para o achado verdadeiro.
+
+### Cota zero é um caso próprio
+
+Multiplicar zero por três não perturba nada, e a rodada leria **PASS** — o
+veredito exato que esta varredura existe para desconfiar. Cota zero **afirma**
+algo diferente: *a menor diferença possível já reprova*. Então por fora o teste
+vira isso — 1 pixel em `rect.*`, o épsilon em `decode.raw*` — e por dentro não há
+o que testar, porque não existe folga dentro de zero. As duas coisas são ditas.
+
+**Medido:** 1 pixel em `rect.w` agora **reprova**. Antes desta rodada, 214
+pixels passavam.
+
+## As duas cotas fecharam, e a segunda abriu sete fixtures
+
+Com as curvas novas da referência:
+
+```
+                       antes          depois
+bigobject componentes  960,6          1        <- 80x a grandeza  ->  1
+oneobject componentes  2543           17
+oneobject extenso.px   2543           2816 = sinal 2543 + ocupacao 273
+```
+
+O `extenso.pixels` soma **duas fronteiras** porque a grandeza passa por duas: um
+pixel está na máscara de extenso se passa no limiar de **sinal** e no de
+**ocupação**. Mesma forma do `amountCheio` do Módulo 4.
+
+O Δ da ocupação é **derivado e não escolhido**: o limiar é 0,50 constante dos
+dois lados, então ele não discorda — quem discorda é a grandeza, e a ocupação é
+uma contagem sobre a janela, quantizada em `1/W` com `W = janela²`. **`1/W` é a
+resolução daquele eixo**, o análogo exato do `4/65535` no eixo [0,1]: o menor
+movimento que pode mudar alguma coisa.
+
+### E o achado que veio de graça: quem recusa também precisa da medição
+
+Sete dos treze fixtures **recusam** o recorte, e eram exatamente os sete sem cota
+derivada — caíam na cota de 0,05% dos pixels do quadro. A causa era uma linha: o
+caminho que recusa não gravava `skyMedian`/`skyMadn`, e sem os dois o comparador
+não tem como calcular o Δ.
+
+**A medição que a etapa não usa é a que o comparador precisa.** O caminho que
+recusa parece o menos interessante — ele não produz retângulo, não muda pixel,
+não muda a frase — e é justamente onde a ausência de um campo de diagnóstico
+passa despercebida, porque nada na tela depende dele.
+
+Depois: **todo fixture com record de recorte tem cota derivada**, e a cota da
+§7 sumiu do bloco.

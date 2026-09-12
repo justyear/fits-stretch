@@ -3751,6 +3751,18 @@ function stepCrop(img, params, report){
     connectivity: CROP_CONNECTIVITY
   };
 
+
+  /* A MEDIANA E O MADN DO CEU VAO EM TODO RECORD, INCLUSIVE NOS QUE RECUSAM.
+   *
+   * Eles nao servem a esta etapa: servem a quem compara. A cota da contagem por
+   * limiar tem que sair do numero que ESTA no limiar, e sem estes dois o
+   * comparador nao consegue calcular o Delta -- cai numa cota de 0,05% dos
+   * pixels do quadro, que para 12 componentes vale 960 e nunca reprova.
+   *
+   * O caminho que recusa e justamente onde isso doia: sete dos treze fixtures
+   * recusam, e eram exatamente os sete sem cota derivada.
+   */
+  var skyRec = null;
   function refuse(reason, extra){
     var rec = {
       id: 'crop', name: 'Suggested crop',
@@ -3766,6 +3778,7 @@ function stepCrop(img, params, report){
       rect: null, coverageBefore: null, coverageAfter: null, coverageGuard: null,
       notes: []
     };
+    if (skyRec){ rec.skyMedian = skyRec.median; rec.skyMadn = skyRec.madn; }
     if (extra) for (var k in extra) rec[k] = extra[k];
     report(rec);
     return img;
@@ -3784,6 +3797,7 @@ function stepCrop(img, params, report){
 
   var ys = analysePlane(Y, 0, N, params.stride || 1);
   if (!ys) throw FitsError('empty', 'the luminance has no usable pixels');
+  skyRec = ys;
   var cut = ys.median + effective.sigma * ys.madn;
 
   var sel = alloc(Uint8Array, N, 'the crop signal mask');

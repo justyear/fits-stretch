@@ -62,6 +62,41 @@ $BINS = 65535.0
 $inv  = [cultureinfo]::InvariantCulture
 $ref = Get-Content -LiteralPath $refPath -Raw | ConvertFrom-Json
 
+<#
+A REGRA DA COTA ZERO DO DECODE VEM DA REFERENCIA, NAO DAQUI.
+
+`rawMin`/`rawMax` sao o valor bruto da amostra nas unidades do ARQUIVO -- ADU
+para BITPIX inteiro -- e nao no eixo [0,1]. A cota do eixo aplicada ali nao
+queria dizer nada: sobre um rawMax de 20650 ela perdoava +/- 2,07 ADU, e uma
+divergencia de 1 ADU no maximo do quadro e exatamente o defeito que este bloco
+existe para pegar (BZERO, BSCALE ou ordem de bytes lidos diferente).
+
+A referencia declara a regra e a derivacao em `decodeRawExato`; ler o campo em
+vez de repetir a frase aqui mantem uma fonte so para os dois lados.
+
+O arquivo e grande e ja e lido adiante para o bloco da cadeia: fica na variavel
+e o bloco de la a reaproveita, em vez de decodificar 800 KB duas vezes.
+#>
+$CHAIN_REF = Join-Path $root 'referencia-cadeia.json'
+$chainRef  = $null
+if (Test-Path -LiteralPath $CHAIN_REF) {
+    $chainRef = Get-Content -LiteralPath $CHAIN_REF -Raw | ConvertFrom-Json
+}
+$RAW_EXATO = if ($chainRef) { $chainRef.decodeRawExato } else { $null }
+
+# Cota ZERO, e zero e diferente de "sem cota": a linha carrega o numero 0 na
+# coluna `cota`, entao a varredura de escala e o controle negativo sabem que ela
+# foi calculada e nao esquecida.
+function Compare-Exato-Numerico($fixture, $scope, $field, $mine, $refv, $porque) {
+    $m = [double]$mine; $r = [double]$refv
+    $diff = [math]::Abs($m - $r)
+    $ok = ($diff -eq 0)
+    return New-Row $fixture $scope $field ('{0:G9}' -f $m) ('{0:G9}' -f $r) `
+           $(if ($ok) { 'PASS' } else { 'FAIL' }) `
+           $(if ($ok) { "identico - cota zero: $porque" }
+             else { ('difere {0:G9} nas unidades do arquivo - cota zero: {1}' -f $diff, $porque) }) 0
+}
+
 # Fixture name in test/golden -> key under fixtures{} in the reference, and the
 # file both sides measured. The file is checked by hash before anything else:
 # regenerating a fixture without regenerating the reference would leave two sets
@@ -104,10 +139,29 @@ function Get-Known($fixture, $field) {
     return $null
 }
 
-function New-Row($fixture, $scope, $field, $mine, $refv, $verdict, $detail) {
+<#
+A COLUNA `cota` EXISTE PARA QUE A COTA POSSA SER LIDA POR MAQUINA.
+
+Ela nao muda veredito nenhum: e o mesmo limite que a linha ja imprime em
+prosa, agora tambem como numero, nas unidades da grandeza comparada.
+
+Duas coisas dependem disso e nenhuma das duas e possivel lendo texto:
+
+  - o controle negativo em varredura, que perturba 0,5x a cota esperando PASS
+    e 3x esperando FAIL. Sem a cota como numero ele teria que adivinhar o
+    tamanho da perturbacao, e adivinhar errado da os dois vereditos errados.
+  - a varredura de escala, que compara a cota com a propria grandeza. Foi ela
+    que achou o `rect.*`, e ela rodava por regex sobre a tabela formatada --
+    um instrumento que depende do texto nao sobrevive a primeira reformatacao.
+
+`$null` significa "esta linha nao tem cota": igualdade exata, afirmacao, N/A.
+Zero significa "a cota e zero e isso foi calculado", que e diferente.
+#>
+function New-Row($fixture, $scope, $field, $mine, $refv, $verdict, $detail, $cota = $null) {
     return [pscustomobject]@{
         fixture = $fixture.Replace('-fixture', ''); escopo = $scope; campo = $field
         nosso = $mine; referencia = $refv; resultado = $verdict; detalhe = $detail
+        cota = $cota
     }
 }
 
@@ -207,9 +261,58 @@ function Compare-Threshold-Count($fixture, $scope, $field, $mine, $refv, $delta,
     $detail = ("difere {0}, cota {1} pixels a menos de {2} do limiar" -f `
                $diff, $cota, $delta.ToString('0.0e+00', [cultureinfo]::InvariantCulture))
     if ($cota -eq 0 -and $ok) { $detail = 'densidade zero no limiar: exata por calculo' }
-    return New-Row $fixture $scope $field $m $r $verdict $detail
+    return New-Row $fixture $scope $field $m $r $verdict $detail $cota
 }
 
+
+<#
+DUAS FRONTEIRAS, UMA GRANDEZA: A COTA E A SOMA DAS DUAS DENSIDADES.
+
+`extendedPixels` conta os pixels que estao na mascara de extenso, e um pixel
+esta nela se passa por DOIS limiares: o de SINAL (Y > ceu + 2,5 sigma) e o de
+OCUPACAO (densidade de vizinhanca >= 0,50). Ele pode trocar de lado em
+qualquer um dos dois, entao a cota tem que cobrir os dois -- mesma forma do
+`amountCheio` do Modulo 4, onde `pixelsAtFullAmount` e uma FAIXA e nao um
+limiar, e a cota e a soma das duas fronteiras.
+
+A linha antiga somava zero fronteiras alem da primeira e dizia, em prosa, que
+faltava `densidadePorLimiar.recorte.extendedPixels`. A curva estava no JSON. A
+frase apontava um buraco inexistente PARA A OUTRA PONTA, e ficou verde o tempo
+todo porque a cota herdada do sinal era grande demais para reprovar seja o que
+for -- a mesma doenca do `rect.*`, agora com uma frase gerada cobrindo.
+
+O DELTA DE CADA FRONTEIRA, e os dois sao derivados:
+
+  sinal      a discordancia do proprio limiar entre os dois lados,
+             |dMediana| + 2,5*|dMADN|, nas unidades de Y
+
+  ocupacao   o limiar e 0,50 CONSTANTE dos dois lados, entao ele nao discorda.
+             O que discorda e a grandeza: a ocupacao e uma contagem sobre a
+             janela, quantizada em 1/W com W = janela^2. Uma ocupacao so muda
+             em multiplos de 1/W, entao 1/W E a resolucao daquele eixo -- o
+             analogo exato do 4/65535 no eixo [0,1]. Nao e escolhido: e o
+             menor movimento que pode mudar alguma coisa.
+#>
+function Compare-Threshold-Sum($fixture, $scope, $field, $mine, $refv, $terms) {
+    $m = [int]$mine; $r = [int]$refv
+    $diff = [math]::Abs($m - $r)
+    $tot = 0; $parts = @(); $faltou = @()
+    foreach ($t in $terms) {
+        $c = Get-Cota $t[1] $t[2]
+        if ($null -eq $c) { $faltou += $t[0]; continue }
+        $tot += [int]$c
+        $parts += ('{0} {1}' -f $t[0], $c)
+    }
+    if ($faltou.Count -eq $terms.Count) {
+        return New-Row $fixture $scope $field $m $r 'N/A' `
+               ('a referencia nao emitiu densidade para: ' + ($faltou -join ', '))
+    }
+    $ok = ($diff -le $tot)
+    $det = ('difere {0}, cota {1} pixels = {2}' -f $diff, $tot, ($parts -join ' + '))
+    if ($faltou.Count) { $det += (' - PARCIAL, falta a densidade de: ' + ($faltou -join ', ')) }
+    return New-Row $fixture $scope $field $m $r `
+           $(if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) $det $tot
+}
 <#
 RAZAO DE DUAS DIFERENCAS PEQUENAS: A TOLERANCIA VEM DAS ENTRADAS, AMPLIFICADA.
 
@@ -248,7 +351,7 @@ function Compare-Ratio($fixture, $scope, $field, $mine, $refv, $numRef, $denRef)
         ("{0:0.00} de {1:0.00} bins - tolerancia das entradas propagada (1/above = {2:0.0}x)" -f `
          ($diff * 65535), ($lim * 65535), (1.0 / [math]::Max([double]$denRef, 1e-12)))
     }
-    return New-Row $fixture $scope $field $m $r $verdict $detail
+    return New-Row $fixture $scope $field $m $r $verdict $detail $lim
 }
 
 <#
@@ -336,7 +439,7 @@ function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $to
     $detail = ('{0:F2} {1} / limite {2:F2}' -f $bins, $label, ($tol / $unit))
     if (-not $ok -and $known) { $detail = $known.reason }
 
-    return New-Row $fixture $scope $field ('{0:G9}' -f $m) ('{0:G9}' -f $r) $verdict $detail
+    return New-Row $fixture $scope $field ('{0:G9}' -f $m) ('{0:G9}' -f $r) $verdict $detail $tol
 }
 
 $rows = @()
@@ -389,8 +492,14 @@ foreach ($fixture in $MAP.Keys) {
     $rows += Compare-Value $fixture 'decode' 'decode.bitpix'  $d.bitpix  $rd.bitpix  'exact' 0 0
     $rows += Compare-Value $fixture 'decode' 'decode.scaleMode' $d.scaleMode $rd.scaleMode 'exact' 0 0
     $rows += Compare-Value $fixture 'decode' 'decode.flipApplied' $diag.rowOrder.flipApplied ("$($rd.flipApplied)" -eq 'True') 'exact' 0 0
-    $rows += Compare-Value $fixture 'decode' 'decode.rawMin'  $d.rawMin  $rd.rawMin  'unit' 0 0
-    $rows += Compare-Value $fixture 'decode' 'decode.rawMax'  $d.rawMax  $rd.rawMax  'unit' 0 0
+    # `rawMin`/`rawMax` NAO moram no eixo [0,1]: sao o valor da amostra nas
+    # unidades do arquivo. Cota zero, derivada pela referencia -- ver a nota no
+    # topo. Se a referencia nao declarar a regra, a linha diz que a cota e desta
+    # ponta em vez de fingir que veio de la.
+    $porqueRaw = if ($RAW_EXATO -and $RAW_EXATO.regra) { "$($RAW_EXATO.regra)" }
+                 else { 'os dois leem os mesmos bytes e aplicam valor*BSCALE+BZERO (regra nao declarada na referencia)' }
+    $rows += Compare-Exato-Numerico $fixture 'decode' 'decode.rawMin' $d.rawMin $rd.rawMin $porqueRaw
+    $rows += Compare-Exato-Numerico $fixture 'decode' 'decode.rawMax' $d.rawMax $rd.rawMax $porqueRaw
     $rows += Compare-Value $fixture 'decode' 'decode.normMin' $d.normMin $rd.normMin 'unit' 0 0
     $rows += Compare-Value $fixture 'decode' 'decode.normMax' $d.normMax $rd.normMax 'unit' 0 0
 
@@ -619,12 +728,12 @@ if (-not (Test-Path -LiteralPath $M1_REF)) {
 # mesmos pixels, e nao dois ajustes diferentes como no bloco anterior. Histograma
 # contra selecao exata, float32 contra float64. As tolerancias da secao 7
 # aplicam-se sem ajuste.
-$CHAIN_REF = Join-Path $root 'referencia-cadeia.json'
+# $CHAIN_REF e $chainRef ja foram carregados no topo -- ver a nota do decode.
 
 if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
     $rows += New-Row 'cadeia' 'canais' '(todos)' '-' '-' 'N/A' 'referencia-cadeia.json ausente'
 } else {
-    $cr = Get-Content -LiteralPath $CHAIN_REF -Raw | ConvertFrom-Json
+    $cr = $chainRef
     $stillNa = @($cr.cobertura.porCanalAindaNA)
 
     <#
@@ -1427,24 +1536,75 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 $dThrC = [math]::Abs([double]$crRec.skyMedian - [double]$rc.skyMedian) +
                          2.5 * [math]::Abs([double]$crRec.skyMadn - [double]$rc.skyMadn)
             }
-            $curveSig = $null
-            if ($densC) { $curveSig = $densC.signalPixels }
+            $curveSig = $null; $curveExt = $null; $curveComp = $null
+            if ($densC) {
+                $curveSig  = $densC.signalPixels
+                $curveExt  = $densC.extendedPixels
+                $curveComp = $densC.componentes
+            }
 
-            foreach ($t in @(@('sinal.pixels',  $crRec.signalPixels,   $rc.signalPixels),
+            # A resolucao do eixo da OCUPACAO: 1/W, W = janela^2. Ver a nota do
+            # Compare-Threshold-Sum. Sem a janela no record nao ha eixo, e a
+            # fronteira da ocupacao fica de fora dizendo que ficou.
+            $dOcc = $null
+            if ($crRec.params -and $crRec.params.window) {
+                $wJan = [double]$crRec.params.window
+                if ($wJan -gt 0) { $dOcc = 1.0 / ($wJan * $wJan) }
+            }
+
+            <#
+            CADA UMA DAS TRES GRANDEZAS TEM A SUA COTA, E ELAS NAO SAO A MESMA.
+
+              sinal.pixels    uma fronteira: o limiar de sinal
+              extenso.pixels  DUAS: sinal e ocupacao, somadas
+              componentes     curva PROPRIA -- quantos componentes nascem ou
+                              morrem quando o limiar de sinal anda Delta
+
+            A terceira e a que mudou de natureza. Ela usava a cota de
+            `signalPixels`, uma contagem de PIXELS para uma contagem de
+            COMPONENTES: valida como limite superior (um pixel que troca de lado
+            cria ou destroi no maximo um componente) e vazia na pratica. Medido
+            no bigobject: 12 componentes contra uma cota de 960,6 -- 80x a
+            propria grandeza, uma linha que aprovaria 12 contra 0.
+
+            A referencia passou a emitir `densidadePorLimiar.recorte.componentes`
+            e a cota caiu de 960,6 para 10 ali.
+
+            O QUE ESTA COTA COBRE, e vale dizer porque decide se ela e completa:
+            a curva e parametrizada pelo limiar de SINAL. Ela cobre a fronteira
+            da ocupacao SE a referencia recomputa a ocupacao ao mover o limiar
+            de sinal -- que e o que a cadeia faz, ja que a ocupacao e contada
+            sobre a mascara de sinal. Se ela nao recomputa, falta o termo da
+            ocupacao e ele nao tem curva.
+            #>
+            foreach ($t in @(@('sinal.pixels',   $crRec.signalPixels,   $rc.signalPixels),
                              @('extenso.pixels', $crRec.extendedPixels, $rc.extendedPixels),
                              @('componentes',    $crRec.components,     $rc.components))) {
                 if ($null -eq $t[1] -or $null -eq $t[2]) { continue }
-                if ($curveSig -and $null -ne $dThrC) {
-                    $r6 = Compare-Threshold-Count $name 'recorte' $t[0] $t[1] $t[2] $dThrC $curveSig
-                    if ($t[0] -ne 'sinal.pixels') {
-                        $r6.detalhe = $r6.detalhe + ' - cota PARCIAL: falta densidadePorLimiar.recorte.extendedPixels'
-                    }
-                    $rows += $r6
-                } else {
-                    $r6 = Compare-Value $name 'recorte' $t[0] $t[1] $t[2] 'count' 0 $pTot5
-                    $r6.detalhe = $r6.detalhe + ' - cota da secao 7, nao derivada'
-                    $rows += $r6
+
+                if ($t[0] -eq 'sinal.pixels' -and $curveSig -and $null -ne $dThrC) {
+                    $rows += Compare-Threshold-Count $name 'recorte' $t[0] $t[1] $t[2] $dThrC $curveSig
+                    continue
                 }
+                if ($t[0] -eq 'extenso.pixels' -and $curveSig -and $null -ne $dThrC) {
+                    $termos = @(, @('sinal', $curveSig, $dThrC))
+                    if ($curveExt -and $null -ne $dOcc) { $termos += , @('ocupacao', $curveExt, $dOcc) }
+                    $rows += Compare-Threshold-Sum $name 'recorte' $t[0] $t[1] $t[2] $termos
+                    continue
+                }
+                if ($t[0] -eq 'componentes' -and $curveComp -and $null -ne $dThrC) {
+                    $r6 = Compare-Threshold-Count $name 'recorte' $t[0] $t[1] $t[2] $dThrC $curveComp
+                    $r6.detalhe = $r6.detalhe + ' - curva propria: componentes, nao pixels'
+                    $rows += $r6
+                    continue
+                }
+
+                $r6 = Compare-Value $name 'recorte' $t[0] $t[1] $t[2] 'count' 0 $pTot5
+                $r6.detalhe = $r6.detalhe + ' - cota da secao 7, nao derivada'
+                if ($t[0] -eq 'componentes') {
+                    $r6.detalhe = $r6.detalhe + ' - E ELA ESTA EM PIXELS PARA UMA CONTAGEM DE COMPONENTES'
+                }
+                $rows += $r6
             }
 
             # O motivo da recusa: os textos sao proprios de cada implementacao,
@@ -1548,7 +1708,7 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                         $rows += New-Row $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] `
                                  $(if ($ok7) { if ($d7 -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
                                  ('difere {0} px / cota {1} px - propagada pela formula a partir da caixa (as caixas diferem {2} px)' -f `
-                                  $d7, $cota, $dCaixa)
+                                  $d7, $cota, $dCaixa) $cota
                     } else {
                         # Sem caixa dos dois lados nao ha o que propagar, e
                         # inventar uma cota aqui seria repetir o defeito acima.

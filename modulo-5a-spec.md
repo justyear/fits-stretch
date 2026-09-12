@@ -299,10 +299,27 @@ dela virar dívida — ver §2.)
 
 O maior componente conexo depende do algoritmo de rotulagem, e
 `scipy.ndimage.label` e uma implementação própria em JS podem diferir em um
-pixel na fronteira. **O número de componentes é comparado exatamente** —
-inteiro contado — e `signalPixels` / `extendedPixels` pela cota de contagem por
-limiar, que é a cota certa para eles: são contagens de pixels perto de um
-limiar de brilho.
+pixel na fronteira. Cada uma das quatro contagens tem a **sua** cota, e elas não
+são a mesma:
+
+| campo | cota | por quê |
+|---|---|---|
+| `componentesAcimaDoPiso` | **exata** | o limiar é 20% da caixa, onde não há população nenhuma; é o número que decide qual salvaguarda dispara |
+| `sinal.pixels` | densidade no limiar de sinal | contagem de pixels contra contagem de pixels |
+| `extenso.pixels` | **soma de duas** densidades: sinal + ocupação | o pixel passa por dois limiares, então pode trocar de lado em qualquer um — mesma forma do `amountCheio` do Módulo 4 |
+| `componentes` | curva **própria**: quantos componentes nascem ou morrem quando o limiar de sinal anda Δ | é uma contagem de COMPONENTES; a de pixels é limite superior válido e vazio na prática — 960,6 para uma grandeza de 12 |
+
+O Δ da fronteira da ocupação é derivado, não escolhido: o limiar é 0,50
+constante dos dois lados, então ele não discorda. Quem discorda é a grandeza, e
+a ocupação é uma contagem sobre a janela, quantizada em `1/W` com `W = janela²`.
+**`1/W` é a resolução daquele eixo** — o análogo exato do `4/65535` no eixo
+[0,1].
+
+> **A medição que a etapa não usa é a que o comparador precisa.** `skyMedian` e
+> `skyMadn` vão em **todo** record de recorte, inclusive nos que recusam. Sete
+> dos treze fixtures recusam, e eram exatamente os sete sem cota derivada — sem
+> os dois números o comparador não tem como calcular o Δ e cai numa cota de
+> 0,05% dos pixels do quadro, que para 12 componentes vale 960 e nunca reprova.
 
 > **CORREÇÃO, e ela vale mais que a linha original.** Esta seção mandava
 > comparar **o retângulo** pela mesma cota de contagem por limiar. Está errado,

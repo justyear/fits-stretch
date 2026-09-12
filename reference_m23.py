@@ -589,7 +589,7 @@ def crop_detect(planes, params=None, apply_crop=False):
     """Detecta o objeto e SUGERE. Nunca aplica sem apply_crop."""
     from scipy.ndimage import label
     p = dict(cropSigma=2.5, cropWindow=25, cropDensity=0.50,
-             cropMargin=0.08, cropMinFrame=0.20)
+             cropMargin=0.05, cropMinFrame=0.20, cropMinGain=1.5)
     p.update(params or {})
     rec = {'params': p}
 
@@ -776,7 +776,7 @@ def crop_detect(planes, params=None):
     """Detecta o objeto e SUGERE o retangulo. Nunca aplica sozinho."""
     from scipy.ndimage import label
     p = dict(cropSigma=2.5, cropWindow=25, cropDensity=0.50,
-             cropMargin=0.08, cropMinFrame=0.20)
+             cropMargin=0.05, cropMinFrame=0.20, cropMinGain=1.5)
     p.update(params or {})
     h, w = planes[0].shape
     rec = dict(applied=False, suggested=False, reason=None, frameSize=[w, h])
@@ -803,6 +803,19 @@ def crop_detect(planes, params=None):
 
     lab, n = label(ext)                       # 4-conectividade, o padrao
     rec['components'] = int(n)
+    # Quantos componentes o limiar de SINAL cria ou destroi quando anda d.
+    # Contagem de componentes precisa de cota em componentes, nao em pixels.
+    rec['_sigThreshold'] = m + p['cropSigma'] * s
+    curve = {}
+    for d in (1e-7, 1e-6, 1e-5, 1e-4, 1e-3):
+        for sgn in (+1, -1):
+            alt = np.asarray(Y, dtype=F64) > m + p['cropSigma'] * s + sgn * d
+            cnt2 = box_sum(alt.astype(F64), wnd)
+            e2 = alt & ((cnt2 / np.maximum(win, 1.0)) >= p['cropDensity'])
+            _, n2 = label(e2)
+            k = f'{d:.1e}'
+            curve[k] = max(curve.get(k, 0), abs(int(n2) - int(n)))
+    rec['_components'] = curve
     comps = []
     for i in range(1, n + 1):
         ys, xs = np.nonzero(lab == i)
@@ -839,8 +852,10 @@ def crop_detect(planes, params=None):
     c = big[0]
     x0, y0, bw, bh = c['rect']
     rec['objectRect'] = [x0, y0, bw, bh]
-    # margem nos quatro lados
-    mg = p['cropMargin'] * max(w, h)
+    # Margem como fracao do OBJETO, nao do quadro. 8% do lado maior do
+    # QUADRO nao sabe o tamanho do que esta enquadrando: num objeto que ja
+    # ocupa 70%, satura no quadro inteiro.
+    mg = p['cropMargin'] * max(bw, bh)
     x0 -= mg; y0 -= mg; bw += 2 * mg; bh += 2 * mg
     # razao do quadro original, EXPANDINDO o lado menor
     ar = w / float(h)
@@ -858,8 +873,18 @@ def crop_detect(planes, params=None):
     x0 = max(0, min(x0, w - bw))
     y0 = max(0, min(y0, h - bh))
     rec['rect'] = [x0, y0, bw, bh]
-    rec['suggested'] = True
     # cobertura sobre a AREA DE PIXELS do componente, nao sobre a caixa
     rec['coverageBefore'] = c['pixels'] / float(w * h)
     rec['coverageAfter'] = c['pixels'] / float(bw * bh)
+    gain = rec['coverageAfter'] / rec['coverageBefore']
+    rec['coverageGain'] = gain
+    if gain < p['cropMinGain']:
+        # Um recorte que nao muda nada e pior que nenhum: gasta a atencao
+        # da pessoa.
+        rec['reason'] = (f'cropping would only take the object from '
+                         f'{100*rec["coverageBefore"]:.0f}% to '
+                         f'{100*rec["coverageAfter"]:.0f}% of the frame')
+        rec['rect'] = None
+        return rec
+    rec['suggested'] = True
     return rec
