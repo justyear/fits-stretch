@@ -14,7 +14,9 @@ JOBS = [('fixture-seestar.fit','seestar'), ('fixture-rice_fit.fz','rice'),
         ('fixture-colour.fit','colour'), ('fixture-edge.fit','edge'),
         ('fixture-saturation.fit','saturation'), ('fixture-flatsky.fit','flatsky'),
         ('fixture-oneobject.fit','oneobject'), ('fixture-twoobjects.fit','twoobjects'),
-        ('fixture-bigobject.fit','bigobject')]
+        ('fixture-bigobject.fit','bigobject'),
+        # mesma fonte, com o recorte APLICADO: o terceiro estado
+        ('fixture-oneobject.fit','cropped')]
 # So estes dois tem a etapa LIGADA. Emitir saturacao para os outros nao
 # ajuda: os goldens deles sao a cadeia com os defaults, sem saturacao.
 SAT_ON = {'saturation', 'flatsky'}
@@ -78,7 +80,7 @@ for fn, label in JOBS:
     # ordem: saturacao -> recorte -> meia escala -> quantise
     cr = crop_detect(res) if len(res) == 3 else None
     base = res
-    if label == 'oneobject' and cr and cr['suggested']:
+    if label == 'cropped' and cr and cr['suggested']:
         x, y, cw, ch = cr['rect']          # o terceiro estado, com override
         base = [c[y:y+ch, x:x+cw] for c in res]
         cr = dict(cr, applied=True)
@@ -91,6 +93,14 @@ for fn, label in JOBS:
         signalPixels=dict(count=cr['signalPixels'] if cr else 0,
                           threshold=mY + 2.5*sY,
                           density=threshold_density(Yc, mY + 2.5*sY)))
+    if cr is not None and '_occupancy' in cr:
+        # A cota de components e extendedPixels precisa das trocas no limiar
+        # de OCUPACAO, nao so no de sinal. Delta aqui e adimensional.
+        occ = cr['_occupancy'][cr['_signalMask']]
+        dens['recorte']['extendedPixels'] = dict(
+            count=cr['extendedPixels'], threshold=0.50,
+            density=threshold_density(occ, 0.50,
+                                      deltas=(1e-4, 1e-3, 4e-3, 1e-2, 4e-2)))
     dens['meiaEscala'] = dict(
         skyPixels=dict(count=hs['noise']['skyPixels'],
                        threshold=mY + 3.0*sY,

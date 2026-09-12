@@ -720,7 +720,8 @@ def half_scale(planes, params=None):
     Y = (0.2126 * planes[0].astype(F64) + 0.7152 * planes[1].astype(F64)
          + 0.0722 * planes[2].astype(F64)).astype(F32) if len(planes) == 3 \
         else planes[0].astype(F32)
-    sky = _sky_mask(Y, p['skySigma'])
+    skyMed, skyMadn = madn_exact(Y)     # os numeros QUE ESTAO no limiar
+    sky = np.asarray(Y, dtype=F64) < skyMed + p['skySigma'] * skyMadn
 
     out = []
     for c in planes:
@@ -741,6 +742,8 @@ def half_scale(planes, params=None):
     ratio = sb / sa if sa > 0 else 0.0
 
     # brancura: os lags vem do bloco 2x2, nao dos dados
+    # Sem teto em 1,0: acima de 1 e anticorrelacao entre vizinhos, que
+    # tambem e informacao. Limitar esconderia o caso.
     best, bestL = None, None
     for L in (2, 3, 4):
         sL, _ = _sigma_lag(Y, sky, L)
@@ -749,7 +752,8 @@ def half_scale(planes, params=None):
             if best is None or r < best:
                 best, bestL = r, L
 
-    rec['noise'] = dict(skyHighFreqBefore=sb, skyHighFreqAfter=sa, ratio=ratio,
+    rec['noise'] = dict(skyMedian=skyMed, skyMadn=skyMadn,
+                        skyHighFreqBefore=sb, skyHighFreqAfter=sa, ratio=ratio,
                         expectedRatio=p['expectedRatio'], band=list(p['band']),
                         whiteness=best, whitenessLag=bestL,
                         skyPixels=int(np.count_nonzero(sky)),
@@ -772,6 +776,7 @@ def crop_detect(planes, params=None):
          + 0.0722 * planes[2].astype(F64)).astype(F32) if len(planes) == 3 \
         else planes[0].astype(F32)
     m, s = madn_exact(Y)
+    rec['skyMedian'], rec['skyMadn'] = m, s      # os numeros no limiar
     sig = np.asarray(Y, dtype=F64) > m + p['cropSigma'] * s
     rec['signalPixels'] = int(np.count_nonzero(sig))
 
@@ -781,8 +786,11 @@ def crop_detect(planes, params=None):
     wnd = p['cropWindow']
     cnt = box_sum(sig.astype(F64), wnd)
     win = box_sum(np.ones_like(cnt), wnd)
-    ext = sig & ((cnt / np.maximum(win, 1.0)) >= p['cropDensity'])
+    occ = cnt / np.maximum(win, 1.0)
+    ext = sig & (occ >= p['cropDensity'])
     rec['extendedPixels'] = int(np.count_nonzero(ext))
+    rec['_occupancy'] = occ      # so para a curva de densidade
+    rec['_signalMask'] = sig
 
     lab, n = label(ext)                       # 4-conectividade, o padrao
     rec['components'] = int(n)

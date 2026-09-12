@@ -82,6 +82,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.02835234400704503,
           "skyHighFreqBefore": 0.03671617630226908,
           "skyHighFreqAfter": 0.00398516565700119,
           "ratio": 9.21321206253136,
@@ -299,6 +301,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.027814939355850218,
           "skyHighFreqBefore": 0.02154679750909361,
           "skyHighFreqAfter": 0.010496599284014406,
           "ratio": 2.052740790239358,
@@ -324,6 +328,8 @@
           2600,
           1000
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.027814939355850218,
         "signalPixels": 195405,
         "extendedPixels": 50309,
         "components": 260,
@@ -3275,6 +3281,17 @@
               "1.0e-03": 1436,
               "1.0e-02": 13253
             }
+          },
+          "extendedPixels": {
+            "count": 50309,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 13,
+              "1.0e-03": 1135,
+              "4.0e-03": 2882,
+              "1.0e-02": 7020,
+              "4.0e-02": 29624
+            }
           }
         },
         "meiaEscala": {
@@ -3428,6 +3445,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.24710647016763687,
+          "skyMadn": 0.09669053015112876,
           "skyHighFreqBefore": 0.07931575365532524,
           "skyHighFreqAfter": 0.03944704596767263,
           "ratio": 2.010689310432156,
@@ -3453,6 +3472,8 @@
           900,
           600
         ],
+        "skyMedian": 0.24710647016763687,
+        "skyMadn": 0.09669053015112876,
         "signalPixels": 39837,
         "extendedPixels": 7897,
         "components": 46,
@@ -4050,6 +4071,17 @@
               "1.0e-03": 112,
               "1.0e-02": 1085
             }
+          },
+          "extendedPixels": {
+            "count": 7897,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 4,
+              "1.0e-03": 188,
+              "4.0e-03": 437,
+              "1.0e-02": 1131,
+              "4.0e-02": 5052
+            }
           }
         },
         "meiaEscala": {
@@ -4203,6 +4235,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.027912698498368263,
           "skyHighFreqBefore": 0.023627338484984075,
           "skyHighFreqAfter": 0.011911238658895604,
           "ratio": 1.9836172510353154,
@@ -4228,6 +4262,8 @@
           1600,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.027912698498368263,
         "signalPixels": 153701,
         "extendedPixels": 120665,
         "components": 447,
@@ -9236,6 +9272,17 @@
               "1.0e-03": 2695,
               "1.0e-02": 28262
             }
+          },
+          "extendedPixels": {
+            "count": 120665,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 112,
+              "4.0e-03": 225,
+              "1.0e-02": 579,
+              "4.0e-02": 2369
+            }
           }
         },
         "meiaEscala": {
@@ -9389,6 +9436,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.028459094781428575,
           "skyHighFreqBefore": 0.00764807846906287,
           "skyHighFreqAfter": 0.003954398660946782,
           "ratio": 1.9340686473001507,
@@ -9414,6 +9463,8 @@
           1600,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.028459094781428575,
         "signalPixels": 693439,
         "extendedPixels": 567202,
         "components": 496,
@@ -14961,6 +15012,17 @@
               "1.0e-03": 2496,
               "1.0e-02": 25364
             }
+          },
+          "extendedPixels": {
+            "count": 567202,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 17,
+              "1.0e-03": 2725,
+              "4.0e-03": 6716,
+              "1.0e-02": 16335,
+              "4.0e-02": 67790
+            }
           }
         },
         "meiaEscala": {
@@ -15114,6 +15176,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.027862973890453575,
           "skyHighFreqBefore": 0.02077508017127345,
           "skyHighFreqAfter": 0.010288127305163893,
           "ratio": 2.0193257290708164,
@@ -15139,6 +15203,8 @@
           400,
           300
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.027862973890453575,
         "signalPixels": 12670,
         "extendedPixels": 3117,
         "components": 17,
@@ -15417,6 +15483,17 @@
               "1.0e-03": 84,
               "1.0e-02": 942
             }
+          },
+          "extendedPixels": {
+            "count": 3117,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 3,
+              "1.0e-03": 70,
+              "4.0e-03": 207,
+              "1.0e-02": 501,
+              "4.0e-02": 1950
+            }
           }
         },
         "meiaEscala": {
@@ -15656,6 +15733,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.02838519549742341,
           "skyHighFreqBefore": 0.012665973224141171,
           "skyHighFreqAfter": 0.006394928721859993,
           "ratio": 1.9806277403600547,
@@ -15681,6 +15760,8 @@
           1600,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.02838519549742341,
         "signalPixels": 407907,
         "extendedPixels": 396091,
         "components": 577,
@@ -22253,6 +22334,17 @@
               "1.0e-03": 4992,
               "1.0e-02": 50297
             }
+          },
+          "extendedPixels": {
+            "count": 396091,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 159,
+              "4.0e-03": 373,
+              "1.0e-02": 924,
+              "4.0e-02": 3824
+            }
           }
         },
         "meiaEscala": {
@@ -22486,6 +22578,8 @@
         "droppedRow": false,
         "droppedColumn": false,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.027928560885787008,
           "skyHighFreqBefore": 0.0278674702929642,
           "skyHighFreqAfter": 0.013928923653826728,
           "ratio": 2.0006908635261347,
@@ -22511,6 +22605,8 @@
           1600,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.027928560885787008,
         "signalPixels": 6850,
         "extendedPixels": 0,
         "components": 0,
@@ -22735,6 +22831,17 @@
               "1.0e-03": 1668,
               "1.0e-02": 19674
             }
+          },
+          "extendedPixels": {
+            "count": 0,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 0,
+              "4.0e-03": 0,
+              "1.0e-02": 0,
+              "4.0e-02": 0
+            }
           }
         },
         "meiaEscala": {
@@ -22878,41 +22985,45 @@
       "meiaEscala": {
         "applied": true,
         "inputSize": [
-          1333,
-          999
+          1601,
+          1200
         ],
         "outputSize": [
-          666,
-          499
+          800,
+          600
         ],
-        "droppedRow": true,
+        "droppedRow": false,
         "droppedColumn": true,
         "noise": {
-          "skyHighFreqBefore": 0.011808603896733905,
-          "skyHighFreqAfter": 0.0060530842755360005,
-          "ratio": 1.9508408208455439,
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.02844523176178336,
+          "skyHighFreqBefore": 0.012428366719958612,
+          "skyHighFreqAfter": 0.006275791555302774,
+          "ratio": 1.9803663984756115,
           "expectedRatio": 2.0,
           "band": [
             1.8,
             2.2
           ],
-          "whiteness": 0.9802530096811655,
-          "whitenessLag": 4,
-          "skyPixels": 924410,
-          "skyPixelsReduced": 226678,
-          "samplesBefore": 914952,
-          "samplesAfter": 224472
+          "whiteness": 0.9931575315682002,
+          "whitenessLag": 3,
+          "skyPixels": 1366727,
+          "skyPixelsReduced": 337621,
+          "samplesBefore": 1357720,
+          "samplesAfter": 334986
         },
         "offered": true
       },
       "recorte": {
-        "applied": true,
+        "applied": false,
         "suggested": true,
         "reason": null,
         "frameSize": [
           1601,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.02844523176178336,
         "signalPixels": 571367,
         "extendedPixels": 557460,
         "components": 319,
@@ -26525,11 +26636,22 @@
               "1.0e-03": 2543,
               "1.0e-02": 25070
             }
+          },
+          "extendedPixels": {
+            "count": 557460,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 120,
+              "4.0e-03": 273,
+              "1.0e-02": 620,
+              "4.0e-02": 2591
+            }
           }
         },
         "meiaEscala": {
           "skyPixels": {
-            "count": 924410,
+            "count": 1366727,
             "threshold": 0.17033569617941974,
             "density": {
               "1.0e-07": 0,
@@ -26678,6 +26800,8 @@
         "droppedRow": false,
         "droppedColumn": true,
         "noise": {
+          "skyMedian": 0.08499999716877937,
+          "skyMadn": 0.033934189451113345,
           "skyHighFreqBefore": 0.009845469980869546,
           "skyHighFreqAfter": 0.005027306847042141,
           "ratio": 1.9583984587418237,
@@ -26703,6 +26827,8 @@
           1601,
           1200
         ],
+        "skyMedian": 0.08499999716877937,
+        "skyMadn": 0.033934189451113345,
         "signalPixels": 654956,
         "extendedPixels": 643228,
         "components": 298,
@@ -30072,6 +30198,17 @@
               "1.0e-03": 3224,
               "1.0e-02": 32362
             }
+          },
+          "extendedPixels": {
+            "count": 643228,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 160,
+              "4.0e-03": 376,
+              "1.0e-02": 914,
+              "4.0e-02": 3828
+            }
           }
         },
         "meiaEscala": {
@@ -30225,6 +30362,8 @@
         "droppedRow": false,
         "droppedColumn": true,
         "noise": {
+          "skyMedian": 0.08500000089406967,
+          "skyMadn": 0.028137804112583396,
           "skyHighFreqBefore": 0.012874246025941827,
           "skyHighFreqAfter": 0.006468497303755769,
           "ratio": 1.9902993572350602,
@@ -30250,6 +30389,8 @@
           1601,
           1200
         ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.028137804112583396,
         "signalPixels": 16937,
         "extendedPixels": 147,
         "components": 11,
@@ -30462,6 +30603,17 @@
               "1.0e-03": 1276,
               "1.0e-02": 16348
             }
+          },
+          "extendedPixels": {
+            "count": 147,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 8,
+              "1.0e-03": 8,
+              "4.0e-03": 30,
+              "1.0e-02": 69,
+              "4.0e-02": 247
+            }
           }
         },
         "meiaEscala": {
@@ -30482,6 +30634,3815 @@
           }
         }
       }
+    },
+    "cropped": {
+      "sha256": "88c6e9241f4bbef2f6f31c87784937ce6e2d5cfe34634df7478e1b1f1abb2061",
+      "decode": {
+        "width": 1601,
+        "height": 1200,
+        "planes": 3
+      },
+      "fundo": {
+        "aplicado": true,
+        "aceitas": 72
+      },
+      "calibracaoCor": {
+        "applied": true,
+        "skipReason": null,
+        "params": {
+          "starSigma": 12.0,
+          "starMax": 0.85,
+          "minStarPixels": 2000,
+          "extendedWindow": 25,
+          "extendedMax": 0.5,
+          "pedestalProbe": 0.1,
+          "sensitivityMax": 0.05,
+          "gainMin": 0.25,
+          "gainMax": 4.0,
+          "backgroundNeutralise": true
+        },
+        "neutralizacao": {
+          "medianasAntes": [
+            0.0129977036267519,
+            0.01420681830495596,
+            0.011742719449102879
+          ],
+          "alvo": 0.012982413793603579,
+          "offsets": [
+            1.5289833148321094e-05,
+            0.0012244045113523807,
+            -0.0012396943445007
+          ]
+        },
+        "pedestais": [
+          0.012982413793603579,
+          0.012982413793603579,
+          0.012982413793603579
+        ],
+        "luminanciaSelecao": {
+          "mediana": 0.012882718350738287,
+          "madn": 0.003852449622284621
+        },
+        "limiares": {
+          "inferior": 0.05911211381815374,
+          "superior": 0.85
+        },
+        "selecionados": 92710,
+        "rejeitados": {
+          "saturado": 0,
+          "extenso": 6251
+        },
+        "pixels": 92710,
+        "medianasEstelares": [
+          0.07430459931492805,
+          0.059305429458618164,
+          0.04698362573981285
+        ],
+        "gainSensitivity": 0.010559557169184261,
+        "acimaDoPedestal": [
+          0.06132218552132448,
+          0.04632301566501459,
+          0.034001211946209274
+        ],
+        "razoes": {
+          "rOverG": 1.323795194267501,
+          "bOverG": 0.7340025570029686
+        },
+        "ganhos": [
+          0.7554038603028262,
+          1.0,
+          1.362393074055675
+        ]
+      },
+      "esticamento": {
+        "params": {
+          "linked": true,
+          "operator": "mtf",
+          "target": 0.085,
+          "shadowSigma": -2.8,
+          "applyVia": "luminance",
+          "blackPct": 0.0005
+        },
+        "ligado": true,
+        "operador": "mtf",
+        "nonLinear": false,
+        "luminancia": {
+          "mediana": 0.012584562879055738,
+          "madn": 0.0038646032377146183
+        },
+        "shadows": 0.0017636738134548073,
+        "luminanceSpan": 0.08011474180966616,
+        "clipLow": 0,
+        "clipHigh": 0,
+        "midtones": 0.10552022871233713,
+        "solvedStretch": null,
+        "target": 0.085,
+        "colourFidelity": {
+          "ratiosBefore": {
+            "rOverG": 0.8080639935775132,
+            "bOverG": 1.2763413005533222
+          },
+          "ratiosAfter": {
+            "rOverG": 0.8080639935775131,
+            "bOverG": 1.2763413005533222
+          },
+          "maxRatioDrift": 4.440892098500626e-16,
+          "driftSamples": 1921200,
+          "highlightPixels": 223,
+          "pixelsRescaled": 223
+        },
+        "highlightCut": 223
+      },
+      "saturacao": null,
+      "meiaEscala": {
+        "applied": true,
+        "inputSize": [
+          1333,
+          999
+        ],
+        "outputSize": [
+          666,
+          499
+        ],
+        "droppedRow": true,
+        "droppedColumn": true,
+        "noise": {
+          "skyMedian": 0.10198117047548294,
+          "skyMadn": 0.06369943750798703,
+          "skyHighFreqBefore": 0.011808603896733905,
+          "skyHighFreqAfter": 0.0060530842755360005,
+          "ratio": 1.9508408208455439,
+          "expectedRatio": 2.0,
+          "band": [
+            1.8,
+            2.2
+          ],
+          "whiteness": 0.9802530096811655,
+          "whitenessLag": 4,
+          "skyPixels": 924410,
+          "skyPixelsReduced": 226678,
+          "samplesBefore": 914952,
+          "samplesAfter": 224472
+        },
+        "offered": true
+      },
+      "recorte": {
+        "applied": true,
+        "suggested": true,
+        "reason": null,
+        "frameSize": [
+          1601,
+          1200
+        ],
+        "skyMedian": 0.08500000089406967,
+        "skyMadn": 0.02844523176178336,
+        "signalPixels": 571367,
+        "extendedPixels": 557460,
+        "components": 319,
+        "componentList": [
+          {
+            "rect": [
+              279,
+              229,
+              960,
+              743
+            ],
+            "pixels": 556907,
+            "boxFrac": 0.3712679575265459,
+            "pixelFrac": 0.28987455756818653
+          },
+          {
+            "rect": [
+              443,
+              317,
+              6,
+              6
+            ],
+            "pixels": 12,
+            "boxFrac": 1.8738288569643972e-05,
+            "pixelFrac": 6.246096189881324e-06
+          },
+          {
+            "rect": [
+              1068,
+              314,
+              3,
+              4
+            ],
+            "pixels": 7,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 3.643556110764106e-06
+          },
+          {
+            "rect": [
+              1154,
+              386,
+              3,
+              4
+            ],
+            "pixels": 7,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 3.643556110764106e-06
+          },
+          {
+            "rect": [
+              1177,
+              417,
+              3,
+              4
+            ],
+            "pixels": 7,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 3.643556110764106e-06
+          },
+          {
+            "rect": [
+              1181,
+              423,
+              4,
+              3
+            ],
+            "pixels": 9,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 4.684572142410993e-06
+          },
+          {
+            "rect": [
+              1188,
+              434,
+              3,
+              4
+            ],
+            "pixels": 7,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 3.643556110764106e-06
+          },
+          {
+            "rect": [
+              1209,
+              720,
+              4,
+              3
+            ],
+            "pixels": 7,
+            "boxFrac": 6.246096189881324e-06,
+            "pixelFrac": 3.643556110764106e-06
+          },
+          {
+            "rect": [
+              394,
+              356,
+              3,
+              3
+            ],
+            "pixels": 6,
+            "boxFrac": 4.684572142410993e-06,
+            "pixelFrac": 3.123048094940662e-06
+          },
+          {
+            "rect": [
+              1236,
+              621,
+              2,
+              4
+            ],
+            "pixels": 5,
+            "boxFrac": 4.16406412658755e-06,
+            "pixelFrac": 2.6025400791172182e-06
+          },
+          {
+            "rect": [
+              447,
+              883,
+              4,
+              2
+            ],
+            "pixels": 6,
+            "boxFrac": 4.16406412658755e-06,
+            "pixelFrac": 3.123048094940662e-06
+          },
+          {
+            "rect": [
+              512,
+              919,
+              4,
+              2
+            ],
+            "pixels": 6,
+            "boxFrac": 4.16406412658755e-06,
+            "pixelFrac": 3.123048094940662e-06
+          },
+          {
+            "rect": [
+              758,
+              229,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              800,
+              231,
+              3,
+              2
+            ],
+            "pixels": 5,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.6025400791172182e-06
+          },
+          {
+            "rect": [
+              816,
+              233,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              441,
+              321,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              346,
+              410,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              1203,
+              462,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              1221,
+              492,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              295,
+              503,
+              2,
+              3
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              1229,
+              661,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              1222,
+              690,
+              2,
+              3
+            ],
+            "pixels": 5,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.6025400791172182e-06
+          },
+          {
+            "rect": [
+              1199,
+              749,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              997,
+              921,
+              2,
+              3
+            ],
+            "pixels": 5,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.6025400791172182e-06
+          },
+          {
+            "rect": [
+              551,
+              935,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              595,
+              948,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              908,
+              952,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              851,
+              962,
+              3,
+              2
+            ],
+            "pixels": 5,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.6025400791172182e-06
+          },
+          {
+            "rect": [
+              671,
+              964,
+              3,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 3.123048094940662e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              726,
+              230,
+              2,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              755,
+              230,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              704,
+              232,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              922,
+              251,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              975,
+              267,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1038,
+              296,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1065,
+              312,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1087,
+              327,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              426,
+              331,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              375,
+              376,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              333,
+              428,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              331,
+              430,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1200,
+              456,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1237,
+              579,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              279,
+              610,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1234,
+              645,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1214,
+              714,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              306,
+              722,
+              2,
+              2
+            ],
+            "pixels": 4,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 2.082032063293775e-06
+          },
+          {
+            "rect": [
+              318,
+              747,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              349,
+              794,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              1088,
+              872,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              979,
+              929,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              793,
+              968,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              731,
+              969,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              750,
+              970,
+              2,
+              2
+            ],
+            "pixels": 3,
+            "boxFrac": 2.082032063293775e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              774,
+              231,
+              3,
+              1
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              618,
+              243,
+              3,
+              1
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              911,
+              248,
+              1,
+              3
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              287,
+              529,
+              1,
+              3
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              469,
+              897,
+              3,
+              1
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              981,
+              930,
+              3,
+              1
+            ],
+            "pixels": 3,
+            "boxFrac": 1.561524047470331e-06,
+            "pixelFrac": 1.561524047470331e-06
+          },
+          {
+            "rect": [
+              681,
+              234,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              861,
+              238,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              929,
+              253,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              968,
+              265,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              981,
+              269,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1053,
+              304,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              439,
+              322,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              423,
+              333,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              421,
+              335,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1129,
+              362,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1139,
+              368,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1154,
+              382,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              339,
+              419,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1180,
+              420,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              330,
+              433,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              300,
+              476,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1215,
+              482,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              300,
+              484,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              298,
+              493,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1219,
+              493,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1222,
+              496,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              280,
+              582,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              279,
+              604,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              279,
+              608,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              280,
+              636,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1224,
+              688,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1213,
+              719,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1209,
+              730,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1206,
+              735,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1208,
+              736,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              319,
+              750,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1182,
+              775,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1171,
+              791,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              372,
+              820,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              391,
+              839,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1114,
+              852,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              418,
+              862,
+              1,
+              2
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              427,
+              868,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1072,
+              882,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1056,
+              894,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1048,
+              899,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              484,
+              906,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              1021,
+              913,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              522,
+              924,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              998,
+              924,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              885,
+              958,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              879,
+              959,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              666,
+              965,
+              2,
+              1
+            ],
+            "pixels": 2,
+            "boxFrac": 1.0410160316468874e-06,
+            "pixelFrac": 1.0410160316468874e-06
+          },
+          {
+            "rect": [
+              715,
+              231,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              697,
+              232,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              707,
+              232,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              696,
+              233,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              679,
+              234,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              672,
+              236,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              848,
+              236,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              662,
+              237,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              845,
+              237,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              857,
+              238,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              885,
+              242,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              626,
+              243,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              897,
+              245,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              899,
+              245,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              598,
+              248,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              596,
+              249,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              575,
+              257,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              550,
+              265,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              972,
+              266,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              541,
+              268,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              980,
+              270,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              983,
+              270,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              984,
+              271,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              994,
+              274,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1002,
+              277,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              518,
+              278,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              502,
+              285,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1018,
+              285,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1020,
+              286,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              489,
+              292,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1034,
+              293,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              489,
+              294,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1034,
+              295,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1037,
+              295,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              471,
+              306,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              459,
+              310,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1062,
+              310,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1072,
+              317,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1074,
+              318,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1080,
+              322,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              445,
+              323,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1084,
+              324,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1083,
+              325,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1090,
+              328,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1089,
+              329,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1098,
+              335,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1100,
+              336,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1111,
+              346,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1114,
+              347,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1112,
+              348,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1119,
+              352,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              385,
+              366,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1142,
+              370,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1142,
+              372,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1141,
+              373,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              377,
+              375,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              374,
+              377,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1155,
+              385,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1154,
+              386,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1151,
+              388,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              363,
+              389,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              362,
+              390,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1157,
+              395,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              344,
+              413,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              338,
+              422,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1181,
+              422,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1183,
+              429,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1188,
+              432,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1189,
+              438,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1191,
+              439,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1192,
+              441,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1192,
+              443,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1196,
+              449,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1198,
+              451,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1200,
+              454,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1202,
+              458,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1203,
+              460,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              314,
+              461,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              311,
+              464,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              310,
+              466,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              307,
+              469,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              306,
+              470,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              303,
+              473,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1211,
+              476,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              300,
+              481,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1216,
+              484,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1218,
+              485,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1219,
+              486,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1220,
+              488,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1218,
+              492,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1221,
+              506,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1223,
+              506,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              288,
+              524,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              291,
+              526,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              285,
+              541,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              283,
+              545,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              283,
+              547,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              282,
+              549,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1234,
+              554,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1233,
+              555,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1238,
+              577,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1236,
+              578,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              281,
+              585,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1238,
+              591,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1238,
+              598,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              279,
+              602,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1238,
+              610,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1237,
+              611,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              280,
+              634,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              281,
+              642,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              284,
+              645,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              283,
+              653,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1233,
+              654,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1233,
+              656,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              284,
+              659,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              284,
+              661,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              285,
+              663,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1231,
+              664,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1230,
+              665,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              285,
+              666,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1231,
+              666,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1230,
+              670,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1223,
+              694,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              297,
+              700,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1216,
+              700,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              303,
+              718,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              305,
+              721,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              309,
+              729,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              308,
+              730,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              310,
+              733,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              317,
+              746,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1202,
+              748,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1197,
+              752,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1196,
+              753,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              321,
+              754,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1195,
+              754,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              322,
+              755,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1190,
+              763,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              331,
+              770,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1185,
+              771,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1184,
+              773,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1183,
+              774,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              337,
+              778,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              338,
+              779,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              340,
+              782,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              344,
+              786,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1175,
+              786,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1174,
+              787,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              351,
+              797,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1165,
+              800,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              356,
+              801,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              355,
+              802,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              357,
+              802,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              356,
+              803,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1156,
+              810,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              371,
+              818,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              373,
+              818,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1143,
+              825,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1139,
+              829,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1135,
+              832,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1132,
+              835,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              398,
+              845,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              406,
+              853,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              409,
+              855,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              442,
+              878,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              443,
+              879,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1055,
+              895,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1050,
+              898,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              471,
+              899,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              476,
+              899,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              482,
+              903,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1041,
+              903,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1038,
+              904,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              483,
+              905,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1035,
+              906,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              487,
+              907,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              495,
+              912,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              1008,
+              919,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              515,
+              921,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              523,
+              922,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              535,
+              929,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              985,
+              929,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              978,
+              931,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              962,
+              937,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              560,
+              938,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              958,
+              939,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              950,
+              941,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              942,
+              943,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              933,
+              944,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              932,
+              945,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              582,
+              946,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              934,
+              946,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              921,
+              950,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              906,
+              952,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              905,
+              953,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              907,
+              953,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              904,
+              954,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              617,
+              955,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              891,
+              957,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              637,
+              958,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              638,
+              959,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              657,
+              963,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              674,
+              966,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              686,
+              967,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              704,
+              968,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              799,
+              968,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              716,
+              969,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              797,
+              969,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              730,
+              970,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              757,
+              971,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          },
+          {
+            "rect": [
+              771,
+              971,
+              1,
+              1
+            ],
+            "pixels": 1,
+            "boxFrac": 5.205080158234437e-07,
+            "pixelFrac": 5.205080158234437e-07
+          }
+        ],
+        "componentsAboveMin": 1,
+        "coverageGuard": {
+          "inForce": false,
+          "evaluable": false,
+          "objectBoxFrac": 0.3712679575265459,
+          "reason": "not evaluable in this chain: an object covering most of the frame is what the background model fits and subtracts. The guard is empty by construction, not missing a test case."
+        },
+        "objectRect": [
+          279,
+          229,
+          960,
+          743
+        ],
+        "rect": [
+          92,
+          101,
+          1333,
+          999
+        ],
+        "coverageBefore": 0.28987455756818653,
+        "coverageAfter": 0.41820289907311664
+      },
+      "densidadePorLimiar": {
+        "selecaoEstelar": {
+          "count": 92710,
+          "threshold": 0.05911211381815374,
+          "density": {
+            "1.0e-07": 13,
+            "1.0e-06": 128,
+            "2.4e-06": 298,
+            "6.1e-06": 778,
+            "1.0e-05": 1246,
+            "6.8e-05": 8469,
+            "1.0e-04": 12350,
+            "1.0e-03": 119526,
+            "1.0e-02": 404176
+          }
+        },
+        "clipLow": {
+          "count": 0,
+          "threshold": 0.0,
+          "density": {
+            "1.0e-07": 0,
+            "1.0e-06": 0,
+            "2.4e-06": 0,
+            "6.1e-06": 0,
+            "1.0e-05": 0,
+            "6.8e-05": 0,
+            "1.0e-04": 0,
+            "1.0e-03": 3,
+            "1.0e-02": 753478
+          }
+        },
+        "clipHigh": {
+          "count": 0,
+          "threshold": 1.0,
+          "density": {
+            "1.0e-07": 0,
+            "1.0e-06": 0,
+            "2.4e-06": 0,
+            "6.1e-06": 0,
+            "1.0e-05": 0,
+            "6.8e-05": 0,
+            "1.0e-04": 0,
+            "1.0e-03": 0,
+            "1.0e-02": 0
+          }
+        },
+        "pixelsRescaled": {
+          "count": 223,
+          "threshold": 1.0,
+          "density": {
+            "1.0e-07": 0,
+            "1.0e-06": 0,
+            "2.4e-06": 0,
+            "6.1e-06": 0,
+            "1.0e-05": 0,
+            "6.8e-05": 0,
+            "1.0e-04": 0,
+            "1.0e-03": 8,
+            "1.0e-02": 78
+          }
+        },
+        "recorte": {
+          "signalPixels": {
+            "count": 571367,
+            "threshold": 0.15611308029852808,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 4,
+              "2.4e-06": 6,
+              "6.1e-06": 18,
+              "1.0e-05": 27,
+              "6.8e-05": 157,
+              "1.0e-04": 224,
+              "1.0e-03": 2543,
+              "1.0e-02": 25070
+            }
+          },
+          "extendedPixels": {
+            "count": 557460,
+            "threshold": 0.5,
+            "density": {
+              "1.0e-04": 0,
+              "1.0e-03": 120,
+              "4.0e-03": 273,
+              "1.0e-02": 620,
+              "4.0e-02": 2591
+            }
+          }
+        },
+        "meiaEscala": {
+          "skyPixels": {
+            "count": 924410,
+            "threshold": 0.17033569617941974,
+            "density": {
+              "1.0e-07": 0,
+              "1.0e-06": 0,
+              "2.4e-06": 3,
+              "6.1e-06": 9,
+              "1.0e-05": 17,
+              "6.8e-05": 149,
+              "1.0e-04": 236,
+              "1.0e-03": 2289,
+              "1.0e-02": 22973
+            }
+          }
+        }
+      }
     }
+  },
+  "naoFinitos": {
+    "total": 0,
+    "nota": "varredura de toda a cadeia nos onze fixtures, etapa a etapa: zero nao-finitos. A interpolacao bilinear desta implementacao faz clip do indice superior ANTES de indexar, entao o caso do no inexistente nao e alcancavel."
   }
 }
