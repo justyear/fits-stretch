@@ -578,6 +578,31 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
     $cr = Get-Content -LiteralPath $CHAIN_REF -Raw | ConvertFrom-Json
     $stillNa = @($cr.cobertura.porCanalAindaNA)
 
+    <#
+    NAO-FINITOS NOS DOIS LADOS, E E AFIRMACAO E NAO COMPARACAO.
+
+    Este lado ja afirma no compare-golden que todo record traz
+    `clamped.nonFinite = 0`. A referencia passou a varrer a cadeia dela e emitir
+    `naoFinitos.total`. As duas afirmacoes juntas fecham o buraco que custou esta
+    rodada: um NaN que esta nos DOIS lados nao aparece em comparacao nenhuma,
+    porque as duas concordam.
+
+    Um valor nao-finito na saida nunca e o resultado certo. Nao ha caso em que
+    este numero deva ser diferente de zero, entao ele nao precisa de referencia
+    para ser julgado -- e e exatamente por isso que ele pega o que a comparacao
+    nao pega.
+    #>
+    if ($null -ne $cr.naoFinitos) {
+        $nfTot = [int]$cr.naoFinitos.total
+        $rows += New-Row 'cadeia' 'referencia' 'naoFinitos' $nfTot '= 0' `
+                 $(if ($nfTot -eq 0) { 'PASS' } else { 'FAIL' }) `
+                 $(if ($nfTot -eq 0) { 'a referencia varreu a cadeia dela e nao achou nenhum' }
+                   else { 'a referencia tem valores nao-finitos na saida' })
+    } else {
+        $rows += New-Row 'cadeia' 'referencia' 'naoFinitos' '-' '= 0' 'N/A' `
+                 'a referencia nao declara a varredura de nao-finitos'
+    }
+
     foreach ($fx in $cr.fixtures.PSObject.Properties.Name) {
         $name = "$fx-fixture"
         $rf2  = $cr.fixtures.$fx
