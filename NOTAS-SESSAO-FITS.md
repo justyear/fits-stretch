@@ -1857,29 +1857,59 @@ referência Python. `compare-reference` dá **865 comparações, 1 FAIL**.
 
 O que ficou aberto, em ordem de peso:
 
-**1. `nonlinear | meiaEscala | ruido.antes` — 4,04 de 4,00 bins, 1% acima.**
+**1. `nonlinear | meiaEscala | ruido.antes` — 4,04 de 4,00 bins. CAUSA FECHADA,
+cota em aberto.**
 
-Achado, não tolerância. Três hipóteses medidas e descartadas:
+Seis hipóteses medidas. **Cinco descartadas, a sexta confirmada por isolamento de
+fórmula.**
 
 | hipótese | medição | veredito |
 |---|---|---|
-| o histograma deste lado | mediana do `analysePlane` contra exata no MESMO array: **−0,53 bin** | descartada |
+| o histograma deste lado | mediana do `analysePlane` contra exata no **mesmo array**: −0,53 bin | descartada |
 | quantização do estimador | cota `8·span/65535` = 3,461e-5 contra 6,155e-5 observados — **1,78×** | descartada |
-| incerteza da mediana | `skyMedian` difere em **2,98e-8**; o termo não acrescenta nada | descartada |
+| incerteza da mediana de \|d\| | `skyMedian` difere 2,98e-8; o termo não acrescenta nada | descartada |
+| **quais pares entram** | os dois lados exigem que **ambos** sejam céu; leitura de código dos dois | descartada |
+| **ordem da subtração / abs** | `plane[x+lag] − plane[x]`, depois `abs`; leitura de código | descartada |
+| **float32 no acumulador** | o mesmo cálculo em `Float32Array` e em `Float64Array`: **0,075715974 nos dois**, 9 casas | descartada |
 
-O que se sabe: a diferença é dos **quadros**, e o `nonlinear` é o ramo
-não-linear, onde o alvo sai da própria mediana do quadro e uma diferença pequena
-na entrada é amplificada pela transferência — a mesma amplificação já registrada
-no `colour`, onde 1,9e-6 na mediana virou 2,4e-4 em `midtones`.
+**A causa é propagação pela transferência, e o isolamento de fórmula prova:**
 
-E a pista que ainda não foi seguida: das doze, o `nonlinear` tem o **maior span**
-da distribuição de `|d|` — **0,2835 contra 0,028 a 0,098** em todas as outras.
-Três a dez vezes mais larga.
+```
+minha curva + MEUS parametros     sigma 0,079378692     (meu record: 0,079377335)
+minha curva + parametros DELES    sigma 0,079332171     (o deles:    0,079315754)
+                                        ^ 1,08 bins do valor deles
+```
 
-**A próxima medição não é quantos pixels do céu diferem, é QUAIS.** Se o conjunto
-for o mesmo e o sigma divergir mesmo assim, a causa é a **forma** da distribuição;
-se o conjunto diferir na cauda, é **seleção**. As duas pedem consertos diferentes
-e nenhuma das duas foi eliminada.
+Alimentar a **minha** MTF com o `shadows`/`midtones` **deles** move o sigma de
+0,0793787 para 0,0793322 e cai a **1,08 bin** do número deles — dentro da cota.
+**A fórmula é a mesma.** Os 4,04 bins são inteiramente a propagação de entradas
+que passam nas próprias cotas:
+
+```
+lumMediana   1,12 bins   passa
+  -> target  1,12 bins   passa   (ramo não-linear: o alvo É a mediana do quadro)
+    -> midtones 3,12 bins passa
+      -> sigma  4,04 bins  REPROVA
+```
+
+Cada elo passa a cota dele; o último reprova porque é julgado no **eixo [0,1]**
+enquanto carrega incerteza propagada por uma curva íngreme. **Quarta instância da
+classe "cota lida no eixo errado"** — ver acima.
+
+E o que descartou a seleção, que era a hipótese com melhor direção: aplicando o
+**limiar deles** ao **meu** quadro, o céu dá **502.717** e não os 502.735 deles.
+Ao mesmo limiar os conjuntos ainda diferem, então a regra é a mesma e os
+**quadros** é que diferem. Trocar o limiar move a mediana de \|d\| em 2,15e-6 —
+**3,7%** da diferença de 5,87e-5.
+
+**O que falta para fechar a cota, e é decisão de projeto:** a linha certa é
+`ruido.antes(formula)` — o mesmo padrão de `shadows(formula)` e
+`midtones(formula)`. Mas ela precisa que a **captura** rode o estimador com os
+parâmetros da referência, porque o comparador em PowerShell não sabe aplicar uma
+MTF. É uma captura no formato do `__captureSafeguards`, e o custo é real. A
+alternativa — usar a sensibilidade medida, `Δsigma ≈ Δmidtones` neste fixture —
+seria constante ajustada num ponto só, que é exatamente o que esta sessão passou
+inteira recusando.
 
 **2. Cota parcial em `components` e `extenso.pixels`.** A curva de
 `extendedPixels` no limiar de ocupação chegou e está em uso, mas a cota ainda não
