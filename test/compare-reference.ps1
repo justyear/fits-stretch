@@ -1363,12 +1363,99 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
 
             $hn = $hsRec.noise; $rn = $me.noise
             if ($hn -and $rn) {
-                # Os dois sigmas, no eixo [0,1]: sao medianas de |diferenca|
-                # sobre selecoes exatas dos dois lados, e o que sobra e QUAIS
-                # pixels entraram no ceu.
-                foreach ($fld in @(@('ruido.antes', $hn.skyHighFreqBefore, $rn.skyHighFreqBefore),
-                                   @('ruido.depois', $hn.skyHighFreqAfter, $rn.skyHighFreqAfter))) {
-                    $rows += Compare-Value $name 'meiaEscala' $fld[0] $fld[1] $fld[2] 'unit' 0 0
+                <#
+                O SIGMA DO CEU E UMA DISPERSAO, E DISPERSAO SEGUE A INCLINACAO
+                DA CURVA -- NAO O NIVEL DELA.
+
+                Este e o quarto caso da classe "cota lida no eixo errado", e o
+                primeiro em que a grandeza reprovada esta a QUATRO ELOS da
+                entrada. Os tres anteriores estavam a um:
+
+                    ganhos      above_a / above_b            1 elo
+                    span        3(q3 - q1)                   1 elo
+                    .after      s' = k(max-min)/max'         1 elo
+                    sigma       mediana -> alvo -> midtones -> inclinacao -> sigma
+
+                Cada elo passa a propria cota e o ultimo reprova, porque ele e
+                julgado no eixo [0,1] carregando o que os tres acumularam:
+
+                    lumMediana  1,12 bins  passa
+                      -> target  1,12 bins  passa   (ramo nao-linear: o alvo E a
+                                                     mediana do proprio quadro)
+                        -> midtones  3,12 bins  passa
+                          -> sigma  4,04 bins  REPROVA
+
+                A DERIVACAO. Com a MTF
+
+                    MTF(x,m) = (m-1)x / ((2m-1)x - m)        D = (2m-1)x - m
+
+                `sigma` nao sai de MTF: ele sai da MEDIANA DE |d| entre vizinhos,
+                e para diferencas pequenas d ~ S(x) * dx, com S a inclinacao:
+
+                    S(x,m) = dMTF/dx = m(1-m) / D^2
+
+                Entao sigma e proporcional a S, e a sensibilidade que vale e a de
+                S -- nao a de MTF. As duas sao diferentes: medido no nonlinear,
+                dln(MTF)/dm = -23,3 e dln(S)/dm = -15,7, um fator 1,5. Propagar
+                pelo nivel daria um numero que cobre por acidente.
+
+                    dln(S)/dm = (1-2m)/(m(1-m)) - 2(2x-1)/D
+                    dln(S)/dx = -2(2m-1)/D
+                    dx/ds     = (Y-1)/(1-s)^2          x = (Y - s)/(1 - s)
+
+                As duas derivadas conferidas contra diferenca finita em 9 casas.
+                O `x` e o do CEU: (lumMediana - shadows)/(1 - shadows), e os tres
+                numeros ja estao nos dois records.
+
+                    d(sigma)/sigma <= |dlnS/dm|*dm + |dlnS/dx * dx/ds|*ds
+
+                MEDIDO no nonlinear: termo do midtones 3,88 bins, termo do
+                shadows 1,14, soma 5,02 contra 4,04 observados -- folga 1,24x. E
+                os dois termos sao necessarios: o do midtones sozinho da 3,88 e
+                NAO cobre.
+
+                Nada aqui e ajustado: as duas derivadas sao analiticas, as duas
+                entradas sao medidas, e o piso do eixo fica como minimo para que
+                a cota nunca desca abaixo do instrumento.
+                #>
+                function Compare-MtfDerived($fx, $field, $mine, $refv, $m, $s, $ylum, $dm, $ds, $sigAxis) {
+                    $x  = ($ylum - $s) / (1.0 - $s)
+                    $D  = (2.0 * $m - 1.0) * $x - $m
+                    if ([math]::Abs($D) -lt 1e-12 -or $m -le 0 -or $m -ge 1) { return $null }
+                    $dlnS_dm = (1.0 - 2.0 * $m) / ($m * (1.0 - $m)) - 2.0 * (2.0 * $x - 1.0) / $D
+                    $dlnS_dx = -2.0 * (2.0 * $m - 1.0) / $D
+                    $dx_ds   = ($ylum - 1.0) / [math]::Pow(1.0 - $s, 2)
+                    $rel = [math]::Abs($dlnS_dm) * $dm + [math]::Abs($dlnS_dx * $dx_ds) * $ds
+                    $lim = [math]::Max([math]::Abs([double]$refv) * $rel, 4.0 / $BINS)
+                    $diff = [math]::Abs([double]$mine - [double]$refv)
+                    $ok = ($diff -le $lim)
+                    return New-Row $fx 'meiaEscala' $field ('{0:G9}' -f [double]$mine) ('{0:G9}' -f [double]$refv) `
+                           $(if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
+                           ('{0:F2} bins / limite {1:F2} - propagado pela inclinacao da MTF (dlnS/dm {2:F1}, dm {3:F2} bins)' -f `
+                            ($diff * $BINS), ($lim * $BINS), $dlnS_dm, ($dm * $BINS))
+                }
+
+                $sigDone = $false
+                if ($es -and $stRec -and $stRec.params.operator -eq 'mtf' -and $lk -and
+                    $null -ne $lk.midtones -and $null -ne $es.midtones) {
+                    $dmM = [math]::Abs([double]$lk.midtones - [double]$es.midtones)
+                    $dsM = [math]::Abs([double]$lk.shadows  - [double]$es.shadows)
+                    $rA = Compare-MtfDerived $name 'ruido.antes'  $hn.skyHighFreqBefore $rn.skyHighFreqBefore `
+                          ([double]$es.midtones) ([double]$es.shadows) ([double]$es.luminancia.mediana) $dmM $dsM $null
+                    $rB = Compare-MtfDerived $name 'ruido.depois' $hn.skyHighFreqAfter  $rn.skyHighFreqAfter `
+                          ([double]$es.midtones) ([double]$es.shadows) ([double]$es.luminancia.mediana) $dmM $dsM $null
+                    if ($rA -and $rB) { $rows += $rA; $rows += $rB; $sigDone = $true }
+                }
+                if (-not $sigDone) {
+                    # Sem MTF (asinh) ou sem os parametros: a derivacao acima nao
+                    # vale, e fingir que vale seria pior que o eixo. O eixo entra
+                    # com a razao escrita.
+                    foreach ($fld in @(@('ruido.antes', $hn.skyHighFreqBefore, $rn.skyHighFreqBefore),
+                                       @('ruido.depois', $hn.skyHighFreqAfter, $rn.skyHighFreqAfter))) {
+                        $r9 = Compare-Value $name 'meiaEscala' $fld[0] $fld[1] $fld[2] 'unit' 0 0
+                        $r9.detalhe = $r9.detalhe + ' - eixo [0,1]: a derivacao pela MTF nao se aplica a este operador'
+                        $rows += $r9
+                    }
                 }
 
                 <#
