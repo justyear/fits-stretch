@@ -1887,7 +1887,7 @@ O `shadows` difere só 0,26 bin, mas entra multiplicado por
 grande não é desprezível**, e descartá-lo por ser pequeno na entrada teria
 deixado a cota 4% curta — que é o mesmo que não ter cota.
 
-### Ela se aperta sozinha, e isso é o teste
+### O teste de que uma cota é derivada, e ele serve para qualquer uma
 
 Rodada nos doze fixtures, a cota derivada só sobe acima do piso do eixo **num**:
 
@@ -1900,6 +1900,21 @@ Uma constante escolhida teria afrouxado os doze. Esta abre exatamente onde a
 propagação existe e fecha onde ela não existe — **e é assim que se distingue uma
 cota derivada de um ajuste, sem precisar confiar em quem a escreveu.**
 
+
+**O método, e ele vale para qualquer cota que alguém proponha:**
+
+> **Rode a cota candidata em TODOS os casos, não só no que reprovava.**
+> Uma cota **derivada** abre onde a propagação existe e fica no piso onde ela não
+> existe. Uma cota **escolhida** abre em todo lugar, porque ela foi dimensionada
+> pelo caso que doía e não pela fórmula.
+
+É barato — a suíte já roda os doze — e responde sem precisar ler a derivação nem
+confiar em quem a escreveu. **Um número que afrouxa tudo foi ajustado, mesmo que
+venha acompanhado de álgebra.**
+
+E o contrário também é sinal: se a cota derivada abre em *nenhum* caso, ela está
+abaixo do piso do instrumento em todos e não está fazendo nada — ou a propagação
+que ela modela não é a que está acontecendo.
 ## Classe: entregar um número pedido sem verificar que ele fecha
 
 **É a mesma doença de entregar um número que ninguém lê** — e é pior, porque o
