@@ -2032,6 +2032,23 @@ de salvaguardas do Módulo 5a não pareça ter quatro quando tem três.
 por enquanto: um "desfazer" que reconstruísse estado a partir da tela seria o
 começo de uma segunda fonte de verdade.
 
+**7. Três pendências saídas da varredura de unidades** — ver a seção própria
+acima. Em ordem de peso:
+
+- **`componentes` tem cota em pixels para uma contagem de componentes** (11
+  linhas, até 80× a própria grandeza). Fecha com uma curva
+  `densidadePorLimiar.recorte.componentes` do lado da referência.
+- **`decode.rawMin/rawMax` usam a cota do eixo [0,1] para um valor em ADU** (6
+  linhas, ±2,07 ADU no `seestar`). A cota certa é zero, derivada, e a diferença
+  medida já é zero — falta a decisão de fechar.
+- **418 cotas, 1 controle negativo.** A máquina existe no
+  `negative-controls.ps1` e exercita um campo só. A varredura é: para cada
+  campo, 0,5× a cota esperando PASS e 3× esperando FAIL.
+
+E uma frase gerada que ficou falsa: `extenso.pixels` e `componentes` dizem
+*"falta densidadePorLimiar.recorte.extendedPixels"* e a curva existe desde o
+passo 7 — o comparador é que não a lê.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -2520,3 +2537,112 @@ cima**; `[math]::Round` do .NET arredonda meio **para par**. 0,5 daria 0 e 2,5
 daria 2. Uma isolação de fórmula que erra metade da fórmula mede outra coisa —
 a mesma lição do `shadows(formula)` sem os clamps. `Floor(x + 0.5)` é o
 `Math.round` do JS, inclusive para negativo.
+
+## Varredura de unidades: 702 linhas, três cotas na unidade errada
+
+Feita depois da quinta instância, pela regra que saiu dela: **ao escrever uma
+cota, confira que a grandeza comparada e a grandeza da curva têm a mesma
+unidade.** Toda linha do `compare-reference` classificada pela família da cota e
+pela unidade dos dois lados.
+
+| família | grandeza comparada | unidade da cota | linhas |
+|---|---|---|---|
+| exata | inteiro, booleano, texto | — igualdade | 139 |
+| eixo [0,1] | valor de luminância | bins de 1/65535 | 278 |
+| mad/madn | dispersão no eixo [0,1] | bins de span/65535 + 1,4826·\|Δmediana\| | 13 |
+| contagem | pixels | 0,05% dos pixels do quadro | 43 |
+| contagem por limiar | pixels | pixels a menos de Δ do limiar (curva) | 78 |
+| propagada das entradas | quociente | Jacobiano da razão | 45 |
+| **posição** | **pixels de aresta** | **propagada pela fórmula** | **8** |
+| níveis de 8 bits | valor no eixo [0,1] | 1/255 | 3 |
+| razão + teto | erro em níveis | razão 3× e teto em níveis | 26 |
+| sha256 / afirmações / N-A | — | — | 69 |
+
+**418 linhas carregam cota. Três campos têm cota em unidade diferente da
+grandeza — e um deles é o que motivou a varredura.**
+
+### 1. `rect.x/y/w/h` — posição contra contagem. CONSERTADO
+
+Já descrito acima. Oito linhas, cota de 2543 pixels para uma diferença de 214
+px, PASS~. Hoje: cota propagada pela fórmula, zero, exata.
+
+### 2. `componentes` — contagem de COMPONENTES contra cota em PIXELS
+
+Onze linhas, nos dois ramos: pela curva de `signalPixels` quando ela existe, e
+pela cota de contagem da §7 quando não. As duas cotas estão em **pixels**; a
+grandeza é um **número de componentes conexos**.
+
+```
+bigobject      12 contra  11     cota   960,6      80x a propria grandeza
+nonlinear      46 contra  46     cota   270,0       5,9x
+oneobject     317 contra 319     cota  2543         8,0x
+```
+
+Há uma reconciliação de unidade, e ela é legítima: **um pixel que troca de lado
+no limiar cria ou destrói no máximo um componente**, então uma contagem de
+pixels é um limite superior válido para a variação da contagem de componentes.
+O problema não é a validade — é a folga. **Uma cota 80× maior que a própria
+grandeza aprovaria 12 contra 0.**
+
+É a mesma doença do `rect.*` com outra origem: lá a unidade não tinha
+reconciliação nenhuma, aqui tem, mas o limite é vacuous do mesmo jeito. E o
+sintoma é o mesmo: **um PASS que ninguém olha.**
+
+**O que fecha, e é barato do lado de lá:** uma curva
+`densidadePorLimiar.recorte.componentes` — quantos componentes nascem ou morrem
+quando o limiar anda Δ. Mesma forma das curvas que já existem. Enquanto ela não
+vier, o que vale como verificação de componentes é o `componentesAcimaDoPiso`,
+que é **exato** e é o número que decide qual salvaguarda dispara.
+
+### 3. `decode.rawMin` / `decode.rawMax` — ADU contra o eixo [0,1]
+
+Seis linhas. A grandeza é o valor bruto da amostra **nas unidades do arquivo** —
+ADU para BITPIX inteiro. A cota é a do eixo [0,1], `max(1e-4·|ref|, 4/65535)`,
+que ali não quer dizer nada:
+
+```
+seestar  rawMax  20650    cota 135329,78 bins  =  +/- 2,07 ADU
+seestar  rawMin    511    cota   3348,84 bins  =  +/- 0,05 ADU
+```
+
+**Uma divergência de 1 ADU no máximo do quadro passaria** — e uma divergência de
+1 ADU ali significa que um dos dois leu BZERO, BSCALE ou a ordem dos bytes de um
+jeito diferente, que é exatamente o que este bloco existe para pegar.
+
+A cota certa é **zero, e é derivada**: os dois lados leem os mesmos bytes e
+aplicam `valor·BSCALE + BZERO`; para BITPIX inteiro o resultado é exatamente
+representável dos dois lados, e para BITPIX float é o próprio float32 alargado.
+Medido: **diferença zero nas seis linhas**, então a comparação exata é calculada
+e não afirmada. Pendente de decisão.
+
+### O achado estrutural: 418 cotas, 1 controle negativo
+
+*"A tolerance that cannot fail is not a tolerance, it is a rubber stamp"* está
+escrito no cabeçalho do `negative-controls.ps1` desde que ele existe. Mas ele
+controla o `compare-golden`, e do `compare-reference` ele exercita **um único
+campo**: o termo `1,4826·|Δmediana|` no piso de mad/madn.
+
+**418 linhas com cota. Uma com controle negativo.**
+
+E a máquina já está construída: copiar os goldens para um diretório descartável,
+perturbar um valor, rodar o comparador com `-Golden`, e afirmar o veredito. O
+que falta é aplicá-la em varredura: para cada campo, perturbar **0,5× a cota**
+esperando PASS e **3× a cota** esperando FAIL.
+
+**Os dois instrumentos são complementares, e nenhum substitui o outro:**
+
+| instrumento | pega | não pega |
+|---|---|---|
+| controle negativo | cota ausente, infinita, ou campo que o comparador nem lê | cota finita e vasta demais — perturbar 3× dela reprova certinho |
+| **varredura de escala** | **cota maior que a própria grandeza** | cota errada mas pequena |
+
+O `rect.*` só cairia no segundo. Foi o segundo que o achou, e por acaso.
+
+### Uma frase gerada que ficou falsa
+
+`extenso.pixels` e `componentes` imprimem *"cota PARCIAL: falta
+densidadePorLimiar.recorte.extendedPixels"*. **A curva existe na referência**
+desde o passo 7 — `x: 1,0e-04 … 4,0e-02`, no eixo da ocupação — e o comparador
+nunca a lê. A linha descreve uma falta que não existe mais e aponta para a outra
+ponta. Fecha somando as duas densidades, como o `amountCheio` do Módulo 4 já
+faz.
