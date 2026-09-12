@@ -4,14 +4,17 @@ import numpy as np
 sys.path.insert(0, '.')
 from reference_bg import extract_background
 from reference_m23 import (colour_calibrate, linked_stretch, density_report,
-                           saturate, threshold_density, sat_factor)
+                           saturate, threshold_density, sat_factor,
+                           half_scale, crop_detect, madn_exact, _sky_mask, box_sum)
 from chain import load
 
 BASE = '/mnt/user-data/uploads/'
 JOBS = [('fixture-seestar.fit','seestar'), ('fixture-rice_fit.fz','rice'),
         ('fixture-nonlinear.fit','nonlinear'), ('fixture-gradient.fit','gradient'),
         ('fixture-colour.fit','colour'), ('fixture-edge.fit','edge'),
-        ('fixture-saturation.fit','saturation'), ('fixture-flatsky.fit','flatsky')]
+        ('fixture-saturation.fit','saturation'), ('fixture-flatsky.fit','flatsky'),
+        ('fixture-oneobject.fit','oneobject'), ('fixture-twoobjects.fit','twoobjects'),
+        ('fixture-bigobject.fit','bigobject')]
 # So estes dois tem a etapa LIGADA. Emitir saturacao para os outros nao
 # ajuda: os goldens deles sao a cadeia com os defaults, sem saturacao.
 SAT_ON = {'saturation', 'flatsky'}
@@ -72,6 +75,27 @@ for fn, label in JOBS:
             bordasDeFaixa=[dict(threshold=t, density=threshold_density(Yv, t))
                            for t in (0.10, 0.20, 0.35, 0.55, 0.80)])
 
+    # ordem: saturacao -> recorte -> meia escala -> quantise
+    cr = crop_detect(res) if len(res) == 3 else None
+    base = res
+    if label == 'oneobject' and cr and cr['suggested']:
+        x, y, cw, ch = cr['rect']          # o terceiro estado, com override
+        base = [c[y:y+ch, x:x+cw] for c in res]
+        cr = dict(cr, applied=True)
+    _, hs = half_scale(base)
+
+    Yc = (0.2126*res[0].astype(np.float64) + 0.7152*res[1].astype(np.float64)
+          + 0.0722*res[2].astype(np.float64)).astype(np.float32) if len(res) == 3 else res[0]
+    mY, sY = madn_exact(Yc)
+    dens['recorte'] = dict(
+        signalPixels=dict(count=cr['signalPixels'] if cr else 0,
+                          threshold=mY + 2.5*sY,
+                          density=threshold_density(Yc, mY + 2.5*sY)))
+    dens['meiaEscala'] = dict(
+        skyPixels=dict(count=hs['noise']['skyPixels'],
+                       threshold=mY + 3.0*sY,
+                       density=threshold_density(Yc, mY + 3.0*sY)))
+
     out[label] = dict(
         sha256=hashlib.sha256(open(BASE+fn,'rb').read()).hexdigest(),
         decode=dict(width=w, height=h, planes=len(planes)),
@@ -79,6 +103,8 @@ for fn, label in JOBS:
         calibracaoCor=clean(cc),
         esticamento=clean(st),
         saturacao=clean(sat) if sat else None,
+        meiaEscala=clean(hs),
+        recorte=clean(cr) if cr else None,
         densidadePorLimiar=clean(dens))
     st_extra = ('' if not sat else
                 f"  sat {'aplica' if sat['applied'] else 'RECUSA'} "

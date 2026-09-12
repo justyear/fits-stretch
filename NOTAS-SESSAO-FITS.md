@@ -1697,6 +1697,47 @@ cobertura até alguém perceber que ele está ali e escrever que está.** Um gol
 que exercita um caminho sem ninguém saber é indistinguível de um que não
 exercita.
 
+
+## O número estava no record e nenhuma comparação o lia
+
+O pior defeito desta rodada não foi achado por comparação: **ele estava contado,
+no record, desde sempre.**
+
+`quantise` grava `clamped.nonFinite` — quantos valores chegaram não-finitos e
+viraram zero. Os três fixtures de largura ímpar saíam com **3600**, que é 1200
+linhas × 3 canais: **uma coluna inteira preta**. E o `compare-golden` dava
+**52/52 byte a byte**, porque a captura e o golden tinham o mesmo defeito.
+
+O golden é uma comparação contra si mesmo. Ele pega mudança; não pega erro que já
+estava lá quando a foto foi tirada. A referência Python teria pegado — e pegou,
+quando finalmente rodou — mas só porque alguém escreveu a comparação do
+`clipLow`, que divergia em exatamente 1200.
+
+**A causa:** a interpolação bilinear da grade do fundo lê `[gx+1]`, e quando o
+pixel cai exatamente no último nó esse nó não existe. `undefined − número` é
+NaN, e `NaN × 0` continua NaN mesmo com o peso zero. Acontece quando `(w−1)` é
+múltiplo do divisor da grade — com 1601 e divisor 16, `1600/16 = 100` cai em
+cheio. **Largura ímpar não é a causa; é o que tornou o caso alcançável.**
+
+E o conserto teve que ser escrito **duas vezes**, porque a interpolação existe em
+duas cópias: `bgSampleGrid` e o laço de correção, que pré-computa `gx` e `tx`
+para o quadro inteiro. Consertei a primeira, o NaN continuou, e a segunda estava
+intacta — **a classe da fórmula duplicada, de novo, e desta vez em código que eu
+não escrevi.**
+
+### O que mudou por causa disso
+
+Uma afirmação nova no `compare-golden`, e ela **não é comparação**: todo record
+com `clamped.nonFinite` tem que trazer zero, em todo golden. Não existe caso em
+que um valor não-finito na saída seja o resultado certo, então a asserção não
+precisa de referência — **e é justamente por não precisar que ela pega um defeito
+que a referência também teria.**
+
+**A regra:** um campo que só existe para contar algo que nunca deveria acontecer
+precisa de uma asserção, não de uma comparação. Comparar contra o golden só
+pergunta *"mudou?"*; a asserção pergunta *"é possível?"*. O `nonFinite` respondia
+3600 havia três commits e ninguém tinha feito a segunda pergunta.
+
 ## Em aberto
 
 

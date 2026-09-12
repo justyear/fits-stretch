@@ -502,3 +502,347 @@ def saturate(planes, params=None, background=None, noise=None):
 
     out = [np.clip(x, 0, 1).astype(F32) for x in (Ro, Go, Bo)]
     return out, dict(applied=True, skipReason=None, **rec)
+
+
+# --------------------------------------- Modulo 5a: escala e recorte
+
+def _sigma_lag(v, sky, lag):
+    """1.4826 * mediana(|v[x+lag] - v[x]|) / sqrt(2), so na horizontal,
+    sobre pares em que AMBOS sao ceu.
+
+    Dois pontos onde uma implementacao razoavel diverge em silencio:
+    o MAD e sobre ZERO (mediana de |diff|, nao de |diff - mediana(diff)|),
+    e a divisao por sqrt(2) porque a diferenca de duas amostras
+    independentes tem variancia dobrada.
+    """
+    a = v[:, :-lag]
+    b = v[:, lag:]
+    m = sky[:, :-lag] & sky[:, lag:]
+    if not np.count_nonzero(m):
+        return 0.0
+    d = np.abs(b[m].astype(F64) - a[m].astype(F64))
+    return 1.4826 * med_exact(d) / np.sqrt(2.0)
+
+
+def half_scale(planes, params=None):
+    """Media de caixa 2x2 exata, sobre o float, antes do quantise."""
+    p = dict(band=(1.8, 2.2), expectedRatio=2.0, skySigma=3.0)
+    p.update(params or {})
+    rec = {'params': p}
+
+    h, w = planes[0].shape
+    w2, h2 = w >> 1, h >> 1          # dimensao impar DESCARTA, nunca interpola
+    rec['inputSize'] = [w, h]
+    rec['outputSize'] = [w2, h2]
+    rec['droppedRow'] = bool(h % 2)
+    rec['droppedColumn'] = bool(w % 2)
+
+    if len(planes) == 3:
+        Y = (0.2126 * planes[0].astype(F64) + 0.7152 * planes[1].astype(F64)
+             + 0.0722 * planes[2].astype(F64)).astype(F32)
+    else:
+        Y = planes[0]
+    med, madn = madn_exact(Y)
+    sky = Y < med + p['skySigma'] * madn
+
+    # brancura: lags vindos do BLOCO 2x2, nao dos dados
+    s1 = _sigma_lag(Y, sky, 1)
+    best, bestL = 1.0, 2
+    for L in (2, 3, 4):
+        sL = _sigma_lag(Y, sky, L)
+        r = (s1 / sL) if sL > 0 else 1.0
+        if r < best:
+            best, bestL = r, L
+
+    out = []
+    for c in planes:
+        a = c.astype(F64)[:h2 * 2, :w2 * 2]
+        out.append((((a[0::2, 0::2] + a[0::2, 1::2]
+                      + a[1::2, 0::2] + a[1::2, 1::2]) * 0.25)).astype(F32))
+
+    if len(out) == 3:
+        Y2 = (0.2126 * out[0].astype(F64) + 0.7152 * out[1].astype(F64)
+              + 0.0722 * out[2].astype(F64)).astype(F32)
+    else:
+        Y2 = out[0]
+    # um pixel reduzido e ceu sse os QUATRO de origem eram ceu
+    s = sky[:h2 * 2, :w2 * 2]
+    sky2 = s[0::2, 0::2] & s[0::2, 1::2] & s[1::2, 0::2] & s[1::2, 1::2]
+
+    sb = _sigma_lag(Y, sky, 1)
+    sa = _sigma_lag(Y2, sky2, 1)
+    ratio = (sb / sa) if sa > 0 else 0.0
+
+    rec['noise'] = dict(
+        skyHighFreqBefore=sb, skyHighFreqAfter=sa, ratio=ratio,
+        expectedRatio=p['expectedRatio'], band=list(p['band']),
+        whiteness=best, whitenessLag=bestL,
+        skyPixels=int(np.count_nonzero(sky)),
+        skyPixelsReduced=int(np.count_nonzero(sky2)),
+        skyThreshold=med + p['skySigma'] * madn)
+    rec['offered'] = bool(ratio >= p['band'][0])
+    rec['applied'] = True
+    return out, rec
+
+
+def crop_detect(planes, params=None, apply_crop=False):
+    """Detecta o objeto e SUGERE. Nunca aplica sem apply_crop."""
+    from scipy.ndimage import label
+    p = dict(cropSigma=2.5, cropWindow=25, cropDensity=0.50,
+             cropMargin=0.08, cropMinFrame=0.20)
+    p.update(params or {})
+    rec = {'params': p}
+
+    h, w = planes[0].shape
+    rec['frameSize'] = [w, h]
+    if len(planes) == 3:
+        Y = (0.2126 * planes[0].astype(F64) + 0.7152 * planes[1].astype(F64)
+             + 0.0722 * planes[2].astype(F64)).astype(F32)
+    else:
+        Y = planes[0]
+    med, madn = madn_exact(Y)
+    thr = med + p['cropSigma'] * madn
+    sig = Y > thr
+    rec['signalPixels'] = int(np.count_nonzero(sig))
+    rec['signalThreshold'] = thr
+
+    # a mascara do Modulo 2 lida ao contrario: extenso e o que ELA rejeita.
+    # Janela RECORTADA na borda -- o denominador e quantos pixels foram
+    # realmente olhados, senao objeto encostado na borda escapa.
+    win = p['cropWindow']
+    cnt = box_sum(sig.astype(F64), win)
+    den = box_sum(np.ones_like(cnt), win)
+    ext = sig & ((cnt / np.maximum(den, 1.0)) >= p['cropDensity'])
+    rec['extendedPixels'] = int(np.count_nonzero(ext))
+
+    lab, n = label(ext)               # 4-conectividade, o padrao
+    rec['components'] = int(n)
+    comps = []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if not ys.size:
+            continue
+        x0, x1 = int(xs.min()), int(xs.max())
+        y0, y1 = int(ys.min()), int(ys.max())
+        bw, bh = x1 - x0 + 1, y1 - y0 + 1
+        comps.append(dict(rect=[x0, y0, bw, bh], pixels=int(ys.size),
+                          boxFrac=(bw * bh) / float(w * h),        # detalhe 8
+                          pixelFrac=ys.size / float(w * h)))
+    comps.sort(key=lambda c: -c['boxFrac'])
+    rec['componentList'] = comps[:8]
+    big = [c for c in comps if c['boxFrac'] >= p['cropMinFrame']]
+    rec['componentsAboveMin'] = len(big)
+
+    rec['coverageGuard'] = dict(
+        inForce=False, evaluable=False,
+        reason=('not evaluable in this chain: an object covering most of the '
+                'frame is what the background model fits and subtracts'))
+
+    if len(big) == 0:
+        rec.update(suggested=False, applied=False, rect=None, objectRect=None,
+                   reason='no extended object large enough to be the subject')
+        return planes, rec
+    if len(big) > 1:
+        rec.update(suggested=False, applied=False, rect=None, objectRect=None,
+                   reason=(f'this frame has {len(big)} extended objects large '
+                           'enough to be the subject, and choosing one of them '
+                           'would be deciding the composition for you'))
+        return planes, rec
+
+    c = big[0]
+    x0, y0, bw, bh = c['rect']
+    m = p['cropMargin'] * max(w, h)
+    x0 -= m; y0 -= m; bw += 2 * m; bh += 2 * m
+    # razao do quadro original, EXPANDINDO o lado menor
+    ar = w / float(h)
+    if bw / bh < ar:
+        nb = bh * ar
+        x0 -= (nb - bw) / 2.0; bw = nb
+    else:
+        nb = bw / ar
+        y0 -= (nb - bh) / 2.0; bh = nb
+    x0, y0 = int(round(x0)), int(round(y0))
+    bw, bh = int(round(bw)), int(round(bh))
+    bw, bh = min(bw, w), min(bh, h)
+    x0 = max(0, min(x0, w - bw))      # desliza para dentro, nao encolhe
+    y0 = max(0, min(y0, h - bh))
+
+    rec['rect'] = [x0, y0, bw, bh]
+    rec['objectRect'] = c['rect']
+    # detalhe 10: area de PIXELS, nao a caixa
+    rec['coverageBefore'] = c['pixels'] / float(w * h)
+    rec['coverageAfter'] = c['pixels'] / float(bw * bh)
+    rec['suggested'] = True
+    rec['reason'] = None
+
+    if apply_crop:
+        rec['applied'] = True
+        out = [c2[y0:y0 + bh, x0:x0 + bw] for c2 in planes]
+        return out, rec
+    rec['applied'] = False
+    return planes, rec
+
+
+# ------------------------------------------- Modulo 5a: escala e recorte
+
+def _sky_mask(Y, k=3.0):
+    """Ceu escolhido UMA VEZ no quadro cheio."""
+    m, s = madn_exact(np.asarray(Y, dtype=F32))
+    return np.asarray(Y, dtype=F64) < m + k * s
+
+
+def _sigma_lag(v, sky, lag):
+    """1.4826 * mediana(|v[x+lag]-v[x]|) / sqrt(2), so na horizontal, e so
+    em pares onde AMBOS sao ceu.
+
+    Os dois pontos onde uma implementacao razoavel diverge em silencio:
+    o MAD e tomado sobre ZERO (nao sobre a mediana das diferencas), e a
+    divisao por sqrt(2) converte desvio-de-diferenca em desvio-de-pixel.
+    """
+    a = np.asarray(v, dtype=F64)
+    d = np.abs(a[:, lag:] - a[:, :-lag])
+    both = sky[:, lag:] & sky[:, :-lag]
+    if not np.count_nonzero(both):
+        return 0.0, 0
+    return (1.4826 * med_exact(d[both]) / np.sqrt(2.0),
+            int(np.count_nonzero(both)))
+
+
+def half_scale(planes, params=None):
+    """Media de caixa 2x2 EXATA, sobre o float, antes do quantise."""
+    p = dict(band=(1.8, 2.2), expectedRatio=2.0, skySigma=3.0)
+    p.update(params or {})
+    h, w = planes[0].shape
+    w2, h2 = w >> 1, h >> 1
+    rec = dict(applied=True, inputSize=[w, h], outputSize=[w2, h2],
+               droppedRow=bool(h % 2), droppedColumn=bool(w % 2))
+
+    Y = (0.2126 * planes[0].astype(F64) + 0.7152 * planes[1].astype(F64)
+         + 0.0722 * planes[2].astype(F64)).astype(F32) if len(planes) == 3 \
+        else planes[0].astype(F32)
+    sky = _sky_mask(Y, p['skySigma'])
+
+    out = []
+    for c in planes:
+        a = c.astype(F64)[:h2 * 2, :w2 * 2]
+        # quatro termos, uma divisao -- e a aritmetica em que o log se apoia
+        out.append((((a[0::2, 0::2] + a[0::2, 1::2]
+                      + a[1::2, 0::2] + a[1::2, 1::2]) * 0.25).astype(F32)))
+
+    Y2 = (0.2126 * out[0].astype(F64) + 0.7152 * out[1].astype(F64)
+          + 0.0722 * out[2].astype(F64)).astype(F32) if len(out) == 3 \
+        else out[0].astype(F32)
+    s = sky[:h2 * 2, :w2 * 2]
+    # um pixel reduzido e ceu sse os QUATRO de origem eram ceu
+    sky2 = s[0::2, 0::2] & s[0::2, 1::2] & s[1::2, 0::2] & s[1::2, 1::2]
+
+    sb, nb = _sigma_lag(Y, sky, 1)
+    sa, na = _sigma_lag(Y2, sky2, 1)
+    ratio = sb / sa if sa > 0 else 0.0
+
+    # brancura: os lags vem do bloco 2x2, nao dos dados
+    best, bestL = None, None
+    for L in (2, 3, 4):
+        sL, _ = _sigma_lag(Y, sky, L)
+        if sL > 0:
+            r = sb / sL
+            if best is None or r < best:
+                best, bestL = r, L
+
+    rec['noise'] = dict(skyHighFreqBefore=sb, skyHighFreqAfter=sa, ratio=ratio,
+                        expectedRatio=p['expectedRatio'], band=list(p['band']),
+                        whiteness=best, whitenessLag=bestL,
+                        skyPixels=int(np.count_nonzero(sky)),
+                        skyPixelsReduced=int(np.count_nonzero(sky2)),
+                        samplesBefore=nb, samplesAfter=na)
+    rec['offered'] = bool(ratio >= p['band'][0])
+    return out, rec
+
+
+def crop_detect(planes, params=None):
+    """Detecta o objeto e SUGERE o retangulo. Nunca aplica sozinho."""
+    from scipy.ndimage import label
+    p = dict(cropSigma=2.5, cropWindow=25, cropDensity=0.50,
+             cropMargin=0.08, cropMinFrame=0.20)
+    p.update(params or {})
+    h, w = planes[0].shape
+    rec = dict(applied=False, suggested=False, reason=None, frameSize=[w, h])
+
+    Y = (0.2126 * planes[0].astype(F64) + 0.7152 * planes[1].astype(F64)
+         + 0.0722 * planes[2].astype(F64)).astype(F32) if len(planes) == 3 \
+        else planes[0].astype(F32)
+    m, s = madn_exact(Y)
+    sig = np.asarray(Y, dtype=F64) > m + p['cropSigma'] * s
+    rec['signalPixels'] = int(np.count_nonzero(sig))
+
+    # A mascara de extenso e a do Modulo 2 lida ao contrario. Janela
+    # RECORTADA na borda: com a janela nominal, objeto encostado na borda
+    # escapa e a contagem de componentes diverge.
+    wnd = p['cropWindow']
+    cnt = box_sum(sig.astype(F64), wnd)
+    win = box_sum(np.ones_like(cnt), wnd)
+    ext = sig & ((cnt / np.maximum(win, 1.0)) >= p['cropDensity'])
+    rec['extendedPixels'] = int(np.count_nonzero(ext))
+
+    lab, n = label(ext)                       # 4-conectividade, o padrao
+    rec['components'] = int(n)
+    comps = []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if not ys.size:
+            continue
+        x0, x1, y0, y1 = int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+        bw, bh = x1 - x0 + 1, y1 - y0 + 1
+        comps.append(dict(rect=[x0, y0, bw, bh], pixels=int(ys.size),
+                          boxFrac=(bw * bh) / float(w * h),      # sobre a CAIXA
+                          pixelFrac=ys.size / float(w * h)))
+    comps.sort(key=lambda c: -c['boxFrac'])
+    rec['componentList'] = comps
+    big = [c for c in comps if c['boxFrac'] >= p['cropMinFrame']]
+    rec['componentsAboveMin'] = len(big)
+
+    rec['coverageGuard'] = dict(
+        inForce=False, evaluable=False,
+        objectBoxFrac=comps[0]['boxFrac'] if comps else 0.0,
+        reason=('not evaluable in this chain: an object covering most of the '
+                'frame is what the background model fits and subtracts. The '
+                'guard is empty by construction, not missing a test case.'))
+
+    if len(big) == 0:
+        rec['reason'] = 'no extended object large enough to be the subject'
+        rec['rect'] = rec['objectRect'] = None
+        return rec
+    if len(big) > 1:
+        rec['reason'] = (f'this frame has {len(big)} extended objects large '
+                         f'enough to be the subject, and choosing one of them '
+                         f'would be deciding the composition for you')
+        rec['rect'] = rec['objectRect'] = None
+        return rec
+
+    c = big[0]
+    x0, y0, bw, bh = c['rect']
+    rec['objectRect'] = [x0, y0, bw, bh]
+    # margem nos quatro lados
+    mg = p['cropMargin'] * max(w, h)
+    x0 -= mg; y0 -= mg; bw += 2 * mg; bh += 2 * mg
+    # razao do quadro original, EXPANDINDO o lado menor
+    ar = w / float(h)
+    if bw / bh < ar:
+        nbw = bh * ar
+        x0 -= (nbw - bw) / 2.0
+        bw = nbw
+    else:
+        nbh = bw / ar
+        y0 -= (nbh - bh) / 2.0
+        bh = nbh
+    x0, y0, bw, bh = (int(round(v)) for v in (x0, y0, bw, bh))
+    bw, bh = min(bw, w), min(bh, h)
+    # desliza para dentro; nao encolhe, porque encolher desfaria a razao
+    x0 = max(0, min(x0, w - bw))
+    y0 = max(0, min(y0, h - bh))
+    rec['rect'] = [x0, y0, bw, bh]
+    rec['suggested'] = True
+    # cobertura sobre a AREA DE PIXELS do componente, nao sobre a caixa
+    rec['coverageBefore'] = c['pixels'] / float(w * h)
+    rec['coverageAfter'] = c['pixels'] / float(bw * bh)
+    return rec

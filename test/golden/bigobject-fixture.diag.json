@@ -51,49 +51,49 @@
       "channel": "R",
       "median": 0.043427176317998015,
       "madn": 0.004469535270160388,
-      "q1": 0.04081788357366293,
-      "q3": 0.04704356450751507,
+      "q1": 0.040833142595559625,
+      "q3": 0.047058823529411764,
       "shadows": 0.03417653384796997,
       "midtones": 0.10623176548112126,
       "target": 0.085,
-      "pixelsBlack": 1369,
+      "pixelsBlack": 169,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     },
     {
       "channel": "G",
       "median": 0.04490730144197757,
-      "madn": 0.003698348474323951,
+      "madn": 0.00369869126313425,
       "q1": 0.042633707179369804,
       "q3": 0.047684443427176315,
       "shadows": 0.03417653384796997,
       "midtones": 0.10623176548112126,
       "target": 0.085,
-      "pixelsBlack": 1369,
+      "pixelsBlack": 169,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     },
     {
       "channel": "B",
       "median": 0.046890974288548104,
-      "madn": 0.003107675715853401,
+      "madn": 0.0031078289869830825,
       "q1": 0.04489204242008087,
-      "q3": 0.04908827344167239,
+      "q3": 0.049103532463569084,
       "shadows": 0.03417653384796997,
       "midtones": 0.10623176548112126,
       "target": 0.085,
-      "pixelsBlack": 1369,
+      "pixelsBlack": 169,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     }
   ],
   "stretchMode": {
@@ -108,22 +108,22 @@
       "luminanceSpan": 0.015518425268940247,
       "solvedStretch": null,
       "stretchUnreachable": false,
-      "clipLow": 1369,
+      "clipLow": 169,
       "clipHigh": 0,
       "highlightCut": 0.054398413061722745
     },
     "colourFidelity": {
       "ratiosBefore": {
-        "rOverG": 0.9898464613305157,
-        "bOverG": 1.0134596752189424
+        "rOverG": 0.989979684434971,
+        "bOverG": 1.0135082284727241
       },
       "ratiosAfter": {
-        "rOverG": 0.989328150802039,
-        "bOverG": 1.0141310378936967
+        "rOverG": 0.9894566113562755,
+        "bOverG": 1.0141837776188427
       },
-      "maxRatioDrift": 2.220446049250313e-16,
-      "driftSamples": 1919792,
-      "highlightPixels": 19214,
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 1920993,
+      "highlightPixels": 19279,
       "pixelsRescaled": 0
     }
   },
@@ -133,19 +133,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 44,
-    "preview": 37,
-    "stats": 87,
-    "background": 593,
-    "colour": 492,
-    "transfer": 673,
-    "saturation": 575,
-    "crop": 189,
-    "halfScale": 483,
+    "header": 0,
+    "decode": 78,
+    "preview": 53,
+    "stats": 102,
+    "background": 600,
+    "colour": 777,
+    "transfer": 1033,
+    "saturation": 673,
+    "crop": 154,
+    "halfScale": 1623,
     "quantise": 100,
-    "downscale": 0,
-    "total": 2863
+    "downscale": 1,
+    "total": 4442
   },
   "historyCards": [
     "CROP synthetic frame for the suggested-crop step.",

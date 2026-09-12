@@ -181,7 +181,11 @@ var HALF_WHITENESS_LAGS = [2, 3, 4];
 
 function halfWhiteness(plane, w, h, sky, scratch, base){
   if (!base || !(base.sigma > 0)) return null;
-  var worst = 1.0, worstLag = 0;
+  // Sem teto em 1,0. Um valor ACIMA de 1 significa que a diferenca no lag 1 le
+  // MAIOR que nos lags distantes -- anticorrelacao entre vizinhos -- e isso
+  // tambem e informacao sobre o quadro. Limitar em 1 escondia o caso e fazia
+  // o lag sair 0, que nao e lag nenhum.
+  var worst = Infinity, worstLag = 0;
   for (var li = 0; li < HALF_WHITENESS_LAGS.length; li++){
     var L = HALF_WHITENESS_LAGS[li];
     var far = halfHighFreq(plane, w, h, sky, scratch, L);
@@ -189,6 +193,7 @@ function halfWhiteness(plane, w, h, sky, scratch, base){
     var r = base.sigma / far.sigma;
     if (r < worst){ worst = r; worstLag = L; }
   }
+  if (!isFinite(worst)) return null;
   return { value: worst, lag: worstLag };
 }
 
@@ -316,6 +321,10 @@ function stepHalfScale(img, params, report){
     // reinvent it.
     withinBand: (ratio !== null && ratio >= HALF_RATIO_MIN && ratio <= HALF_RATIO_MAX),
     band: [HALF_RATIO_MIN, HALF_RATIO_MAX],
+    // A MEDIANA E O MADN QUE DEFINEM O LIMIAR DO CEU. Sem eles a cota da
+    // contagem por limiar tem que ser derivada de outro numero -- e derivar
+    // de outro numero e escolher a cota com passos extras.
+    skyMedian: ys.median, skyMadn: ys.madn, skySigma: HALF_SKY_SIGMA,
     skyPixels: skyCount, skyPixelsReduced: sky2Count,
     samplesBefore: hfBefore ? hfBefore.samples : 0,
     samplesAfter:  hfAfter  ? hfAfter.samples  : 0,

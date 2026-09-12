@@ -339,6 +339,9 @@ function stepCrop(img, params, report){
     reason: null,
     params: effective,
     frameSize: [w, h],
+    // A mediana e o MADN do limiar de sinal, pelo mesmo motivo do half-scale:
+    // a cota da contagem por limiar tem que sair do numero que ESTA no limiar.
+    skyMedian: ys.median, skyMadn: ys.madn,
     signalPixels: signalCount,
     extendedPixels: extCount,
     components: comps.length,

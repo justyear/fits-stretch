@@ -50,50 +50,50 @@
     {
       "channel": "R",
       "median": 0.009796292057679103,
-      "madn": 0.003260271624071067,
+      "madn": 0.0032582293898296435,
       "q1": 0.00827038986800946,
-      "q3": 0.03494316014343481,
-      "shadows": 0.0017817658304397858,
-      "midtones": 0.10526421429618973,
+      "q3": 0.03488212405584802,
+      "shadows": 0.0017900851388110862,
+      "midtones": 0.10519160212171438,
       "target": 0.085,
-      "pixelsBlack": 1200,
+      "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     },
     {
       "channel": "G",
       "median": 0.01297016861219196,
-      "madn": 0.004118995911654349,
+      "madn": 0.0041174052058760395,
       "q1": 0.011017013809414817,
-      "q3": 0.03781185626001373,
-      "shadows": 0.0017817658304397858,
-      "midtones": 0.10526421429618973,
+      "q3": 0.03776607919432364,
+      "shadows": 0.0017900851388110862,
+      "midtones": 0.10519160212171438,
       "target": 0.085,
-      "pixelsBlack": 1200,
+      "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     },
     {
       "channel": "B",
       "median": 0.017685206378271152,
-      "madn": 0.0053464284003053,
+      "madn": 0.005342839991762434,
       "q1": 0.015091172655832761,
-      "q3": 0.04206912336919204,
-      "shadows": 0.0017817658304397858,
-      "midtones": 0.10526421429618973,
+      "q3": 0.04202334630350195,
+      "shadows": 0.0017900851388110862,
+      "midtones": 0.10519160212171438,
       "target": 0.085,
-      "pixelsBlack": 1200,
+      "pixelsBlack": 0,
       "pixelsWhite": 0,
       "totalPixels": 1921200,
-      "statSamples": 1920000,
+      "statSamples": 1921200,
       "statStride": 1,
-      "nonFinite": 1200
+      "nonFinite": 0
     }
   ],
   "stretchMode": {
@@ -101,29 +101,29 @@
     "operator": "mtf",
     "luminance": {
       "luminanceMedian": 0.012573434042877852,
-      "luminanceMADN": 0.0038541672187278808,
-      "shadows": 0.0017817658304397858,
-      "midtones": 0.10526421429618973,
+      "luminanceMADN": 0.0038511960371667023,
+      "shadows": 0.0017900851388110862,
+      "midtones": 0.10519160212171438,
       "target": 0.085,
-      "luminanceSpan": 0.08024719615472647,
+      "luminanceSpan": 0.08010986495765621,
       "solvedStretch": null,
       "stretchUnreachable": false,
-      "clipLow": 1200,
+      "clipLow": 0,
       "clipHigh": 0,
       "highlightCut": 0.0601205462729839
     },
     "colourFidelity": {
       "ratiosBefore": {
-        "rOverG": 0.8653299989996086,
-        "bOverG": 1.1805832186289906
+        "rOverG": 0.8652595535097208,
+        "bOverG": 1.1807799760990967
       },
       "ratiosAfter": {
-        "rOverG": 0.8766564546596608,
-        "bOverG": 1.1636214964948275
+        "rOverG": 0.876589127740624,
+        "bOverG": 1.1638088002363474
       },
       "maxRatioDrift": 4.440892098500626e-16,
-      "driftSamples": 1920000,
-      "highlightPixels": 19327,
+      "driftSamples": 1921200,
+      "highlightPixels": 19326,
       "pixelsRescaled": 225
     }
   },
@@ -133,19 +133,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 31,
-    "preview": 28,
-    "stats": 80,
-    "background": 370,
-    "colour": 556,
-    "transfer": 749,
-    "saturation": 526,
-    "crop": 145,
-    "halfScale": 387,
-    "quantise": 95,
+    "header": 1,
+    "decode": 86,
+    "preview": 62,
+    "stats": 120,
+    "background": 1175,
+    "colour": 819,
+    "transfer": 1064,
+    "saturation": 637,
+    "crop": 197,
+    "halfScale": 548,
+    "quantise": 99,
     "downscale": 0,
-    "total": 2486
+    "total": 4016
   },
   "historyCards": [
     "CROP synthetic frame for the suggested-crop step.",

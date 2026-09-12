@@ -505,6 +505,46 @@ if ($notes.Count) {
     foreach ($n in $notes) { Write-Host $n }
 }
 
+
+<#
+NaN NA SAIDA E SEMPRE DEFEITO, E ESTE ARQUIVO E O UNICO QUE LE TODOS OS RECORDS.
+
+`quantise` ja contava: `clamped.nonFinite` e quantos valores chegaram nao-finitos
+e viraram zero. O campo existia desde o Modulo 0 e NENHUMA comparacao o lia --
+entao tres goldens foram capturados, promovidos e commitados com a ultima coluna
+preta, e o `compare-golden` deu 52/52 byte a byte porque a captura e o golden
+tinham o mesmo defeito.
+
+MEDIDO: 3600 em cada fixture de largura impar, que e 1200 linhas x 3 canais --
+uma coluna inteira. A causa era a leitura do no seguinte da grade do fundo
+quando o pixel cai exatamente no ultimo no; ver o comentario em bgSampleGrid.
+
+Isto NAO e comparacao contra o golden: e afirmacao sobre a saida, e por isso vale
+mesmo quando o golden concorda. Um valor nao-finito nunca e o resultado certo,
+entao nao ha caso em que este numero deva ser diferente de zero -- e uma
+afirmacao que nao precisa de referencia e a unica que pega um defeito que a
+referencia tambem tem.
+#>
+$nanFail = 0
+foreach ($name in $Names) {
+    $rp = Join-Path $fresh "$name.records.json"
+    if (-not (Test-Path -LiteralPath $rp)) { continue }
+    $recs = Get-Content -LiteralPath $rp -Raw | ConvertFrom-Json
+    foreach ($r in $recs) {
+        if ($null -eq $r.clamped -or $null -eq $r.clamped.nonFinite) { continue }
+        $nf = [int]$r.clamped.nonFinite
+        if ($nf -ne 0) {
+            Write-Host ("NAN FAIL - {0}: o record '{1}' conta {2} valores nao-finitos na saida ({3:P4} das amostras)" -f `
+                $name, $r.id, $nf, ($nf / [double]$r.clamped.samples))
+            $nanFail++
+        }
+    }
+}
+if ($nanFail -eq 0) {
+    Write-Host 'nenhum valor nao-finito na saida de nenhum golden'
+} else {
+    $fail += $nanFail
+}
 $exact = @($rows | Where-Object { $_.result -eq 'PASS'  }).Count
 $tolp  = @($rows | Where-Object { $_.result -eq 'PASS~' }).Count
 Write-Host ''

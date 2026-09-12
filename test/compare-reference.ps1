@@ -771,7 +771,16 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             $refC0 = [double]$es.shadows
             if (-not $lk.stretchUnreachable -and $stRec.params.operator -ne 'asinh') {
                 if (-not $stRec.params.nonLinear) {
+                    # A FORMULA INCLUI OS DOIS CLAMPS, e omiti-los fazia esta
+                    # linha reprovar sozinha: no twoobjects a mediana menos 2,80
+                    # MADN da -0,00255 e AS DUAS implementacoes devolvem 0. A
+                    # divergencia era do comparador e nao de nenhuma das pontas
+                    # -- uma isolacao de formula que omite metade da formula
+                    # esta medindo outra coisa, e o pior e que ela aponta para
+                    # as duas implementacoes ao mesmo tempo.
                     $meuShadows = $refMed + ([double]$stRec.params.shadowSigma) * $refMadn
+                    if (-not ($meuShadows -ge 0)) { $meuShadows = 0 }
+                    if ($meuShadows -ge $refMed) { $meuShadows = [math]::Max(0, $refMed * 0.5) }
                     $rows += Compare-Value $name 'stretch' 'shadows(formula)' $meuShadows $es.shadows 'unit' 0 0
                 } else {
                     # No ramo nao-linear shadows sai de um percentil, que esta
@@ -1275,6 +1284,245 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                 $rows += New-Row $name 'saturacao' 'motivo' `
                          $satRec.skipReason $sa.skipReason 'N/A' `
                          'as duas recusaram; os textos sao proprios de cada implementacao'
+            }
+        }
+
+        # ---- Modulo 5a: meia escala e recorte sugerido -----------------
+        #
+        # A referencia le as duas etapas em `meiaEscala` e `recorte`, e as curvas
+        # em `densidadePorLimiar.meiaEscala` e `densidadePorLimiar.recorte`.
+        #
+        # DUAS CONTAGENS DO MESMO OBJETO, UMA EXATA E OUTRA TOLERANTE, e o que
+        # separa e se o limiar tem populacao perto dele:
+        #
+        #   componentsAboveMin   limiar em 20% da caixa, onde NAO HA NADA --
+        #                        inteiro contado, exato
+        #   components           limiar na fronteira do filtro de extenso, onde
+        #                        esta QUASE TUDO: 94% dos componentes tem 3
+        #                        pixels ou menos e nascem e morrem com um
+        #                        deslocamento de 1e-6 no limiar
+        #
+        # Medido: 295/314/5 aqui contra 298/319/11 la nos tres fixtures novos.
+        # Tratar `components` como inteiro contado reprovaria uma implementacao
+        # correta; tratar `componentsAboveMin` como tolerante afrouxaria a unica
+        # contagem que decide qual salvaguarda dispara.
+        $me = $rf2.meiaEscala
+        $rc = $rf2.recorte
+        $densM = $null; $densC = $null
+        if ($rf2.densidadePorLimiar) {
+            $densM = $rf2.densidadePorLimiar.meiaEscala
+            $densC = $rf2.densidadePorLimiar.recorte
+        }
+        $hsRec = $recs2 | Where-Object { $_.id -eq 'half-scale' } | Select-Object -First 1
+        $crRec = $recs2 | Where-Object { $_.id -eq 'crop' }       | Select-Object -First 1
+        $pTot5 = [int]$rf2.decode.width * [int]$rf2.decode.height
+
+        # --- meia escala -------------------------------------------------
+        if ($null -eq $me) {
+            $rows += New-Row $name 'meiaEscala' '(todos)' '-' '-' 'N/A' `
+                     'a referencia nao emite meiaEscala para este fixture'
+        } elseif ($null -eq $hsRec) {
+            $rows += New-Row $name 'meiaEscala' '(todos)' '-' '-' 'N/A' `
+                     'o golden nao tem record de half-scale'
+        } else {
+            $rows += Compare-Value $name 'meiaEscala' 'aplicado'  $hsRec.applied  $me.applied  'exact' 0 0
+            $rows += Compare-Value $name 'meiaEscala' 'oferecido' $hsRec.offered  $me.offered  'exact' 0 0
+            # Inteiros que saem de `w >> 1`: nao ha o que tolerar. Se divergirem,
+            # uma das duas pontas leu outra dimensao ou arredondou o descarte.
+            foreach ($ix in 0..1) {
+                $rows += Compare-Value $name 'meiaEscala' ("entrada[$ix]") $hsRec.inputSize[$ix]  $me.inputSize[$ix]  'exact' 0 0
+                $rows += Compare-Value $name 'meiaEscala' ("saida[$ix]")   $hsRec.outputSize[$ix] $me.outputSize[$ix] 'exact' 0 0
+            }
+            $rows += Compare-Value $name 'meiaEscala' 'descartaLinha'  $hsRec.droppedRow    $me.droppedRow    'exact' 0 0
+            $rows += Compare-Value $name 'meiaEscala' 'descartaColuna' $hsRec.droppedColumn $me.droppedColumn 'exact' 0 0
+
+            $hn = $hsRec.noise; $rn = $me.noise
+            if ($hn -and $rn) {
+                # Os dois sigmas, no eixo [0,1]: sao medianas de |diferenca|
+                # sobre selecoes exatas dos dois lados, e o que sobra e QUAIS
+                # pixels entraram no ceu.
+                foreach ($fld in @(@('ruido.antes', $hn.skyHighFreqBefore, $rn.skyHighFreqBefore),
+                                   @('ruido.depois', $hn.skyHighFreqAfter, $rn.skyHighFreqAfter))) {
+                    $rows += Compare-Value $name 'meiaEscala' $fld[0] $fld[1] $fld[2] 'unit' 0 0
+                }
+
+                <#
+                RAZAO E BRANCURA SAO QUOCIENTES, E NAO MORAM NO EIXO [0,1].
+
+                Mesmo erro que os ganhos estelares e que o `span`, pela terceira
+                vez: a grandeza comparada e derivada, e herda a incerteza das
+                ENTRADAS amplificada pelo Jacobiano.
+
+                    ratio      = sigma_antes / sigma_depois
+                    whiteness  = sigma(lag 1) / sigma(lag L)
+                    d(a/b)/(a/b) = da/a + db/b
+
+                Medido no `edge`, que e o quadro pequeno (400x300) e portanto o
+                de mediana mais ruidosa: a razao reprovava em 42,76 de 4,00 bins
+                do eixo, e passa em 42,76 de 13,23 pela cota propagada. Nao e
+                alargamento -- 4,00 e a cota de UM valor do eixo, e aqui ha dois
+                divididos um pelo outro.
+
+                A brancura nao tem os dois sigmas no record (so o resultado e o
+                lag), entao o denominador e reconstruido: sigma(lag L) =
+                sigma(lag 1) / whiteness.
+                #>
+                $rows += Compare-Ratio $name 'meiaEscala' 'ruido.razao' `
+                         $hn.ratio $rn.ratio $rn.skyHighFreqBefore $rn.skyHighFreqAfter
+                if ($null -ne $rn.whiteness -and [double]$rn.whiteness -ne 0) {
+                    $farRef = [double]$rn.skyHighFreqBefore / [double]$rn.whiteness
+                    $rows += Compare-Ratio $name 'meiaEscala' 'ruido.brancura' `
+                             $hn.whiteness $rn.whiteness $rn.skyHighFreqBefore $farRef
+                }
+                # O lag do pior caso e um INDICE, nao uma medida: se os dois
+                # lados escolherem lags diferentes, mediram coisas diferentes e
+                # o valor de brancura bater seria coincidencia.
+                $rows += Compare-Value $name 'meiaEscala' 'brancura.lag' $hn.whitenessLag $rn.whitenessLag 'exact' 0 0
+
+                # AFIRMACAO, como o matiz e o croma: a faixa e o que o produto
+                # promete, e o botao aparece ou nao por ela. Os dois lados contra
+                # o limite, nao um contra o outro.
+                foreach ($par in @(@('nosso', $hn.ratio), @('referencia', $rn.ratio))) {
+                    $inBand = ([double]$par[1] -ge 1.8 -and [double]$par[1] -le 2.2)
+                    $rows += New-Row $name 'meiaEscala' ("razao.$($par[0])") ('{0:0.0000}' -f [double]$par[1]) '1,8 a 2,2' `
+                             $(if ($inBand) { 'PASS' } else { 'FORA' }) `
+                             $(if ($inBand) { 'a media de caixa divide o ruido pelo fator previsto' }
+                               else { 'os quatro pixels do bloco nao eram independentes neste quadro' })
+                }
+
+                <#
+                A COTA TEM QUE SAIR DO NUMERO QUE ESTA NO LIMIAR.
+
+                O limiar do ceu e `mediana + 3 * madn` da luminancia. A versao
+                anterior desta linha derivava o Delta de `skyHighFreqBefore` --
+                que e o sigma de ALTA FREQUENCIA e nao o MADN da luminancia. Dois
+                numeros diferentes, e o Delta saia da ordem de 1e-7 quando o
+                verdadeiro e ~1e-5: a curva era lida num ponto onde ela diz zero,
+                e a linha reprovava por 1 pixel contra uma cota de 0.
+
+                Um Delta derivado do numero errado nao e cota derivada -- e cota
+                escolhida com passos extras, e pior que a da secao 7, porque
+                PARECE derivada.
+
+                `skyMedian` e `skyMadn` entraram no record para isto. Enquanto a
+                referencia nao os emitir, a linha cai na cota da secao 7 e diz
+                por que, em vez de ler a curva num ponto que nao significa nada.
+                #>
+                $dThr5 = $null
+                if ($null -ne $hn.skyMedian -and $null -ne $rn.skyMedian -and
+                    $null -ne $hn.skyMadn   -and $null -ne $rn.skyMadn) {
+                    $sig5 = [double]$hn.skySigma
+                    if (-not ($sig5 -gt 0)) { $sig5 = 3.0 }
+                    $dThr5 = [math]::Abs([double]$hn.skyMedian - [double]$rn.skyMedian) +
+                             $sig5 * [math]::Abs([double]$hn.skyMadn - [double]$rn.skyMadn)
+                }
+                $curveSky = $null
+                if ($densM) { $curveSky = $densM.skyPixels }
+                if ($curveSky -and $null -ne $dThr5) {
+                    $rows += Compare-Threshold-Count $name 'meiaEscala' 'ceu.pixels' `
+                             $hn.skyPixels $rn.skyPixels $dThr5 $curveSky
+                } else {
+                    $r5 = Compare-Value $name 'meiaEscala' 'ceu.pixels' $hn.skyPixels $rn.skyPixels 'count' 0 $pTot5
+                    $r5.detalhe = $r5.detalhe + $(if ($null -eq $dThr5) {
+                        ' - cota da secao 7: falta skyMedian/skyMadn na referencia para derivar o Delta'
+                    } else { ' - cota da secao 7, sem curva' })
+                    $rows += $r5
+                }
+            }
+        }
+
+        # --- recorte sugerido --------------------------------------------
+        if ($null -eq $rc) {
+            $rows += New-Row $name 'recorte' '(todos)' '-' '-' 'N/A' `
+                     'a referencia nao emite recorte para este fixture'
+        } elseif ($null -eq $crRec) {
+            $rows += New-Row $name 'recorte' '(todos)' '-' '-' 'N/A' `
+                     'o golden nao tem record de crop'
+        } else {
+            # OS TRES VEREDITOS SAO EXATOS. Sao o que a etapa decide, e uma
+            # divergencia aqui nao e tolerancia: e uma das duas pontas sugerindo
+            # onde a outra recusa, que e a diferenca inteira do modulo.
+            $rows += Compare-Value $name 'recorte' 'aplicado' $crRec.applied   $rc.applied   'exact' 0 0
+            $rows += Compare-Value $name 'recorte' 'sugerido' $crRec.suggested $rc.suggested 'exact' 0 0
+            $rows += Compare-Value $name 'recorte' 'componentesAcimaDoPiso' `
+                     $crRec.componentsAboveMin $rc.componentsAboveMin 'exact' 0 0
+
+            <#
+            `components` NAO E INTEIRO CONTADO, e a medicao diz por que.
+
+            94% dos componentes tem 3 pixels ou menos: sao pixels de fronteira
+            do filtro de extenso, que nascem e morrem com um deslocamento de
+            1e-6 no limiar. E contagem por limiar como o clipLow, e nao um
+            inteiro que as duas pontas possam obter exatamente.
+
+            A cota sai da curva de `signalPixels`, que conta os pixels a menos
+            de Delta do limiar de sinal -- e cada um deles pode criar ou
+            destruir um componente. A COTA E PARCIAL, e esta escrito na linha:
+            ela cobre as trocas no limiar de SINAL e nao as trocas no limiar de
+            OCUPACAO do filtro de extenso, que nenhuma das duas pontas mede.
+            Fechar isso pede `densidadePorLimiar.recorte.extendedPixels` --
+            densidade de pixels cuja ocupacao esta a menos de Delta de 0,50.
+            #>
+            # Mesmo cuidado do `ceu.pixels`: o limiar de sinal e
+            # `mediana + 2,5 * madn` da luminancia, entao o Delta tem que sair
+            # DESSES dois numeros e nao de um sigma parecido.
+            $dThrC = $null
+            if ($null -ne $crRec.skyMedian -and $null -ne $rc.skyMedian -and
+                $null -ne $crRec.skyMadn   -and $null -ne $rc.skyMadn) {
+                $dThrC = [math]::Abs([double]$crRec.skyMedian - [double]$rc.skyMedian) +
+                         2.5 * [math]::Abs([double]$crRec.skyMadn - [double]$rc.skyMadn)
+            }
+            $curveSig = $null
+            if ($densC) { $curveSig = $densC.signalPixels }
+
+            foreach ($t in @(@('sinal.pixels',  $crRec.signalPixels,   $rc.signalPixels),
+                             @('extenso.pixels', $crRec.extendedPixels, $rc.extendedPixels),
+                             @('componentes',    $crRec.components,     $rc.components))) {
+                if ($null -eq $t[1] -or $null -eq $t[2]) { continue }
+                if ($curveSig -and $null -ne $dThrC) {
+                    $r6 = Compare-Threshold-Count $name 'recorte' $t[0] $t[1] $t[2] $dThrC $curveSig
+                    if ($t[0] -ne 'sinal.pixels') {
+                        $r6.detalhe = $r6.detalhe + ' - cota PARCIAL: falta densidadePorLimiar.recorte.extendedPixels'
+                    }
+                    $rows += $r6
+                } else {
+                    $r6 = Compare-Value $name 'recorte' $t[0] $t[1] $t[2] 'count' 0 $pTot5
+                    $r6.detalhe = $r6.detalhe + ' - cota da secao 7, nao derivada'
+                    $rows += $r6
+                }
+            }
+
+            # O motivo da recusa: os textos sao proprios de cada implementacao,
+            # entao o que se compara e QUE HOUVE motivo dos dois lados -- duas
+            # recusas por razoes diferentes leriam como acordo.
+            if ((-not $crRec.suggested) -and (-not $rc.suggested)) {
+                $bothHave = ($null -ne $crRec.reason -and $null -ne $rc.reason)
+                $rows += New-Row $name 'recorte' 'motivo' `
+                         $(if ($crRec.reason) { ($crRec.reason -split ',')[0] } else { '-' }) `
+                         $(if ($rc.reason) { ($rc.reason -split ',')[0] } else { '-' }) `
+                         $(if ($bothHave) { 'N/A' } else { 'FAIL' }) `
+                         $(if ($bothHave) { 'as duas recusaram e as duas disseram por que' }
+                           else { 'uma das duas recusou em silencio' })
+            }
+
+            # O retangulo, quando as duas sugerem. Contagem por limiar: as
+            # arestas saem da caixa do componente, entao herdam o Delta do
+            # extenso -- pela mesma cota parcial, e dito na linha.
+            if ($crRec.suggested -and $rc.suggested -and $crRec.rect -and $rc.rect) {
+                foreach ($ri in 0..3) {
+                    $lbl = @('rect.x', 'rect.y', 'rect.w', 'rect.h')[$ri]
+                    if ($curveSig -and $null -ne $dThrC) {
+                        $r7 = Compare-Threshold-Count $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] $dThrC $curveSig
+                        $r7.detalhe = $r7.detalhe + ' - aresta herda o Delta do extenso'
+                        $rows += $r7
+                    } else {
+                        $rows += Compare-Value $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] 'count' 0 $pTot5
+                    }
+                }
+                foreach ($cv in @(@('cobertura.antes', $crRec.coverageBefore, $rc.coverageBefore),
+                                  @('cobertura.depois', $crRec.coverageAfter, $rc.coverageAfter))) {
+                    $rows += Compare-Value $name 'recorte' $cv[0] $cv[1] $cv[2] 'unit' 0 0
+                }
             }
         }
 
