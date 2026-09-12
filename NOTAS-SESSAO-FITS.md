@@ -1817,6 +1817,89 @@ e são pré-computados para o quadro inteiro em vez de por pixel por canal. É u
 razão boa. **Uma duplicação com razão boa continua sendo duplicação**, e o que
 falta nela é a anotação que diz onde está a irmã.
 
+
+## Quarta instância da cota no eixo errado, e a primeira a quatro elos
+
+As três anteriores estavam a **um elo** da entrada. Esta está a **quatro**, e é
+por isso que ela foi a última a cair.
+
+| grandeza | derivação | elos |
+|---|---|---|
+| ganhos estelares | `above_a / above_b` | 1 |
+| `mask.luminanceSpan` | `3(q3 − q1)` | 1 |
+| `saturationByLuminance.after` | `s' = k(max−min)/max'` | 1 |
+| **`skyHighFreqBefore`** | **mediana → alvo → midtones → inclinação → sigma** | **4** |
+
+Cada elo passa a própria cota, e o último reprova porque carrega o que os três
+acumularam:
+
+```
+lumMediana  1,12 bins  passa
+  -> target   1,12 bins  passa    <- ramo nao-linear: o alvo E a mediana do quadro
+    -> midtones  3,12 bins  passa
+      -> sigma     4,04 bins  REPROVA contra o eixo [0,1]
+```
+
+**A cadeia longa é o que esconde.** Com um elo, a pergunta *"de onde vem essa
+incerteza?"* tem uma resposta visível na linha de cima. Com quatro, cada linha
+individual parece saudável e o problema só aparece no fim — onde a explicação
+mais fácil é "a implementação diverge", que era falsa.
+
+### A derivação, e o passo que quase se perde
+
+A pista que veio de fora dava a derivada da MTF em relação a `midtones`:
+
+```
+MTF(x,m) = (m-1)x / ((2m-1)x - m)      dMTF/dm = x(x-1)/D²
+```
+
+Correta, e **não é a que vale**. `sigma` não é um nível: é a mediana de `|d|`
+entre vizinhos, e para diferenças pequenas `d ≈ S(x)·Δx`, com `S` a
+**inclinação**. Então sigma segue `S`, não `MTF`:
+
+```
+S(x,m) = dMTF/dx = m(1-m) / D²
+
+dln(S)/dm = (1-2m)/(m(1-m)) - 2(2x-1)/D
+dln(S)/dx = -2(2m-1)/D
+dx/ds     = (Y-1)/(1-s)²
+```
+
+Medido no `nonlinear`: `dln(MTF)/dm = −23,3` contra `dln(S)/dm = −15,7`. **Um
+fator 1,5.** As duas cobrem os 4,04 bins, então propagar pelo nível teria dado um
+número que fecha **por acidente** — e um número certo pelo motivo errado é o que
+fecha a investigação no lugar errado.
+
+**A regra:** ao propagar por uma fórmula, pergunte primeiro *que grandeza a
+minha medição é* — nível, dispersão, contagem, razão. A derivada que vale é a da
+grandeza, não a da função que aparece no código.
+
+### Os dois termos, e por que nenhum sobra
+
+```
+termo do midtones   3,88 bins      NAO cobre sozinho
+termo do shadows    1,14 bins
+soma                5,02 bins      contra 4,04 observados, folga 1,24x
+```
+
+O `shadows` difere só 0,26 bin, mas entra multiplicado por
+`dln(S)/dx · dx/ds = −42,6 × −1,30 = 55,3`. **Um termo pequeno com Jacobiano
+grande não é desprezível**, e descartá-lo por ser pequeno na entrada teria
+deixado a cota 4% curta — que é o mesmo que não ter cota.
+
+### Ela se aperta sozinha, e isso é o teste
+
+Rodada nos doze fixtures, a cota derivada só sobe acima do piso do eixo **num**:
+
+```
+nonlinear   4,04 bins / limite 5,01     dm = 3,12 bins
+os outros   0,01 a 1,33 bins / limite 4,00     a derivada fica abaixo do piso
+```
+
+Uma constante escolhida teria afrouxado os doze. Esta abre exatamente onde a
+propagação existe e fecha onde ela não existe — **e é assim que se distingue uma
+cota derivada de um ajuste, sem precisar confiar em quem a escreveu.**
+
 ## Classe: entregar um número pedido sem verificar que ele fecha
 
 **É a mesma doença de entregar um número que ninguém lê** — e é pior, porque o
@@ -1850,66 +1933,24 @@ coberto; aqui o destinatário acharia. As duas se consertam com a mesma frase �
 ## Em aberto
 
 
-**Módulo 5a: os sete passos fechados, com UM FAIL nomeado.**
+**Módulo 5a: os sete passos fechados, SEM FAIL.**
 
 A meia escala e o recorte sugerido estão na cadeia, no log, no registry e na
-referência Python. `compare-reference` dá **865 comparações, 1 FAIL**.
+referência Python. `compare-reference` dá **865 comparações, 0 FAIL**.
 
 O que ficou aberto, em ordem de peso:
 
-**1. `nonlinear | meiaEscala | ruido.antes` — 4,04 de 4,00 bins. CAUSA FECHADA,
-cota em aberto.**
+**1. ~~`nonlinear | meiaEscala | ruido.antes`~~ — FECHADO.**
 
-Seis hipóteses medidas. **Cinco descartadas, a sexta confirmada por isolamento de
-fórmula.**
+Seis hipóteses medidas e descartadas (histograma, quantização do estimador,
+incerteza da mediana, quais pares entram, ordem da subtração, float32 no
+acumulador), mais a seleção — que caía por: ao aplicar **o limiar da referência**
+ao quadro daqui, o céu dá 502.717 e não os 502.735 de lá, então a regra é a mesma
+e os **quadros** é que diferem.
 
-| hipótese | medição | veredito |
-|---|---|---|
-| o histograma deste lado | mediana do `analysePlane` contra exata no **mesmo array**: −0,53 bin | descartada |
-| quantização do estimador | cota `8·span/65535` = 3,461e-5 contra 6,155e-5 observados — **1,78×** | descartada |
-| incerteza da mediana de \|d\| | `skyMedian` difere 2,98e-8; o termo não acrescenta nada | descartada |
-| **quais pares entram** | os dois lados exigem que **ambos** sejam céu; leitura de código dos dois | descartada |
-| **ordem da subtração / abs** | `plane[x+lag] − plane[x]`, depois `abs`; leitura de código | descartada |
-| **float32 no acumulador** | o mesmo cálculo em `Float32Array` e em `Float64Array`: **0,075715974 nos dois**, 9 casas | descartada |
-
-**A causa é propagação pela transferência, e o isolamento de fórmula prova:**
-
-```
-minha curva + MEUS parametros     sigma 0,079378692     (meu record: 0,079377335)
-minha curva + parametros DELES    sigma 0,079332171     (o deles:    0,079315754)
-                                        ^ 1,08 bins do valor deles
-```
-
-Alimentar a **minha** MTF com o `shadows`/`midtones` **deles** move o sigma de
-0,0793787 para 0,0793322 e cai a **1,08 bin** do número deles — dentro da cota.
-**A fórmula é a mesma.** Os 4,04 bins são inteiramente a propagação de entradas
-que passam nas próprias cotas:
-
-```
-lumMediana   1,12 bins   passa
-  -> target  1,12 bins   passa   (ramo não-linear: o alvo É a mediana do quadro)
-    -> midtones 3,12 bins passa
-      -> sigma  4,04 bins  REPROVA
-```
-
-Cada elo passa a cota dele; o último reprova porque é julgado no **eixo [0,1]**
-enquanto carrega incerteza propagada por uma curva íngreme. **Quarta instância da
-classe "cota lida no eixo errado"** — ver acima.
-
-E o que descartou a seleção, que era a hipótese com melhor direção: aplicando o
-**limiar deles** ao **meu** quadro, o céu dá **502.717** e não os 502.735 deles.
-Ao mesmo limiar os conjuntos ainda diferem, então a regra é a mesma e os
-**quadros** é que diferem. Trocar o limiar move a mediana de \|d\| em 2,15e-6 —
-**3,7%** da diferença de 5,87e-5.
-
-**O que falta para fechar a cota, e é decisão de projeto:** a linha certa é
-`ruido.antes(formula)` — o mesmo padrão de `shadows(formula)` e
-`midtones(formula)`. Mas ela precisa que a **captura** rode o estimador com os
-parâmetros da referência, porque o comparador em PowerShell não sabe aplicar uma
-MTF. É uma captura no formato do `__captureSafeguards`, e o custo é real. A
-alternativa — usar a sensibilidade medida, `Δsigma ≈ Δmidtones` neste fixture —
-seria constante ajustada num ponto só, que é exatamente o que esta sessão passou
-inteira recusando.
+A causa é propagação pela inclinação da MTF, a quatro elos da entrada, e a cota
+derivada fecha em **5,02 contra 4,04 bins** — ver a classe acima. `compare-reference`
+passou a **865 comparações, 0 FAIL**.
 
 **2. Cota parcial em `components` e `extenso.pixels`.** A curva de
 `extendedPixels` no limiar de ocupação chegou e está em uso, mas a cota ainda não
