@@ -506,7 +506,7 @@ def saturate(planes, params=None, background=None, noise=None):
 
 # --------------------------------------- Modulo 5a: escala e recorte
 
-def _sigma_lag(v, sky, lag):
+def _sigma_lag(v, sky, lag, want_span=False):
     """1.4826 * mediana(|v[x+lag] - v[x]|) / sqrt(2), so na horizontal,
     sobre pares em que AMBOS sao ceu.
 
@@ -691,7 +691,7 @@ def _sky_mask(Y, k=3.0):
     return np.asarray(Y, dtype=F64) < m + k * s
 
 
-def _sigma_lag(v, sky, lag):
+def _sigma_lag(v, sky, lag, want_span=False):
     """1.4826 * mediana(|v[x+lag]-v[x]|) / sqrt(2), so na horizontal, e so
     em pares onde AMBOS sao ceu.
 
@@ -703,9 +703,17 @@ def _sigma_lag(v, sky, lag):
     d = np.abs(a[:, lag:] - a[:, :-lag])
     both = sky[:, lag:] & sky[:, :-lag]
     if not np.count_nonzero(both):
-        return 0.0, 0
-    return (1.4826 * med_exact(d[both]) / np.sqrt(2.0),
-            int(np.count_nonzero(both)))
+        return (0.0, 0, 0.0) if want_span else (0.0, 0)
+    dd = d[both]
+    sig = 1.4826 * med_exact(dd) / np.sqrt(2.0)
+    n = int(np.count_nonzero(both))
+    if not want_span:
+        return sig, n
+    # span da distribuicao de |d|, na mesma forma do span do MADN: e o que
+    # a cota de uma estatistica de forma MAD precisa, e sem ele a cota teria
+    # que ser escolhida.
+    q1, q3 = float(np.percentile(dd, 25)), float(np.percentile(dd, 75))
+    return sig, n, 3.0 * (q3 - q1)
 
 
 def half_scale(planes, params=None):
@@ -737,8 +745,8 @@ def half_scale(planes, params=None):
     # um pixel reduzido e ceu sse os QUATRO de origem eram ceu
     sky2 = s[0::2, 0::2] & s[0::2, 1::2] & s[1::2, 0::2] & s[1::2, 1::2]
 
-    sb, nb = _sigma_lag(Y, sky, 1)
-    sa, na = _sigma_lag(Y2, sky2, 1)
+    sb, nb, spanB = _sigma_lag(Y, sky, 1, want_span=True)
+    sa, na, spanA = _sigma_lag(Y2, sky2, 1, want_span=True)
     ratio = sb / sa if sa > 0 else 0.0
 
     # brancura: os lags vem do bloco 2x2, nao dos dados
@@ -754,6 +762,7 @@ def half_scale(planes, params=None):
 
     rec['noise'] = dict(skyMedian=skyMed, skyMadn=skyMadn,
                         skyHighFreqBefore=sb, skyHighFreqAfter=sa, ratio=ratio,
+                        skyHighFreqSpanBefore=spanB, skyHighFreqSpanAfter=spanA,
                         expectedRatio=p['expectedRatio'], band=list(p['band']),
                         whiteness=best, whitenessLag=bestL,
                         skyPixels=int(np.count_nonzero(sky)),
