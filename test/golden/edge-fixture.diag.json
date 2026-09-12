@@ -133,19 +133,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 10,
+    "header": 0,
+    "decode": 11,
     "preview": 1,
     "stats": 18,
-    "background": 102,
-    "colour": 97,
-    "transfer": 128,
-    "saturation": 76,
-    "crop": 25,
-    "halfScale": 72,
-    "quantise": 19,
+    "background": 103,
+    "colour": 94,
+    "transfer": 125,
+    "saturation": 75,
+    "crop": 21,
+    "quantise": 27,
     "downscale": 0,
-    "total": 476
+    "total": 400
   },
   "historyCards": [
     "Small frame: the default edge margin reaches the sample grid.",

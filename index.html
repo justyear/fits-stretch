@@ -234,13 +234,11 @@
       <div class="logbox"><pre id="logtext"></pre></div>
       <div class="actions">
         <button class="btn primary" id="dlpng">Download PNG</button>
-        <button class="btn" id="dlhalf" hidden>Download half-scale PNG</button>
         <button class="btn" id="dlcrop" hidden>Crop to the object</button>
         <button class="btn" id="copylog">Copy processing log</button>
         <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
       </div>
       <p class="hint" id="crophint" hidden></p>
-      <p class="hint" id="halfhint" hidden></p>
       <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
         unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
       <p class="hint">Paste the log alongside your image. Every value in it was measured from the file you dropped.</p>
@@ -3659,419 +3657,6 @@ function stepSaturation(img, params, report){
   return img;
 }
 /* ------------------------------------------------------------------ *
- * Half-scale copy — a second output, never the default
- *
- * THE MEASUREMENT THAT PUT THIS HERE. Comparing the v1.3.0 output against a
- * manual delivery of the same target, the tool's detail-to-noise ratio came out
- * BETTER (6.51 against 5.84): the processing is not losing structure and not
- * inventing noise. What the reference had was half the apparent sky noise — and
- * it had it because it was delivered reduced and cropped, 2500x1500 against
- * 2160x3840 at full resolution.
- *
- * Halving the linear size divides the apparent noise by two. That is sampling
- * arithmetic, not processing, and it is the largest remaining visual difference
- * between the two deliveries.
- *
- * SO THE REDUCED COPY IS A SECOND BUTTON AND NOT THE DEFAULT, and the reason is
- * the product rather than the code: the reduced one looks better and is what a
- * person will post, but it looks better BECAUSE IT HID NOISE. A tool whose whole
- * argument is that nothing happens to the pixels without being written down
- * cannot ship, by default, the version that quietly hides some. The full frame
- * stays the default; this one is offered, with the log saying the scale and
- * saying why it is offered.
- *
- * EXACT 2x2 BOX AVERAGE, AND NOTHING ELSE WILL DO. Four independent pixels
- * become one, so the noise falls by sqrt(4) = 2 — and the log states that number
- * out loud. Bicubic and Lanczos have negative lobes: they do not divide the
- * noise by the same factor, and the sentence would become a lie. The filter is
- * not a quality preference here; it is what makes the claim checkable.
- *
- * BEFORE `quantise`, ON THE FLOAT. Averaging 8-bit values has already thrown
- * away the precision the averaging was supposed to recover: four levels that
- * differ below the quantisation step are four identical integers, and their mean
- * carries no more information than one of them.
- *
- * AN ODD DIMENSION DROPS THE LAST ROW OR COLUMN, and the record says which.
- * Interpolating to make the count come out even would reintroduce correlation
- * between neighbouring pixels — and the noise number this step reports is only
- * meaningful while the four inputs to each output are independent. The one line
- * of arithmetic that would tidy the edge is the one that would invalidate the
- * measurement.
- * ------------------------------------------------------------------ */
-
-// The threshold that separates "sky" from "signal", in deviations above the
-// background. Same number and same meaning as the saturation mask: a pixel this
-// close to the noise floor carries no object.
-var HALF_SKY_SIGMA = 3.0;
-
-// What exact 2x2 averaging predicts for independent samples. The record carries
-// the MEASURED ratio against this; the point of the field is that they can
-// disagree, and a disagreement means the reduction is not doing what the log
-// says it does.
-var HALF_EXPECTED_RATIO = 2.0;
-
-// The real sky is not perfectly white noise — a stacked frame carries some
-// correlation between neighbours from registration and interpolation upstream —
-// so 2.00 exactly is not expectable. Outside this band the filter is not a box
-// average, or the sky selection is picking up structure.
-var HALF_RATIO_MIN = 1.8, HALF_RATIO_MAX = 2.2;
-
-/* O PORTAO DO BOTAO E A PROPRIA RAZAO MEDIDA, E NAO UM LIMIAR DE BRANCURA.
- *
- * O botao diz "half-scale" e a pessoa clica porque quer menos ruido. Num quadro
- * onde a razao sai 1,29 ela recebe metade do beneficio que o botao sugere, e a
- * explicacao mora num log que a maioria nao le. DIZER A VERDADE NUM TEXTO QUE
- * NINGUEM LE NAO E O MESMO QUE NAO PROMETER: quando a grandeza que o botao
- * promete nao se sustenta, o botao nao aparece.
- *
- * O limiar e `HALF_RATIO_MIN`, o mesmo 1,8 da faixa, e nao ha constante nova.
- *
- * POR QUE NAO UM LIMIAR DE BRANCURA. O caminho obvio era derivar a brancura que
- * produz razao 1,8 e cortar ali. Tentado, com os nove fixtures, e a relacao NAO
- * SUPORTA:
- *
- *     ajuste            n   r       r2      W(razao = 1,8)
- *     nove fixtures     9   0,979   0,957   0,920
- *     sem o seestar     8   0,262   0,069   0,628
- *
- * O r2 de 0,957 e um ponto de alavanca: tirar um de nove move o limiar de 0,92
- * para 0,63. Os outros oito ocupam 0,045 de largura em brancura, onde o
- * espalhamento e ruido de medicao. E o 0,920 cai numa lacuna de 0,20 de largura
- * sem nenhuma observacao. Ajustar assim seria inventar a curva.
- *
- * E nao e preciso: A RAZAO E MEDIDA EM TODO QUADRO, antes de o botao aparecer.
- * Cortar pela brancura seria substituir a grandeza que o botao promete por um
- * proxy ajustado dela. A brancura fica como EXPLICACAO -- e o que diz por que a
- * razao caiu -- e nao como criterio.
- *
- * Mede o quadro, nao o formato: um FITS ja demosaicado por outro programa chega
- * aqui como tres planos e dispara igual, e deve disparar.
- */
-
-// Above this many samples the median is taken on a stride. Deterministic, and
-// the same reason `analysePlane` has a stride: a median does not get better by
-// reading twenty million values instead of four.
-var HALF_MAX_SAMPLES = 4000000;
-
-/* THE HIGH-FREQUENCY ESTIMATOR, AND WHY IT IS A FIRST DIFFERENCE.
- *
- * `madn` of the sky plane itself measures the spread of the sky, which includes
- * whatever large-scale structure survived background extraction. That is not
- * what falls by two when you halve the frame — a smooth gradient survives
- * resampling untouched, and mixing it in would drag the measured ratio toward 1
- * for reasons that have nothing to do with the reduction.
- *
- * The difference between horizontally adjacent pixels kills everything smooth
- * and leaves the noise:
- *
- *     for white noise of sigma,  sigma(v[x+1] - v[x]) = sigma * sqrt(2)
- *
- * so dividing by sqrt(2) puts the estimate back in per-pixel units. After exact
- * 2x2 averaging each output pixel has noise sigma/2, and — this is the part the
- * box average buys — adjacent OUTPUT pixels are still independent, because the
- * blocks partition the grid instead of overlapping. The same estimator on the
- * reduced frame therefore returns sigma/2, and the ratio is 2 by construction
- * for white noise.
- *
- * A filter with overlapping support would correlate neighbouring outputs, the
- * difference would come out smaller than sqrt(2) times the pixel noise, and the
- * ratio would read HIGH — better than 2, which is exactly the flattering
- * artefact this step must not produce.
- */
-function halfHighFreq(plane, w, h, sky, scratch, lag){
-  lag = lag || 1;
-  var n = 0, x, y, i;
-  // Count first, then stride, then fill: the stride has to be decided before
-  // anything is written or the sample set depends on where it stopped.
-  for (y = 0; y < h; y++){
-    i = y * w;
-    for (x = 0; x + lag < w; x++){ if (sky[i + x] && sky[i + x + lag]) n++; }
-  }
-  if (n < 64) return null;                    // too little sky to measure
-
-  var stride = Math.ceil(n / HALF_MAX_SAMPLES);
-  var k = 0, seen = 0;
-  for (y = 0; y < h; y++){
-    i = y * w;
-    for (x = 0; x + lag < w; x++){
-      if (!(sky[i + x] && sky[i + x + lag])) continue;
-      if ((seen++ % stride) !== 0) continue;
-      var d = plane[i + x + lag] - plane[i + x];
-      scratch[k++] = d < 0 ? -d : d;
-    }
-  }
-  if (k < 64) return null;
-
-  // MAD about zero — the difference of two samples of the same population is
-  // zero-mean by construction, so centring it again would only add noise to the
-  // estimate. 1.4826 is the same Gaussian consistency factor `analysePlane`
-  // uses, so this number is comparable with every other sigma in the log.
-  var mad = exactMedian(scratch, k);
-  return { sigma: 1.4826 * mad / Math.SQRT2, samples: k, stride: stride };
-}
-
-/* IS THE NOISE WHITE? THE PREMISE, MEASURED INSTEAD OF ASSUMED.
- *
- * "Four independent pixels become one, so the noise falls by 2" has two halves,
- * and only the second is arithmetic. The first is a claim about the frame, and
- * on a debayered mosaic it is FALSE: the demosaic reconstructs two of every
- * three colour samples per pixel from its neighbours, so neighbouring pixels
- * share information and the four entering a 2x2 block are not four independent
- * samples.
- *
- * Measured, on `fixture-seestar`, as sigma(lag L) / sigma(lag 1):
- *
- *     L        1      2      3      4      5      6
- *     seestar  1.000  1.000  1.291  1.063  1.291  1.063   <- period 4
- *     gradient 1.000  1.000  1.000  1.000  1.000  1.000   <- white
- *
- * For white noise every lag gives the same sigma. Where a short lag reads LOWER
- * than a far one, adjacent pixels are correlated and the lag-1 estimator is
- * reading less noise than there is.
- *
- * The lags to look at come from the block, not from the data: the reduction
- * averages a 2x2 block, so independence has to hold across it and its immediate
- * neighbour — L = 2, 3, 4. Picking the lag that happens to show the effect on
- * one fixture would be fitting the diagnostic to the answer.
- *
- * 1.0 means white. Below 1 means the premise of the factor of 2 does not hold on
- * this frame, and it is the evidence the log points at instead of guessing why.
- */
-var HALF_WHITENESS_LAGS = [2, 3, 4];
-
-function halfWhiteness(plane, w, h, sky, scratch, base){
-  if (!base || !(base.sigma > 0)) return null;
-  // Sem teto em 1,0. Um valor ACIMA de 1 significa que a diferenca no lag 1 le
-  // MAIOR que nos lags distantes -- anticorrelacao entre vizinhos -- e isso
-  // tambem e informacao sobre o quadro. Limitar em 1 escondia o caso e fazia
-  // o lag sair 0, que nao e lag nenhum.
-  var worst = Infinity, worstLag = 0;
-  for (var li = 0; li < HALF_WHITENESS_LAGS.length; li++){
-    var L = HALF_WHITENESS_LAGS[li];
-    var far = halfHighFreq(plane, w, h, sky, scratch, L);
-    if (!far || !(far.sigma > 0)) continue;
-    var r = base.sigma / far.sigma;
-    if (r < worst){ worst = r; worstLag = L; }
-  }
-  if (!isFinite(worst)) return null;
-  return { value: worst, lag: worstLag };
-}
-
-/**
- * Half-scale copy.
- *
- * Returns a NEW Image and does not touch `img`: the full-resolution frame is
- * the default output and the chain continues on it.
- *
- * @param {Image}    img     NOT mutated
- * @param {Object}   params  { stride, before }
- * @param {Function} report  report(record)
- * @returns {Image}  the reduced frame, or null when the frame is too small
- */
-function stepHalfScale(img, params, report){
-  params = params || {};
-  var before = params.before || measure(img, params.stride);
-
-  var w = img.w, h = img.h, ch = img.channels, N = img.N, src = img.data;
-  var w2 = w >> 1, h2 = h >> 1;
-  var droppedColumn = (w & 1) === 1, droppedRow = (h & 1) === 1;
-
-  if (w2 < 1 || h2 < 1){
-    report({
-      id: 'half-scale', name: 'Half-scale copy',
-      applied: false,
-      skipReason: 'the frame is ' + w + ' x ' + h + '; there is nothing to halve',
-      params: { filter: 'box2x2' },
-      inputSize: [w, h], outputSize: null,
-      droppedRow: false, droppedColumn: false,
-      noise: null, before: before, after: null, notes: []
-    });
-    return null;
-  }
-
-  // --- the sky, chosen ONCE on the full frame -------------------------
-  //
-  // Both measurements have to describe the same patch of sky. Selecting it
-  // again on the reduced frame would pick a slightly different population --
-  // the reduced MADN is half, so `median + 3 sigma` lands somewhere else -- and
-  // the ratio would then carry that difference as well as the reduction. The
-  // full-frame mask is carried down to the blocks instead.
-  var Y = alloc(Float32Array, N, 'the half-scale luminance');
-  var i, c;
-  if (ch === 3){
-    var bR = 0, bG = N, bB = 2 * N;
-    for (i = 0; i < N; i++){
-      Y[i] = SAT_LUM_R * src[bR + i] + SAT_LUM_G * src[bG + i] + SAT_LUM_B * src[bB + i];
-    }
-  } else {
-    for (i = 0; i < N; i++) Y[i] = src[i];
-  }
-
-  var ys = analysePlane(Y, 0, N, params.stride || 1);
-  if (!ys) throw FitsError('empty', 'the luminance has no usable pixels');
-  var skyCut = ys.median + HALF_SKY_SIGMA * ys.madn;
-
-  var sky = alloc(Uint8Array, N, 'the half-scale sky mask');
-  var skyCount = 0;
-  for (i = 0; i < N; i++){
-    var yv = Y[i];
-    if (yv === yv && yv < skyCut){ sky[i] = 1; skyCount++; }
-  }
-
-  // --- the reduction --------------------------------------------------
-  var N2 = w2 * h2;
-  var out = alloc(Float32Array, N2 * ch, 'the half-scale frame');
-  var x, y;
-  for (c = 0; c < ch; c++){
-    var sBase = c * N, dBase = c * N2;
-    for (y = 0; y < h2; y++){
-      var r0 = sBase + (2 * y) * w, r1 = r0 + w, o = dBase + y * w2;
-      for (x = 0; x < w2; x++){
-        var j = 2 * x;
-        // Four terms, one divide. Written out rather than looped because this
-        // is the arithmetic the log's factor of 2 rests on, and it should be
-        // readable as exactly that and nothing else.
-        out[o + x] = (src[r0 + j] + src[r0 + j + 1] + src[r1 + j] + src[r1 + j + 1]) * 0.25;
-      }
-    }
-  }
-  var half = new Image(out, w2, h2, ch);
-
-  // --- the same sky, in the reduced frame ------------------------------
-  //
-  // A reduced pixel counts as sky only if ALL FOUR of its sources did. A block
-  // straddling the edge of an object is neither sky nor object, and letting it
-  // in would put object structure into a noise measurement.
-  var Y2 = alloc(Float32Array, N2, 'the half-scale luminance, reduced');
-  var sky2 = alloc(Uint8Array, N2, 'the half-scale sky mask, reduced');
-  var sky2Count = 0;
-  for (y = 0; y < h2; y++){
-    var sr0 = (2 * y) * w, sr1 = sr0 + w, oo = y * w2;
-    for (x = 0; x < w2; x++){
-      var jj = 2 * x;
-      if (sky[sr0 + jj] && sky[sr0 + jj + 1] && sky[sr1 + jj] && sky[sr1 + jj + 1]){
-        sky2[oo + x] = 1; sky2Count++;
-      }
-      if (ch === 3){
-        Y2[oo + x] = SAT_LUM_R * out[oo + x] + SAT_LUM_G * out[N2 + oo + x] + SAT_LUM_B * out[2 * N2 + oo + x];
-      } else {
-        Y2[oo + x] = out[oo + x];
-      }
-    }
-  }
-
-  var scratch = alloc(Float32Array, Math.min(N, HALF_MAX_SAMPLES + 8), 'the half-scale noise samples');
-  var hfBefore = halfHighFreq(Y, w, h, sky, scratch);
-  var hfAfter  = halfHighFreq(Y2, w2, h2, sky2, scratch);
-  // A premissa do fator 2, medida no quadro CHEIO -- que e onde ela tem que
-  // valer. Se o ruido ja nao e branco na entrada, os quatro pixels do bloco nao
-  // sao quatro amostras independentes, e o problema nao e a media.
-  var wht = halfWhiteness(Y, w, h, sky, scratch, hfBefore);
-
-  var ratio = null;
-  if (hfBefore && hfAfter && hfAfter.sigma > 0) ratio = hfBefore.sigma / hfAfter.sigma;
-
-  var noise = {
-    skyHighFreqBefore: hfBefore ? hfBefore.sigma : null,
-    skyHighFreqAfter:  hfAfter  ? hfAfter.sigma  : null,
-    ratio: ratio,
-    expectedRatio: HALF_EXPECTED_RATIO,
-    // The band, carried in the record so the reader does not have to know it,
-    // and so a comparison against the reference can assert it rather than
-    // reinvent it.
-    withinBand: (ratio !== null && ratio >= HALF_RATIO_MIN && ratio <= HALF_RATIO_MAX),
-    band: [HALF_RATIO_MIN, HALF_RATIO_MAX],
-    // A MEDIANA E O MADN QUE DEFINEM O LIMIAR DO CEU. Sem eles a cota da
-    // contagem por limiar tem que ser derivada de outro numero -- e derivar
-    // de outro numero e escolher a cota com passos extras.
-    skyMedian: ys.median, skyMadn: ys.madn, skySigma: HALF_SKY_SIGMA,
-    skyPixels: skyCount, skyPixelsReduced: sky2Count,
-    samplesBefore: hfBefore ? hfBefore.samples : 0,
-    samplesAfter:  hfAfter  ? hfAfter.samples  : 0,
-    // 1,0 = ruido branco na entrada. Abaixo disso a premissa do fator 2 nao
-    // vale neste quadro, e este campo e a evidencia -- nao a explicacao.
-    whiteness: wht ? wht.value : null,
-    whitenessLag: wht ? wht.lag : null,
-    note: 'first difference of horizontally adjacent sky pixels, divided by ' +
-          'sqrt(2) to read as a per-pixel sigma; measured on the same sky on ' +
-          'both frames, chosen once on the full one'
-  };
-
-
-  /* O BOTAO, DECIDIDO AQUI E NAO NA INTERFACE.
-   *
-   * `offered` e o que o host le para mostrar ou esconder o botao, e a frase de
-   * `offerReason` e o que ele mostra no lugar dele. A decisao mora nesta etapa
-   * porque e aqui que a grandeza foi medida -- deixar o host decidir com base
-   * num campo numerico seria espalhar o criterio por dois arquivos, e um deles
-   * nao tem como saber o que o botao promete.
-   *
-   * O log continua dizendo TUDO, inclusive quando o botao nao aparece. O log
-   * explica; o botao nao promete.
-   */
-  var offered = (ratio !== null && ratio >= HALF_RATIO_MIN);
-  var offerReason = null;
-  if (!offered){
-    if (ratio === null){
-      offerReason = 'half-scale not offered: there was not enough sky on this frame to ' +
-                    'measure whether averaging would reduce the noise, and the button ' +
-                    'would be promising a number nobody checked';
-    } else if (wht && wht.value < 1 && ratio < HALF_RATIO_MIN){
-      offerReason = 'half-scale not offered: the sky noise on this frame is correlated ' +
-                    'between neighbouring pixels (usually a demosaiced frame), so ' +
-                    'averaging would only reduce it by ' + ratio.toFixed(2) + '× instead of ' +
-                    HALF_EXPECTED_RATIO.toFixed(0) + '×';
-    } else {
-      offerReason = 'half-scale not offered: averaging would only reduce the sky noise by ' +
-                    ratio.toFixed(2) + '× on this frame instead of ' +
-                    HALF_EXPECTED_RATIO.toFixed(0) + '×, and the button would be promising ' +
-                    'the difference';
-    }
-  }
-  var notes = [];
-  if (droppedRow || droppedColumn){
-    notes.push('Odd dimension: the last ' +
-               (droppedRow && droppedColumn ? 'row and column were' :
-                droppedRow ? 'row was' : 'column was') +
-               ' dropped rather than interpolated. Interpolating would correlate ' +
-               'neighbouring pixels and the noise figure above would stop meaning ' +
-               'anything.');
-  }
-  if (ratio !== null && !noise.withinBand){
-    // NOT a refusal. This step cannot corrupt the default output -- it works on
-    // a copy -- so the honest failure mode is to say the number came out wrong,
-    // loudly, and let the reader decide. Refusing would hide the evidence.
-    notes.push('The measured noise ratio is outside ' + HALF_RATIO_MIN + '-' +
-               HALF_RATIO_MAX + '. The average itself is exact by construction; what ' +
-               'this says is that the four pixels entering each block were not four ' +
-               'independent samples on this frame. The whiteness field measures that ' +
-               'premise instead of assuming it.');
-  }
-
-  report({
-    id: 'half-scale',
-    name: 'Half-scale copy',
-    applied: true,
-    skipReason: null,
-    params: { filter: 'box2x2' },
-    inputSize: [w, h],
-    outputSize: [w2, h2],
-    droppedRow: droppedRow,
-    droppedColumn: droppedColumn,
-    noise: noise,
-    offered: offered,
-    offerReason: offerReason,
-    before: before,
-    after: measure(half, params.stride),
-    notes: notes
-  });
-
-  // O quadro reduzido so volta quando o botao vai aparecer. Quando nao vai, ele
-  // foi construido e MEDIDO mesmo assim -- e a medicao que decide -- e e
-  // descartado aqui em vez de virar um arquivo que ninguem deveria baixar.
-  return offered ? half : null;
-}
-/* ------------------------------------------------------------------ *
  * Suggested crop — detected, offered, and never applied
  *
  * ENQUADRAMENTO É AUTORIA. Recortar sozinho é decidir a composição da foto de
@@ -4101,6 +3686,11 @@ function stepHalfScale(img, params, report){
 // The count of components is an exact integer in the comparison — section 5 of
 // the spec — so the two sides have to mean the same thing by "connected".
 var CROP_CONNECTIVITY = 4;
+
+// Ganho minimo de cobertura para a sugestao valer um clique. Ver a salvaguarda
+// mais abaixo: o numero so faz sentido depois que a margem virou fracao do
+// objeto, e com a margem antiga ele teria silenciado o unico fixture que sugere.
+var CROP_MIN_GAIN = 1.5;
 
 /* Connected components of a binary mask, iterative flood fill.
  *
@@ -4340,15 +3930,41 @@ function stepCrop(img, params, report){
 
   /* --- the rectangle -------------------------------------------------
    *
-   * Margin as a fraction of the LONGER SIDE of the frame, so a wide frame and a
-   * tall one get the same visual breathing room rather than the same fraction
-   * of two different lengths.
+   * A MARGEM E FRACAO DO OBJETO, NAO DO QUADRO, e a diferenca foi medida.
    *
-   * Then the aspect ratio of the ORIGINAL frame, by expanding the shorter side.
-   * Expanding rather than cropping, because trimming to fit would eat into the
-   * margin that was just added and could clip the object itself.
+   * A primeira versao usava `margem * max(largura, altura) DO QUADRO`. Um numero
+   * assim nao sabe o tamanho do que esta enquadrando: 8% do lado maior de um
+   * quadro 1601x1200 sao 128 px em cada um dos quatro lados, o mesmo para um
+   * objeto de 200 px e para um de 1000.
+   *
+   * Medido no `fixture-oneobject`, onde a caixa do objeto ocupa 37,1% do quadro:
+   *
+   *     caixa do componente     37,1% do quadro    ganho 2,69x
+   *     + margem de 128 px      63,2%              ganho 1,58x
+   *     + razao do quadro       69,3%              ganho 1,44x
+   *
+   * A margem e a razao custavam 32 pontos percentuais e quase dobravam a area.
+   * Com objeto grande num quadro grande elas saturam no quadro inteiro, que e
+   * exatamente o retangulo inutil que apareceu em dado real.
+   *
+   * Agora e fracao do LADO MAIOR DA CAIXA. O 0,05 saiu de varredura e nao de
+   * gosto -- e o maior valor que mantem o ganho acima de 2x no unico fixture que
+   * sugere:
+   *
+   *     f      rect        ganho
+   *     0,040  1094x820    2,14x
+   *     0,050  1119x839    2,05x
+   *     0,055  1132x849    2,00x    <- o cruzamento
+   *     0,120  1299x973    1,52x    <- mal passaria de uma salvaguarda de 1,5
+   *
+   * `max(largura, altura)` da caixa e nao por eixo: por eixo, uma galaxia de
+   * perfil ganharia margem quase nula no eixo fino e o recorte encostaria nela.
+   *
+   * Depois vem a razao do quadro original, expandindo o lado menor. Expandir e
+   * nao aparar, porque aparar comeria a margem que acabou de ser posta e poderia
+   * cortar o proprio objeto.
    */
-  var mar = effective.margin * Math.max(w, h);
+  var mar = effective.margin * Math.max(obj.rect[2], obj.rect[3]);
   var rx0 = obj.rect[0] - mar, ry0 = obj.rect[1] - mar;
   var rx1 = obj.rect[0] + obj.rect[2] + mar, ry1 = obj.rect[1] + obj.rect[3] + mar;
 
@@ -4373,6 +3989,31 @@ function stepCrop(img, params, report){
   // full the frame looks, and the box of a thin galaxy is mostly sky.
   var coverageBefore = obj.pixels / frameArea;
   var coverageAfter = obj.pixels / (rw * rh);
+
+  /* --- SALVAGUARDA: UM RECORTE QUE NAO MUDA NADA NAO SE OFERECE -------
+   *
+   * "De 10% do quadro para 13%" nao vale um clique. Pior: gasta a atencao da
+   * pessoa num controle que promete enquadrar e entrega quase o mesmo quadro --
+   * e a atencao dela e o recurso mais caro desta interface.
+   *
+   * O limiar e 1,5x, e ele so entrou DEPOIS de a margem virar fracao do objeto.
+   * Com a margem antiga o unico fixture que sugere dava 1,44x e ESTA
+   * SALVAGUARDA O TERIA SILENCIADO -- a suite voltaria a zero casos que sugerem,
+   * e a salvaguarda estaria escondendo um defeito da margem em vez de proteger
+   * de recorte inutil. Medido depois do conserto: 2,05x, folga de 37%.
+   *
+   * A ordem importou: consertar a causa antes de pendurar a salvaguarda. Ao
+   * contrario, ela teria "funcionado" e o retangulo continuaria errado.
+   */
+  var gain = (coverageBefore > 0) ? (coverageAfter / coverageBefore) : 0;
+  if (gain < CROP_MIN_GAIN){
+    return refuse('cropping to it would take the object from ' +
+                  (100 * coverageBefore).toFixed(0) + '% of the frame to only ' +
+                  (100 * coverageAfter).toFixed(0) + '% — a ' + gain.toFixed(2) +
+                  '× change is not worth a click, and offering it would spend your ' +
+                  'attention on a rectangle that reframes almost nothing',
+                  base);
+  }
 
   /* --- APLICAR, e so por pedido explicito -----------------------------
    *
@@ -4412,8 +4053,8 @@ function stepCrop(img, params, report){
     reason: null,
     params: effective,
     frameSize: [w, h],
-    // A mediana e o MADN do limiar de sinal, pelo mesmo motivo do half-scale:
-    // a cota da contagem por limiar tem que sair do numero que ESTA no limiar.
+    // A mediana e o MADN do limiar de sinal ficam no record porque a cota da
+    // contagem por limiar tem que sair do numero que ESTA no limiar.
     skyMedian: ys.median, skyMadn: ys.madn,
     signalPixels: signalCount,
     extendedPixels: extCount,
@@ -5022,95 +4663,6 @@ function buildLog(ctx){
       L.push('• No crop suggested: ' + cp.reason + '.');
     }
   }
-
-
-  /* --- the half-scale copy ------------------------------------------
-   *
-   * AFTER the output line, and the order is the argument. The line above
-   * describes the file the main button hands over: full resolution, no
-   * resampling. This block describes a SECOND file that exists only if someone
-   * asks for it. Putting it first would read as a correction to the line above
-   * -- two true sentences that together say something false, which this project
-   * has paid for once already.
-   *
-   * The last sentence is the one that has to survive edits. A reduced copy
-   * looks better because it hid noise, and a tool that offers it without saying
-   * so has quietly started doing the thing it promises not to do.
-   */
-  // Pelo id, com o mesmo laco que os outros blocos deste arquivo usam. log.js
-  // nao chama o recordById de run.js: o bundle junta os dois, mas o log e o
-  // unico artefato que sai daqui e nao deve depender da ordem de concatenacao.
-  var hs = null;
-  for (var hi = 0; hi < ctx.records.length; hi++){
-    if (ctx.records[hi].id === 'half-scale') hs = ctx.records[hi];
-  }
-  if (hs && hs.applied && hs.noise){
-    var hn = hs.noise;
-    var ratioTxt = (hn.ratio === null) ? null : fx(hn.ratio, 2);
-    L.push('• Half-scale copy, ' + (hs.offered
-             ? 'offered as a second download and not applied to the file above'
-             : 'built and measured, and NOT offered -- see below') + ': ' +
-           hs.inputSize[0] + ' × ' + hs.inputSize[1] + ' reduced to ' +
-           hs.outputSize[0] + ' × ' + hs.outputSize[1] + ' by averaging each 2 × 2 block.');
-    if (ratioTxt !== null){
-      // "Quatro pixels independentes" e uma afirmacao sobre o QUADRO, e so a
-      // segunda metade da frase e aritmetica. Quando a razao sai fora da faixa,
-      // a causa quase nunca e a media -- ela e exata por construcao -- e sim a
-      // premissa. Culpar a media aqui seria apontar o lugar errado, que e a
-      // classe de defeito que este projeto mais registra.
-      var premiseBroken = (hn.whiteness !== null && hn.whiteness < 0.97);
-      L.push('    Four ' + (premiseBroken ? '' : 'independent ') +
-             'pixels become one, so the noise in the sky falls by a ' +
-             'factor of ' + ratioTxt + ' — measured on this frame, across ' +
-             grp(hn.samplesBefore) + ' pairs of neighbouring sky pixels, against the ' +
-             fx(hn.expectedRatio, 2) + ' that exact averaging predicts for independent ' +
-             'samples. ' +
-             (hn.withinBand
-               ? 'That is the arithmetic of sampling, not a filter: the average is exact ' +
-                 'and nothing was smoothed.'
-               : 'THAT IS OUTSIDE ' + fx(hn.band[0], 1) + '–' + fx(hn.band[1], 1) + '. ' +
-                 (premiseBroken
-                   ? 'The averaging is still exact — what does not hold on this frame is ' +
-                     'the independence it assumes. The difference between neighbouring ' +
-                     'sky pixels reads only ' + fx(hn.whiteness, 3) + ' of what it reads ' +
-                     'between pixels ' + hn.whitenessLag + ' apart, so each pixel shares ' +
-                     'part of its noise with the one beside it. A demosaiced frame is the ' +
-                     'usual reason: two of every three colour samples per pixel were ' +
-                     'reconstructed from neighbours, so the four going into a block were ' +
-                     'never four measurements.'
-                   : 'The factor should not be trusted on this frame.')));
-    } else {
-      L.push('    There was not enough sky on this frame to measure the noise ratio, so ' +
-             'the factor of 2 that exact averaging predicts is stated here unverified — ' +
-             'which is worth less than a measurement and is being said so.');
-    }
-    if (hs.offered){
-      L.push('    No detail was removed: averaging resamples, it does not smooth, and the ' +
-             'full-resolution file above has everything this one has.' +
-             ((hs.droppedRow || hs.droppedColumn)
-               ? ' The last ' + (hs.droppedRow && hs.droppedColumn ? 'row and column were'
-                   : hs.droppedRow ? 'row was' : 'column was') +
-                 ' dropped rather than interpolated, because interpolating would correlate ' +
-                 'neighbouring pixels and the number above would stop meaning anything.'
-               : ''));
-      L.push('    This copy is offered because it is easier to share, not because it is ' +
-             'better. The full-resolution one is the honest size of what your telescope ' +
-             'recorded.');
-    } else {
-      // O LOG DIZ TUDO, INCLUSIVE QUE O BOTAO NAO APARECEU. Uma copia que foi
-      // construida, medida e descartada e um evento, e omiti-lo deixaria o
-      // leitor sem saber que a ferramenta chegou a considerar a reducao.
-      L.push('    THE COPY WAS NOT OFFERED. It was built and measured, and the measurement ' +
-             'is the reason: the button says "half-scale" and a person clicks it to get ' +
-             'less noise, so offering it where the noise would fall by ' +
-             (hs.noise.ratio === null ? 'an unmeasured amount' : fx(hs.noise.ratio, 2) + '×') +
-             ' instead of ' + fx(hs.noise.expectedRatio, 0) + '× would be promising the ' +
-             'difference. Saying so here and offering it anyway would be telling the truth ' +
-             'in a place most people do not read.');
-      L.push('    Nothing was lost: the full-resolution download is unaffected, and it is ' +
-             'the one this tool considers honest anyway.');
-    }
-  }
   // Generated, not written: the complement between the catalogue in
   // steps/registry.js and the steps that reported themselves applied. A step
   // added to the chain drops out of this sentence on its own, which is the
@@ -5207,21 +4759,12 @@ function plainRecords(records){
       // por faixa de luminancia, que e a metrica do produto -- ela e o que
       // permite comparar a saida contra uma entrega manual sem olhar a imagem.
       mask: r.mask || null,
-      // Meia escala: o tamanho de entrada e saida, o que foi descartado por
-      // dimensao impar, e a razao de ruido MEDIDA contra a prevista -- que e a
-      // verificacao da etapa e o numero que o bloco do log afirma.
-      inputSize: r.inputSize || null,
-      outputSize: r.outputSize || null,
-      droppedRow: r.droppedRow || false,
-      droppedColumn: r.droppedColumn || false,
-      noise: r.noise || null,
-      offered: (r.offered === undefined) ? null : r.offered,
-      offerReason: r.offerReason || null,
       // Recorte sugerido: o retangulo, os componentes e o que o recorte faria
       // com a cobertura do objeto. "suggested" e estado novo e nao e "applied".
       suggested: (r.suggested === undefined) ? null : r.suggested,
       reason: r.reason || null,
       frameSize: r.frameSize || null,
+      outputSize: r.outputSize || null,
       skyMedian: (r.skyMedian === undefined) ? null : r.skyMedian,
       skyMadn: (r.skyMadn === undefined) ? null : r.skyMadn,
       signalPixels: (r.signalPixels === undefined) ? null : r.signalPixels,
@@ -5504,19 +5047,19 @@ async function openFile(buffer, fileName, opts, post){
     satSnrHigh: 25.0,
     satHighlightKnee: 0.80,
     satHighlightFloor: 0.35,
-    // Copia em meia escala. LIGADA, e isso nao troca o padrao: ela e um SEGUNDO
-    // arquivo, oferecido num segundo botao, e a saida cheia continua sendo a que
-    // o botao principal entrega. Desligar aqui nao muda a imagem de ninguem --
     // Recorte SUGERIDO. Os parametros sao os da secao 3.1 do Modulo 5a; a
     // janela e a fracao de densidade sao as MESMAS do filtro de extenso do
     // Modulo 2, e isso nao e coincidencia -- e a mesma medicao, lida ao
-    // contrario. Ligado por padrao porque sugerir nao faz nada: o record sai,
-    // e so o clique aplica, e o clique ainda nao existe.
+    // contrario. Ligado por padrao porque sugerir nao aplica nada: a etapa mede,
+    // escreve o retangulo no record, e so o clique no segundo botao recorta.
     crop: true,
     cropSigma: 2.5,
     cropWindow: 25,
     cropDensity: 0.50,
-    cropMargin: 0.08,
+    // Fracao do LADO MAIOR DA CAIXA DO OBJETO, nao do quadro -- ver a varredura
+    // em steps/crop.js. 0,05 e o maior valor que mantem o ganho de cobertura
+    // acima de 2x no fixture que sugere.
+    cropMargin: 0.05,
     cropMinFrame: 0.20,
     // Aplicar o recorte. FALSO, e so um clique muda isso. Enquadramento e
     // autoria: a cadeia sugere e nunca decide.
@@ -5525,12 +5068,6 @@ async function openFile(buffer, fileName, opts, post){
     // construcao da cadeia -- ver o comentario em steps/crop.js -- e um
     // parametro que nao governa nada e uma salvaguarda aparente. O record
     // explica no lugar dele, com o numero medido.
-    //
-    // Copia em meia escala. LIGADA, e isso nao troca o padrao: ela e um SEGUNDO
-    // arquivo, oferecido num segundo botao, e a saida cheia continua sendo a que
-    // o botao principal entrega. Desligar aqui nao muda a imagem de ninguem --
-    // so faz o botao nao aparecer.
-    halfScale: true,
     dither: true
   };
 
@@ -5719,9 +5256,8 @@ async function runChain(params, mode, post){
    * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
    * o objeto inteiro mora nos primeiros centesimos do eixo.
    *
-   * ANTES da meia escala, porque se o recorte for aplicado a copia reduzida tem
-   * que ser do quadro recortado. Sem isso o segundo botao entregaria um enquadr-
-   * amento que a pessoa acabou de descartar.
+   * E ULTIMO, que hoje e a mesma coisa que dizer que nada depende dele: ele so
+   * reenquadra o que ja esta pronto.
    *
    * `work` so e reatribuido quando `cropApply` vem de um clique. Sem ele a etapa
    * nao toca em pixel nenhum: mede, escreve o retangulo no record, e devolve o
@@ -5742,38 +5278,6 @@ async function runChain(params, mode, post){
       stride: SESSION.statStride
     }, report);
     mark('crop', step);
-  }
-
-  /* Half-scale copy ----------------------------------------------------
-   *
-   * A SECOND OUTPUT, NOT A REPLACEMENT. `work` is not reassigned: the chain
-   * continues on the full frame, which stays the default download. This step
-   * builds a reduced copy beside it and the person chooses.
-   *
-   * Here and not later, because averaging has to happen on the float. After
-   * `quantise` the four values feeding each output pixel are already 8-bit
-   * integers, and averaging four copies of the same integer recovers nothing.
-   *
-   * Full runs only. The preview is already a downscale of the source, so a
-   * half-scale of it would describe a frame nobody asked about, and its noise
-   * ratio would be measured on pixels that were averaged twice.
-   */
-  var halfRgba = null, halfW = 0, halfH = 0;
-  if (full && params.halfScale){
-    await yieldNow();
-    step = Date.now();
-    stage('Building the half-scale copy', 82);
-    var halfImg = stepHalfScale(work, { stride: SESSION.statStride }, report);
-    if (halfImg){
-      // `report` is deliberately NOT passed to this quantise. Two records with
-      // id 'quantise' would make `recordById` return whichever came first, and
-      // the log and the diagnostics read that record for the clip counts of the
-      // frame they describe -- which is the full one. The reduced frame's own
-      // statistics are in the half-scale record's `after`.
-      halfRgba = quantise(halfImg, { dither: params.dither }, null);
-      halfW = halfImg.w; halfH = halfImg.h;
-    }
-    mark('halfScale', step);
   }
 
   // Quantise ----------------------------------------------------------
@@ -5843,7 +5347,6 @@ async function runChain(params, mode, post){
   SESSION.autoRunDone = true;
 
   var transfer = (view.factor === 1) ? [view.data.buffer] : [view.data.buffer, rgba.buffer];
-  if (halfRgba) transfer.push(halfRgba.buffer);
 
   post({
     type: 'rendered',
@@ -5852,11 +5355,6 @@ async function runChain(params, mode, post){
     view: { w: view.w, h: view.h, factor: view.factor },
     viewData: view.data.buffer,
     rgba: (view.factor === 1) ? null : rgba.buffer,
-    // A copia reduzida, pronta em 8 bits. Vai transferida como as outras: ela
-    // so existe para ser salva, e o host nao mede nada nela -- todo numero que
-    // o log diz sobre ela saiu do record, calculado aqui sobre o float.
-    half: halfRgba ? { w: halfW, h: halfH } : null,
-    halfData: halfRgba ? halfRgba.buffer : null,
     log: log,
     // Preview measures a smaller frame, so its numbers describe that frame and
     // not the one the log is about. Handing back a diagnostics panel built from
@@ -6025,7 +5523,7 @@ var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
 var elDiag = $('diag'), elDiagBody = $('diagbody');
 var elToast = $('toast');
 
-var state = { log: '', diag: null, full: null, half: null, crop: null, view: null, w: 0, h: 0, name: '' };
+var state = { log: '', diag: null, full: null, crop: null, view: null, w: 0, h: 0, name: '' };
 
 /* ------------------------------------------------------------------ *
  * Friendly errors
@@ -6230,29 +5728,6 @@ function finish(m){
   state.h = m.height;
   state.view = { data: new Uint8ClampedArray(m.viewData), w: m.view.w, h: m.view.h };
   state.full = m.rgba ? new Uint8ClampedArray(m.rgba) : null;
-  // A copia em meia escala, se a rodada produziu uma. Fica guardada e nao e
-  // desenhada em lugar nenhum: o que a tela mostra continua sendo o quadro
-  // cheio, porque e ele que o botao principal entrega. Este buffer so existe
-  // para o segundo botao.
-  state.half = m.half ? { data: new Uint8ClampedArray(m.halfData), w: m.half.w, h: m.half.h } : null;
-  $('dlhalf').hidden = !state.half;
-  if (state.half) $('dlhalf').textContent = 'Download half-scale PNG (' + state.half.w + ' × ' + state.half.h + ')';
-
-  // NUNCA SILENCIO. Quando a etapa mediu e recusou, o botao some e a frase toma
-  // o lugar dele -- confusao 10 da lista: um botao que some sem explicacao lê
-  // como funcionalidade quebrada, e a pessoa nao tem como saber que o que
-  // aconteceu foi a ferramenta se recusando a prometer.
-  var hsRec = null;
-  for (var hri = 0; m.records && hri < m.records.length; hri++){
-    if (m.records[hri].id === 'half-scale') hsRec = m.records[hri];
-  }
-  var hsHint = $('halfhint');
-  if (hsRec && hsRec.offered === false && hsRec.offerReason){
-    hsHint.textContent = hsRec.offerReason + '. The full-resolution download above is unaffected.';
-    hsHint.hidden = false;
-  } else {
-    hsHint.hidden = true;
-  }
 
   // A preview render carries no log and no diagnostics, because it measured a
   // smaller frame than the one they would claim to describe. It repaints the
@@ -6306,7 +5781,7 @@ function finish(m){
    * objeto passa a ocupar o quadro.
    *
    * Quando nao sugere, o motivo aparece AQUI e nao so no log -- confusao 10 da
-   * lista, tratada do mesmo jeito que no botao de meia escala.
+   * lista: um botao que some sem dizer por que some vira defeito aparente.
    */
   var crBtn = $('dlcrop'), crHint = $('crophint');
   crBtn.disabled = false;
@@ -6480,37 +5955,6 @@ $('dlcrop').addEventListener('click', function(){
   for (var k in state.defaults) params[k] = state.defaults[k];
   params.cropApply = true;
   requestRun(params, 'full');
-});
-
-$('dlhalf').addEventListener('click', function(){
-  var btn = this;
-  if (!state.half) return;
-  var label = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Preparing PNG…';
-
-  setTimeout(function(){
-    var hw = state.half.w, hh = state.half.h;
-    var canvas = document.createElement('canvas');
-    canvas.width = hw; canvas.height = hh;
-    canvas.getContext('2d').putImageData(new ImageData(state.half.data, hw, hh), 0, 0);
-    canvas.toBlob(function(blob){
-      if (!blob){
-        toast('This browser could not encode the half-scale PNG');
-        btn.disabled = false; btn.textContent = label;
-        return;
-      }
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      // Sufixo no nome, para que os dois arquivos nao se confundam na pasta de
-      // downloads. Qual e qual tem que ser legivel sem abrir.
-      a.download = state.name.replace(/\.(fits?|fts)$/i, '') + '-half.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-      btn.disabled = false;
-      btn.textContent = label;
-    }, 'image/png');
-  }, 30);
 });
 
 // The linear frame no longer rides along with the render — it is asked for.

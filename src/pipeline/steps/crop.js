@@ -29,6 +29,11 @@
 // the spec — so the two sides have to mean the same thing by "connected".
 var CROP_CONNECTIVITY = 4;
 
+// Ganho minimo de cobertura para a sugestao valer um clique. Ver a salvaguarda
+// mais abaixo: o numero so faz sentido depois que a margem virou fracao do
+// objeto, e com a margem antiga ele teria silenciado o unico fixture que sugere.
+var CROP_MIN_GAIN = 1.5;
+
 /* Connected components of a binary mask, iterative flood fill.
  *
  * Iterative and not recursive on purpose: a component can be a megapixel, and
@@ -267,15 +272,41 @@ function stepCrop(img, params, report){
 
   /* --- the rectangle -------------------------------------------------
    *
-   * Margin as a fraction of the LONGER SIDE of the frame, so a wide frame and a
-   * tall one get the same visual breathing room rather than the same fraction
-   * of two different lengths.
+   * A MARGEM E FRACAO DO OBJETO, NAO DO QUADRO, e a diferenca foi medida.
    *
-   * Then the aspect ratio of the ORIGINAL frame, by expanding the shorter side.
-   * Expanding rather than cropping, because trimming to fit would eat into the
-   * margin that was just added and could clip the object itself.
+   * A primeira versao usava `margem * max(largura, altura) DO QUADRO`. Um numero
+   * assim nao sabe o tamanho do que esta enquadrando: 8% do lado maior de um
+   * quadro 1601x1200 sao 128 px em cada um dos quatro lados, o mesmo para um
+   * objeto de 200 px e para um de 1000.
+   *
+   * Medido no `fixture-oneobject`, onde a caixa do objeto ocupa 37,1% do quadro:
+   *
+   *     caixa do componente     37,1% do quadro    ganho 2,69x
+   *     + margem de 128 px      63,2%              ganho 1,58x
+   *     + razao do quadro       69,3%              ganho 1,44x
+   *
+   * A margem e a razao custavam 32 pontos percentuais e quase dobravam a area.
+   * Com objeto grande num quadro grande elas saturam no quadro inteiro, que e
+   * exatamente o retangulo inutil que apareceu em dado real.
+   *
+   * Agora e fracao do LADO MAIOR DA CAIXA. O 0,05 saiu de varredura e nao de
+   * gosto -- e o maior valor que mantem o ganho acima de 2x no unico fixture que
+   * sugere:
+   *
+   *     f      rect        ganho
+   *     0,040  1094x820    2,14x
+   *     0,050  1119x839    2,05x
+   *     0,055  1132x849    2,00x    <- o cruzamento
+   *     0,120  1299x973    1,52x    <- mal passaria de uma salvaguarda de 1,5
+   *
+   * `max(largura, altura)` da caixa e nao por eixo: por eixo, uma galaxia de
+   * perfil ganharia margem quase nula no eixo fino e o recorte encostaria nela.
+   *
+   * Depois vem a razao do quadro original, expandindo o lado menor. Expandir e
+   * nao aparar, porque aparar comeria a margem que acabou de ser posta e poderia
+   * cortar o proprio objeto.
    */
-  var mar = effective.margin * Math.max(w, h);
+  var mar = effective.margin * Math.max(obj.rect[2], obj.rect[3]);
   var rx0 = obj.rect[0] - mar, ry0 = obj.rect[1] - mar;
   var rx1 = obj.rect[0] + obj.rect[2] + mar, ry1 = obj.rect[1] + obj.rect[3] + mar;
 
@@ -300,6 +331,31 @@ function stepCrop(img, params, report){
   // full the frame looks, and the box of a thin galaxy is mostly sky.
   var coverageBefore = obj.pixels / frameArea;
   var coverageAfter = obj.pixels / (rw * rh);
+
+  /* --- SALVAGUARDA: UM RECORTE QUE NAO MUDA NADA NAO SE OFERECE -------
+   *
+   * "De 10% do quadro para 13%" nao vale um clique. Pior: gasta a atencao da
+   * pessoa num controle que promete enquadrar e entrega quase o mesmo quadro --
+   * e a atencao dela e o recurso mais caro desta interface.
+   *
+   * O limiar e 1,5x, e ele so entrou DEPOIS de a margem virar fracao do objeto.
+   * Com a margem antiga o unico fixture que sugere dava 1,44x e ESTA
+   * SALVAGUARDA O TERIA SILENCIADO -- a suite voltaria a zero casos que sugerem,
+   * e a salvaguarda estaria escondendo um defeito da margem em vez de proteger
+   * de recorte inutil. Medido depois do conserto: 2,05x, folga de 37%.
+   *
+   * A ordem importou: consertar a causa antes de pendurar a salvaguarda. Ao
+   * contrario, ela teria "funcionado" e o retangulo continuaria errado.
+   */
+  var gain = (coverageBefore > 0) ? (coverageAfter / coverageBefore) : 0;
+  if (gain < CROP_MIN_GAIN){
+    return refuse('cropping to it would take the object from ' +
+                  (100 * coverageBefore).toFixed(0) + '% of the frame to only ' +
+                  (100 * coverageAfter).toFixed(0) + '% — a ' + gain.toFixed(2) +
+                  '× change is not worth a click, and offering it would spend your ' +
+                  'attention on a rectangle that reframes almost nothing',
+                  base);
+  }
 
   /* --- APLICAR, e so por pedido explicito -----------------------------
    *
@@ -339,8 +395,8 @@ function stepCrop(img, params, report){
     reason: null,
     params: effective,
     frameSize: [w, h],
-    // A mediana e o MADN do limiar de sinal, pelo mesmo motivo do half-scale:
-    // a cota da contagem por limiar tem que sair do numero que ESTA no limiar.
+    // A mediana e o MADN do limiar de sinal ficam no record porque a cota da
+    // contagem por limiar tem que sair do numero que ESTA no limiar.
     skyMedian: ys.median, skyMadn: ys.madn,
     signalPixels: signalCount,
     extendedPixels: extCount,

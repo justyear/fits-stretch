@@ -1292,16 +1292,10 @@
     "linked": null,
     "colourFidelity": null,
     "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": null,
     "reason": null,
     "frameSize": null,
+    "outputSize": null,
     "skyMedian": null,
     "skyMadn": null,
     "signalPixels": null,
@@ -1453,16 +1447,10 @@
     "linked": null,
     "colourFidelity": null,
     "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": null,
     "reason": null,
     "frameSize": null,
+    "outputSize": null,
     "skyMedian": null,
     "skyMadn": null,
     "signalPixels": null,
@@ -1664,16 +1652,10 @@
       "pixelsRescaled": 225
     },
     "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": null,
     "reason": null,
     "frameSize": null,
+    "outputSize": null,
     "skyMedian": null,
     "skyMadn": null,
     "signalPixels": null,
@@ -1846,16 +1828,10 @@
       "meanK": 1.0281104790649693,
       "maxK": 1.4361219413075772
     },
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": null,
     "reason": null,
     "frameSize": null,
+    "outputSize": null,
     "skyMedian": null,
     "skyMadn": null,
     "signalPixels": null,
@@ -2054,7 +2030,7 @@
       "sigma": 2.5,
       "window": 25,
       "density": 0.5,
-      "margin": 0.08,
+      "margin": 0.05,
       "minFrame": 0.2,
       "connectivity": 4
     },
@@ -2067,21 +2043,15 @@
     "linked": null,
     "colourFidelity": null,
     "mask": null,
-    "inputSize": null,
-    "outputSize": [
-      1333,
-      999
-    ],
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": true,
     "reason": null,
     "frameSize": [
       1601,
       1200
+    ],
+    "outputSize": [
+      1119,
+      839
     ],
     "skyMedian": 0.08506904707408255,
     "skyMadn": 0.028520857509531695,
@@ -2103,10 +2073,10 @@
       }
     ],
     "rect": [
-      92,
-      101,
-      1333,
-      999
+      199,
+      181,
+      1119,
+      839
     ],
     "objectRect": [
       279,
@@ -2115,7 +2085,7 @@
       743
     ],
     "coverageBefore": 0.2898995419529461,
-    "coverageAfter": 0.4182389441204145,
+    "coverageAfter": 0.5932367674611569,
     "coverageGuard": {
       "inForce": false,
       "evaluable": false,
@@ -2133,173 +2103,6 @@
     "after": null
   },
   {
-    "id": "half-scale",
-    "name": "Half-scale copy",
-    "applied": true,
-    "skipReason": null,
-    "params": {
-      "filter": "box2x2"
-    },
-    "notes": [
-      "Odd dimension: the last row and column were dropped rather than interpolated. Interpolating would correlate neighbouring pixels and the noise figure above would stop meaning anything."
-    ],
-    "samples": null,
-    "surface": null,
-    "correction": null,
-    "clamped": null,
-    "neutralise": null,
-    "linked": null,
-    "colourFidelity": null,
-    "mask": null,
-    "inputSize": [
-      1333,
-      999
-    ],
-    "outputSize": [
-      666,
-      499
-    ],
-    "droppedRow": true,
-    "droppedColumn": true,
-    "noise": {
-      "skyHighFreqBefore": 0.011843676631954342,
-      "skyHighFreqAfter": 0.006071861594275477,
-      "ratio": 1.9505840915610635,
-      "expectedRatio": 2,
-      "withinBand": true,
-      "band": [
-        1.8,
-        2.2
-      ],
-      "skyMedian": 0.10211337453269245,
-      "skyMadn": 0.06389095234726906,
-      "skySigma": 3,
-      "skyPixels": 924573,
-      "skyPixelsReduced": 226709,
-      "samplesBefore": 915095,
-      "samplesAfter": 224499,
-      "whiteness": 0.9801907234355042,
-      "whitenessLag": 4,
-      "note": "first difference of horizontally adjacent sky pixels, divided by sqrt(2) to read as a per-pixel sigma; measured on the same sky on both frames, chosen once on the full one"
-    },
-    "offered": true,
-    "offerReason": null,
-    "suggested": null,
-    "reason": null,
-    "frameSize": null,
-    "skyMedian": null,
-    "skyMadn": null,
-    "signalPixels": null,
-    "extendedPixels": null,
-    "components": null,
-    "componentsAboveMin": null,
-    "componentList": null,
-    "rect": null,
-    "objectRect": null,
-    "coverageBefore": null,
-    "coverageAfter": null,
-    "coverageGuard": null,
-    "hueFidelity": null,
-    "chromaNoise": null,
-    "saturationByLuminance": null,
-    "overflow": null,
-    "stars": null,
-    "gains": null,
-    "reference": null,
-    "before": {
-      "perChannel": [
-        {
-          "median": 0.08265812161440451,
-          "madn": 0.057390488652730866,
-          "mad": 0.03870935427811336,
-          "span": 0.7415426871137559,
-          "q1": 0.057328145265888454,
-          "q3": 0.30450904097047377,
-          "sampled": 1331667,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.025574120698863202,
-          "p999": 0.46962691691462577,
-          "totalPixels": 1331667
-        },
-        {
-          "median": 0.10504310673685817,
-          "madn": 0.0662998960513797,
-          "mad": 0.04471866724091441,
-          "span": 0.7311970702677959,
-          "q1": 0.07661554894331274,
-          "q3": 0.3203479056992447,
-          "sampled": 1331667,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.03468375677119097,
-          "p999": 0.6256656748302434,
-          "totalPixels": 1331667
-        },
-        {
-          "median": 0.13835355153734646,
-          "madn": 0.07829880514524158,
-          "mad": 0.05281182054852394,
-          "span": 0.7122911421377889,
-          "q1": 0.10485999847409781,
-          "q3": 0.34229037918669414,
-          "sampled": 1331667,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.04975967040512703,
-          "p999": 0.8475623712520027,
-          "totalPixels": 1331667
-        }
-      ]
-    },
-    "after": {
-      "perChannel": [
-        {
-          "median": 0.08099488822766461,
-          "madn": 0.04772569381199164,
-          "mad": 0.03219053946579768,
-          "span": 0.7494163424124515,
-          "q1": 0.05702296482795453,
-          "q3": 0.30682841229877167,
-          "sampled": 332334,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.038956282902265965,
-          "p999": 0.4553139543755245,
-          "totalPixels": 332334
-        },
-        {
-          "median": 0.10092317082475014,
-          "madn": 0.051533461303055854,
-          "mad": 0.03475884345275587,
-          "span": 0.7429617761501488,
-          "q1": 0.07626459143968872,
-          "q3": 0.32391851682307166,
-          "sampled": 332334,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.05366598001068131,
-          "p999": 0.6032959487296864,
-          "totalPixels": 332334
-        },
-        {
-          "median": 0.1305561913481346,
-          "madn": 0.05682311931966625,
-          "mad": 0.03832666890575088,
-          "span": 0.7297322041657128,
-          "q1": 0.10469214923323415,
-          "q3": 0.3479362172884718,
-          "sampled": 332334,
-          "stride": 1,
-          "nan": 0,
-          "p001": 0.07528801403830014,
-          "p999": 0.8182192721446555,
-          "totalPixels": 332334
-        }
-      ]
-    }
-  },
-  {
     "id": "quantise",
     "name": "Quantise to 8-bit",
     "applied": true,
@@ -2311,7 +2114,7 @@
     },
     "notes": [
       "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
-      "0 values below black and 0 above white were clamped here, out of 3995001."
+      "0 values below black and 0 above white were clamped here, out of 2816523."
     ],
     "samples": null,
     "surface": null,
@@ -2320,7 +2123,7 @@
       "low": 0,
       "high": 0,
       "nonFinite": 0,
-      "samples": 3995001,
+      "samples": 2816523,
       "lowPct": 0,
       "highPct": 0
     },
@@ -2328,16 +2131,10 @@
     "linked": null,
     "colourFidelity": null,
     "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
     "suggested": null,
     "reason": null,
     "frameSize": null,
+    "outputSize": null,
     "skyMedian": null,
     "skyMadn": null,
     "signalPixels": null,

@@ -4,14 +4,16 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **82.267 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **270.289 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
-aplica debayer, aplica autostretch MTF, e emite um **log de processamento** que
-o usuário cola em público como prova de que a imagem foi processada e não
-gerada. O log é o produto; a imagem é o subproduto.
+aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
+aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
+emite um **log de processamento** que o usuário cola em público como prova de
+que a imagem foi processada e não gerada. O log é o produto; a imagem é o
+subproduto.
 
-Botões: baixar PNG, copiar log, e — só quando a entrada chegou comprimida —
-baixar FITS descomprimido.
+Botões: baixar PNG, copiar log, recortar no objeto (só quando a etapa sugere), e
+— só quando a entrada chegou comprimida — baixar FITS descomprimido.
 
 Diagnóstico escondido: tecla **D** ou `#debug`. Mostra header cru, todas as
 decisões com o número que as motivou, e tempos por estágio. Expõe também
@@ -1431,6 +1433,11 @@ verificador. Sem isso, qualquer resíduo vira convite para ajustar até sumir.
 
 ## Classe: a premissa de uma afirmação tem que ser medida, não assumida
 
+> **A etapa desta classe foi removida** — ver *"A classe mais cara da sessão"*. A
+> classe sobrevive intacta, e o exemplo continua sendo o melhor que o projeto
+> tem: a premissa *"os quatro pixels são independentes"* era falsa no quadro em
+> que mais importava, e medi-la foi o que impediu a frase de mentir.
+
 A cópia em meia escala diz, no log: *"quatro pixels independentes viram um,
 então o ruído cai por 2"*. A frase tem duas metades e **só a segunda é
 aritmética**. A primeira — que os quatro pixels são independentes — é uma
@@ -1545,6 +1552,11 @@ parágrafo que a maioria não vai ler.
 A divisão que ficou:
 
 > **O log explica. O botão não promete.**
+
+> **E o botão saiu inteiro depois.** Esta divisão continua valendo — foi ela que
+> fez o botão não aparecer em quadro debayerizado. O que ela não perguntou é
+> quantos quadros reais são debayerizados: quase todos. Ver *"A classe mais cara
+> da sessão"*.
 
 Quando a razão medida fica abaixo de 1,8, o botão **não aparece**, e uma frase
 toma o lugar dele ali mesmo — nunca silêncio, que é a confusão 10 da lista: um
@@ -1671,6 +1683,11 @@ buffer, é questão de tempo até a anotação vazar para o arquivo — e o vaza
 silencioso, porque na tela os dois parecem a mesma coisa.
 
 ## Ordem de etapa decidida por uma pergunta de produto, não de código
+
+> **A etapa dos itens 1 e 2 não existe mais** — a meia escala saiu, e com ela a
+> ordem que estes dois decidiram. A classe fica porque a pergunta era a certa:
+> *"o que a pessoa recebe?"* decidiu a ordem, e nenhum teste teria pego o erro.
+> A etapa saiu por outro motivo, e ele está em *"A classe mais cara da sessão"*.
 
 Duas ordens do Módulo 5a saíram de perguntar *"o que a pessoa recebe?"* e não
 *"o que é mais fácil?"*:
@@ -1948,36 +1965,70 @@ coberto; aqui o destinatário acharia. As duas se consertam com a mesma frase �
 ## Em aberto
 
 
-**Módulo 5a: os sete passos fechados, SEM FAIL.**
+**Módulo 5a: sobrou o recorte. A meia escala SAIU inteira.**
 
-A meia escala e o recorte sugerido estão na cadeia, no log, no registry e na
-referência Python. `compare-reference` dá **865 comparações, 0 FAIL**.
+A etapa da meia escala foi removida — não desligada — depois da primeira rodada
+em dado real: ver *"A classe mais cara da sessão"* acima, e a §2 do
+`modulo-5a-spec.md`, que ficou no lugar dela. Saíram `half-scale.js`, o segundo
+botão, o bloco do log, os campos do record, as curvas da referência, o bloco do
+comparador e a entrada do registry. Depois da remoção: **689 comparações,
+0 FAIL**.
 
-O que ficou aberto, em ordem de peso:
+O recorte ficou, com a margem consertada (fração do objeto, não do quadro) e uma
+salvaguarda nova de ganho mínimo (1,5×).
 
-**1. ~~`nonlinear | meiaEscala | ruido.antes`~~ — FECHADO.**
+O que está aberto, em ordem de peso:
 
-Seis hipóteses medidas e descartadas (histograma, quantização do estimador,
-incerteza da mediana, quais pares entram, ordem da subtração, float32 no
-acumulador), mais a seleção — que caía por: ao aplicar **o limiar da referência**
-ao quadro daqui, o céu dá 502.717 e não os 502.735 de lá, então a regra é a mesma
-e os **quadros** é que diferem.
+**1. 15 FAIL, e TODOS são deriva de spec — nenhum é defeito.** `compare-reference`
+está em **701 comparações, 572 PASS, 25 N/A, 15 FAIL**. Três causas, todas
+esperadas e todas do lado de lá:
 
-A causa é propagação pela inclinação da MTF, a quatro elos da entrada, e a cota
-derivada fecha em **5,02 contra 4,04 bins** — ver a classe acima. `compare-reference`
-passou a **865 comparações, 0 FAIL**.
+| linhas | causa |
+|---|---|
+| `cadeia.sha256` nos três fixtures de recorte (3) | o card `HISTORY` da largura ímpar foi corrigido aqui e os três `.fit` mudaram de sha256 — a outra ponta precisa dos arquivos novos |
+| `recorte.cobertura.depois` em `oneobject` e `cropped` (2) | 0,593 contra 0,418: a margem virou fração do objeto deste lado |
+| `rect(formula)` e `rect.*` nos dois (10) | a mesma causa, agora **visível** — antes eram oito PASS~ |
 
-**2. Cota parcial em `components` e `extenso.pixels`.** A curva de
+Fecha quando a referência receber os três fixtures e adotar
+`margem × max(largura, altura) DA CAIXA`. **Nada a consertar deste lado**, e as
+dez linhas novas são o comparador finalmente enxergando a mudança.
+
+**2. ~~As arestas do retângulo são comparadas pela cota errada~~ — FECHADO, e
+sobrou uma varredura.** `rect.x/y/w/h` passavam pela cota de contagem por limiar
+de `signalPixels` — uma contagem de pixels, contra uma posição — e por isso
+**nunca reprovavam**: 214 px de diferença real contra uma "cota" de 2543 pixels,
+**PASS~**. Quinta instância da classe "cota lida no eixo errado" e a primeira que
+**afrouxa** — ver a classe acima, que é a mais importante das cinco.
+
+Entrou o isolamento de fórmula: `caixa.*` exatas (idênticas dos dois lados),
+`rect(copia do comparador)` conferindo a terceira cópia da fórmula contra este
+lado, `rect(formula)` alimentada com a caixa deles, e `rect.*` com cota
+**propagada pela fórmula** — hoje zero, comparação exata, calculada e não
+afirmada. As oito linhas que passavam agora reprovam, e reprovam pelo motivo
+certo.
+
+**O que sobrou:** varrer toda cota da suíte listando a unidade dos dois lados.
+Uma cota na unidade errada que sai grande demais **está afrouxando agora e
+ninguém sabe** — por construção ela não se anuncia.
+
+**3. Falta o fixture de HALO**, e é ele que trava as duas propostas para o
+recorte em dado real (subir o `cropSigma`; retângulo por percentil). Os três
+fixtures de recorte têm elipse sólida: a densidade fica em 76–78% qualquer que
+seja o sigma, e o p90 dá sempre 80% da caixa em cada eixo — fator fixo de elipse
+sólida, não medição. **Modo de falha sem fixture é dívida nomeada, não
+trabalho** — ver a classe acima e a §3.1/§4 da spec.
+
+**4. Cota parcial em `components` e `extenso.pixels`.** A curva de
 `extendedPixels` no limiar de ocupação chegou e está em uso, mas a cota ainda não
 cobre as duas fronteiras ao mesmo tempo — a do sinal e a da ocupação — e a linha
 diz isso. Fecha somando as duas densidades, como foi feito no `amountCheio` do
 Módulo 4.
 
-**3. A salvaguarda `cropMaxCoverage` continua vazia por construção**, e isso está
+**5. A salvaguarda `cropMaxCoverage` continua vazia por construção**, e isso está
 fechado e não é dívida — ver a classe acima. Registrado aqui só para que a lista
-de salvaguardas do Módulo 5a não pareça ter três quando tem duas.
+de salvaguardas do Módulo 5a não pareça ter quatro quando tem três.
 
-**4. Sem desfazer no recorte aplicado.** A pessoa reabre o arquivo. Deliberado
+**6. Sem desfazer no recorte aplicado.** A pessoa reabre o arquivo. Deliberado
 por enquanto: um "desfazer" que reconstruísse estado a partir da tela seria o
 começo de uma segunda fonte de verdade.
 
@@ -2218,3 +2269,254 @@ o Claude Code grava fora da árvore. Ela registra tudo que entrou na conversa �
 inclusive saída de comando que imprimiu header de arquivo de cliente. O controle
 que funciona é a montante: não trazer o dado para dentro da sessão. Auditar
 depois é conserto, não prevenção.
+
+## A classe mais cara da sessão: a suíte confirmava o botão
+
+**Eu construí a suíte que confirmava o botão.** Um módulo inteiro — spec, dois
+fixtures, goldens, referência Python, sete passos — para uma funcionalidade que
+quase nunca dispara em dado real. E a suíte dizia que estava tudo certo.
+
+### O caso
+
+A cópia em meia escala aparecia só quando o ruído do céu caía por ~2 ao reduzir,
+medido no próprio quadro. A condição está **certa** — o botão não deve prometer
+2× e entregar 1,07. O erro não foi o portão; foi achar que ele passava.
+
+```
+nos treze fixtures       12 oferecem
+em dado real             não oferece
+```
+
+**Onze dos treze fixtures são sintéticos com ruído independente por pixel:
+brancos por construção.** Só o `seestar` passa por um debayer, e ele dá 0,753 —
+que é o **extremo otimista**, porque um quadro real tem debayer *mais* registro e
+empilhamento e cai para 0,657.
+
+Quase todo alvo interessante é colorido. Quase todo dado colorido de amador é
+CFA. **CFA sempre correlaciona vizinhos.** O botão foi construído para um caso
+que raramente existe.
+
+### O que faltava não era teste de corretude
+
+Cada etapa da suíte fazia o seu trabalho. O golden provava reprodutibilidade, a
+referência Python provava que a aritmética concordava, os controles negativos
+provavam que as salvaguardas disparavam. **Nada disso pergunta se os quadros de
+teste se parecem com os quadros que a ferramenta vai ver.**
+
+| verificação | pergunta | não pergunta |
+|---|---|---|
+| golden | mudou? | — |
+| referência | os dois concordam? | — |
+| controle negativo | a salvaguarda dispara? | — |
+| **nenhuma** | | **os fixtures representam a população?** |
+
+**A pergunta que pega, e ela é barata:**
+
+> **Antes de construir um portão, qual fração da população real passa por ele?**
+
+Não é uma pergunta sobre código. É uma estimativa de uma linha, feita antes de
+escrever a etapa — e aqui a resposta seria *"quase nenhuma, porque quase todo
+dado amador é CFA"*, o que teria matado o módulo na spec em vez de na entrega.
+
+### O que custou
+
+Módulo 5a §2 inteiro: a spec da etapa, `half-scale.js`, o segundo botão, o bloco
+do log, seis campos do record, as curvas de densidade, o bloco do comparador, a
+referência Python correspondente, e sete passos de execução. **Removido, não
+desligado** — código morto com aparência de funcionalidade é pior que ausência,
+porque o próximo a ler conta uma capacidade que não existe.
+
+### O corolário que dói mais
+
+Quando todos os fixtures são sintéticos, **a suíte pode confirmar uma condição
+que a população real quase nunca satisfaz** — e confirmar com força, porque ela
+foi construída pela mesma pessoa que acreditava na condição. Fixture sintético é
+excelente para corretude e **cego para representatividade**, e a cegueira não
+aparece em contagem de teste nenhuma.
+
+## Modo de falha sem fixture é dívida nomeada, não trabalho
+
+O recorte sugerido tem um defeito real em dado real: o maior componente não é a
+galáxia, é a galáxia **mais o halo fraco espalhado**, tudo conectado pela máscara
+de ocupação. A caixa envolvente de um borrão espalhado é o quadro.
+
+O diagnóstico é a **densidade** — `pixelFrac / boxFrac`:
+
+```
+nos fixtures       72% a 78%       componentes compactos
+em dado real       ~14%           ralo e espalhado
+```
+
+Duas saídas foram propostas e **ficam anotadas e não implementadas**:
+
+1. **subir o `cropSigma`**, para o componente ser só o corpo brilhante;
+2. **retângulo por percentil** — o que contém 90% dos pixels — ignorando a cauda
+   esparsa.
+
+**Nenhum fixture distingue as duas.** Medido no `oneobject`, variando o sigma:
+
+```
+sigma   pixelFrac  boxFrac   densidade
+2,5       29,0%     37,1%      78%
+3,5       27,4%     35,1%      78%
+5,0       25,1%     32,1%      78%
+8,0       18,2%     23,9%      76%
+```
+
+A densidade **não se move**, porque o objeto do fixture tem borda dura por
+construção — o perfil logístico cai em `r = 1`. E o retângulo p90 dá sempre
+**80% da caixa em cada eixo**, um fator fixo de uma elipse sólida: num halo real
+daria outra coisa inteiramente.
+
+É a regra do `rejected-edge`: **um modo de falha sem fixture é dívida nomeada, e
+implementar contra ele seria escolher entre duas hipóteses sem evidência.** O
+fixture que falta é um objeto com halo — perfil que cai devagar, densidade baixa
+— e ele é item de spec, não de implementação.
+
+## Consertar a causa antes de pendurar a salvaguarda
+
+Um recorte que leva o objeto de 10% para 13% do quadro não vale um clique, então
+a salvaguarda óbvia é *"não sugira abaixo de 1,5× de ganho"*. Ela está certa. Mas
+a ordem em que ela entrou decidiu se ela protegia ou escondia.
+
+**Antes de consertar a margem**, o único fixture que sugere dava **1,44×**. A
+salvaguarda de 1,5 o teria silenciado — a suíte voltaria a zero casos que
+sugerem, e o número 1,44 seria lido como *"este quadro não vale recorte"* quando
+o que ele dizia era *"a margem está errada"*.
+
+A causa, medida:
+
+```
+caixa do componente     37,1% do quadro    ganho 2,69x
++ margem de 128 px      63,2%              ganho 1,58x
++ razão do quadro       69,3%              ganho 1,44x
+```
+
+`cropMargin: 0.08` era fração do **lado maior do quadro** — 128 px em cada lado,
+o mesmo para um objeto de 200 px e para um de 1000. **Um número que não sabe o
+tamanho do que está enquadrando.** Virou fração do lado maior da **caixa do
+objeto**, e o 0,05 saiu de varredura:
+
+```
+f       rect         ganho
+0,040   1094x820     2,14x
+0,050   1119x839     2,05x
+0,055   1132x849     2,00x   <- o cruzamento
+0,120   1299x973     1,52x   <- mal passaria da salvaguarda de 1,5
+```
+
+Depois do conserto: **2,05×**, folga de 37% sobre o limiar. A salvaguarda entrou
+**medindo o que ela diz medir** em vez de mascarar um defeito a montante.
+
+**A regra:** quando uma salvaguarda silenciaria o seu único caso bom, ela não
+está pronta — está apontando para uma causa que ainda não foi consertada. Uma
+salvaguarda que entra antes da causa vira o lugar onde o defeito se esconde, e
+ela some do radar porque *"está funcionando"*.
+
+**A forma geral, e ela vale além deste caso:**
+
+> **Uma salvaguarda pendurada antes da causa mede o defeito, não o fenômeno.**
+
+O limiar é calibrado contra um mundo que ainda está errado. Aqui, 1,5 contra um
+1,44 que só existia porque a margem estava errada — o número teria dito *"este
+quadro não vale recorte"* quando dizia *"a margem está errada"*, e a frase
+gerada teria repetido a mentira para o usuário com dois dígitos de precisão.
+
+E ela não se desfaz sozinha: depois que a causa é consertada, o limiar continua
+onde foi posto, calibrado contra um sintoma que não existe mais. Pior, ela fica
+**verde** — a salvaguarda dispara, o caso é recusado, o teste passa. O sinal de
+que algo está errado foi consumido pela coisa que deveria protegê-lo.
+
+**A ordem é a regra:** conserte a causa, meça de novo, e só então escolha o
+limiar. Se a salvaguarda silenciaria o único caso bom que você tem, ela não está
+pronta.
+
+## Quinta instância da cota no eixo errado — e a primeira que AFROUXA
+
+As quatro anteriores reprovavam implementação correta. Esta **aprovou uma
+mudança real**, e por isso é pior.
+
+`rect.x/y/w/h` eram comparados contra a curva de densidade de `signalPixels` —
+uma contagem de pixels perto de um limiar de brilho. Mas uma aresta de retângulo
+é uma **posição**, não uma contagem, e a cota saía em milhares.
+
+Medido quando a margem mudou:
+
+```
+rect.w    1119 contra 1333    difere 214 px    "cota 2543 pixels"    PASS~
+```
+
+**Uma regra de margem que moveu o retângulo em 214 pixels passou sem ser
+notada.** Quem pegou foi `cobertura.depois`, que é uma razão no eixo [0,1] e
+reprovou em 11.470 bins.
+
+### O que a distingue das quatro anteriores: o sintoma é um PASS
+
+As quatro primeiras **reprovavam implementação correta**. O sintoma era um FAIL,
+e um FAIL tem dono: alguém para, mede, e descobre que a cota estava no eixo
+errado. O custo era uma rodada de investigação — caro, mas **auto-revelador**.
+
+Esta **aprovou mudança real**. O sintoma é um PASS.
+
+| | as quatro | a quinta |
+|---|---|---|
+| efeito da cota errada | aperta | **afrouxa** |
+| o que acontece | reprova código certo | **aprova mudança real** |
+| sintoma | FAIL | **PASS** |
+| alguém olha? | sim, tem que olhar | **não** |
+
+**Ninguém olha um PASS.** Uma linha que nunca reprova é indistinguível de uma
+linha que está certa, e ela pode ficar assim para sempre: não há evento, não há
+alarme, não há rodada de investigação. Foi por acaso — porque a margem mudou e
+`cobertura.depois` reprovou ao lado — que a linha apareceu.
+
+### A regra operacional, e ela é barata
+
+> **Ao escrever uma cota, confira que a grandeza comparada e a grandeza da curva
+> têm a MESMA UNIDADE.**
+
+O sinal para procurá-la **não é o veredito — é a unidade**: contagem contra
+posição, fração contra valor, razão contra eixo. Posição contra contagem passa
+despercebido **nos dois sentidos**, e num deles não há alarme nenhum.
+
+E daí sai uma varredura que o projeto deve a si mesmo: **listar toda cota da
+suíte com a unidade dos dois lados.** Se houver outra com unidades diferentes,
+ela **está afrouxando agora e ninguém sabe** — por construção, ela não vai se
+anunciar.
+
+### O conserto: `rect(formula)`, e a terceira cópia que se confere
+
+Isolamento de fórmula, o mesmo padrão de `shadows(formula)`. O retângulo é
+função determinística de `objectRect` + margem + razão do quadro +
+arredondamento, então:
+
+```
+caixa.x/y/w/h                    279,229,960,743 dos DOIS LADOS        PASS
+rect(copia do comparador)        minha formula + MINHA caixa = meu rect PASS
+rect(formula)                    minha formula + caixa DELES
+                                 199,181,1119,839 contra 92,101,1333,999  FAIL
+rect.x/y/w/h                     cota PROPAGADA pela formula = 0 px       FAIL
+```
+
+**A caixa do objeto é idêntica dos dois lados.** Então a diferença inteira de
+214 pixels é a regra da margem, e mais nada — que é exatamente o que o
+isolamento serve para dizer.
+
+A cota das arestas agora é **propagação, não curva**: o que a diferença das
+caixas faz com a fórmula, e só ela. Com as caixas iguais a cota é **zero**, e a
+igualdade vale se e somente se as duas regras coincidirem — **tolerância zero
+calculada, não afirmada.**
+
+**E a cópia se confere antes de julgar.** Esta é a terceira implementação da
+mesma fórmula — JS, Python e agora PowerShell — e uma cópia que ninguém confere
+não isola nada: se ela derivar do `crop.js`, ela aponta divergência inexistente
+**na outra ponta**. Por isso `rect(copia do comparador)` existe: alimentada com
+a minha caixa, ela tem que devolver o meu retângulo, exatamente. Não é
+comparação com a referência — é uma **afirmação sobre o comparador**, e o único
+veredito aceitável é igualdade.
+
+**A armadilha que ela já pagou:** `Math.round` do JS arredonda meio **para
+cima**; `[math]::Round` do .NET arredonda meio **para par**. 0,5 daria 0 e 2,5
+daria 2. Uma isolação de fórmula que erra metade da fórmula mede outra coisa —
+a mesma lição do `shadows(formula)` sem os clamps. `Floor(x + 0.5)` é o
+`Math.round` do JS, inclusive para negativo.

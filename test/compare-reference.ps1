@@ -251,6 +251,55 @@ function Compare-Ratio($fixture, $scope, $field, $mine, $refv, $numRef, $denRef)
     return New-Row $fixture $scope $field $m $r $verdict $detail
 }
 
+<#
+O RETANGULO DO RECORTE, RECOMPUTADO AQUI -- a mesma isolacao de formula de
+`shadows(formula)`, e pela mesma razao.
+
+O retangulo e DERIVADO, nao medido: caixa do objeto -> margem -> razao do
+quadro -> arredondamento -> deslizar para dentro do quadro. Comparar so o valor
+final mistura duas perguntas, "a caixa e a mesma?" e "a regra da margem e a
+mesma?", e a primeira ja esta respondida nas linhas `caixa.*`. Alimentada com a
+caixa DELES, esta funcao responde a segunda sozinha.
+
+ARREDONDAMENTO, e e uma armadilha real: o `Math.round` do JS arredonda meio
+PARA CIMA; o `[math]::Round` do .NET arredonda meio PARA PAR (banqueiro), entao
+0,5 daria 0 e 2,5 daria 2. Reproduzir a regra errada aqui inventaria
+divergencia em toda aresta que caisse exatamente no meio -- uma isolacao de
+formula que erra metade da formula esta medindo outra coisa. `Floor(x + 0.5)` e
+o Math.round do JS, inclusive para negativo.
+#>
+function Get-JsRound([double]$x) { return [math]::Floor($x + 0.5) }
+
+function Get-CropRect($objRect, $frame, $margin) {
+    if ($null -eq $objRect -or $null -eq $frame -or $null -eq $margin) { return $null }
+    $w = [double]$frame[0]; $h = [double]$frame[1]
+    $ox = [double]$objRect[0]; $oy = [double]$objRect[1]
+    $ow = [double]$objRect[2]; $oh = [double]$objRect[3]
+    if ($w -le 0 -or $h -le 0 -or $ow -le 0 -or $oh -le 0) { return $null }
+
+    # Fracao do LADO MAIOR DA CAIXA, nunca do quadro -- ver steps/crop.js.
+    $mar = [double]$margin * [math]::Max($ow, $oh)
+    $rx0 = $ox - $mar; $ry0 = $oy - $mar
+    $rw = $ow + 2.0 * $mar; $rh = $oh + 2.0 * $mar
+
+    # A razao do quadro original, expandindo o lado menor.
+    $want = $w / $h
+    if (($rw / $rh) -lt $want) {
+        $nw = $rh * $want; $rx0 -= ($nw - $rw) / 2.0; $rw = $nw
+    } else {
+        $nh = $rw / $want; $ry0 -= ($nh - $rh) / 2.0; $rh = $nh
+    }
+
+    $rw = [math]::Min((Get-JsRound $rw), $w)
+    $rh = [math]::Min((Get-JsRound $rh), $h)
+    $cx0 = Get-JsRound $rx0; $cy0 = Get-JsRound $ry0
+    if ($cx0 -lt 0) { $cx0 = 0 }
+    if ($cy0 -lt 0) { $cy0 = 0 }
+    if (($cx0 + $rw) -gt $w) { $cx0 = $w - $rw }
+    if (($cy0 + $rh) -gt $h) { $cy0 = $h - $rh }
+    return @([int]$cx0, [int]$cy0, [int]$rw, [int]$rh)
+}
+
 function Compare-Value($fixture, $scope, $field, $mine, $refv, $kind, $span, $total, $medianDelta = 0) {
     $known = Get-Known $fixture $field
 
@@ -1312,10 +1361,10 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             }
         }
 
-        # ---- Modulo 5a: meia escala e recorte sugerido -----------------
+        # ---- Modulo 5a: recorte sugerido --------------------------------
         #
-        # A referencia le as duas etapas em `meiaEscala` e `recorte`, e as curvas
-        # em `densidadePorLimiar.meiaEscala` e `densidadePorLimiar.recorte`.
+        # A referencia le a etapa em `recorte`, e as curvas em
+        # `densidadePorLimiar.recorte`.
         #
         # DUAS CONTAGENS DO MESMO OBJETO, UMA EXATA E OUTRA TOLERANTE, e o que
         # separa e se o limiar tem populacao perto dele:
@@ -1331,217 +1380,11 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         # Tratar `components` como inteiro contado reprovaria uma implementacao
         # correta; tratar `componentsAboveMin` como tolerante afrouxaria a unica
         # contagem que decide qual salvaguarda dispara.
-        $me = $rf2.meiaEscala
         $rc = $rf2.recorte
-        $densM = $null; $densC = $null
-        if ($rf2.densidadePorLimiar) {
-            $densM = $rf2.densidadePorLimiar.meiaEscala
-            $densC = $rf2.densidadePorLimiar.recorte
-        }
-        $hsRec = $recs2 | Where-Object { $_.id -eq 'half-scale' } | Select-Object -First 1
-        $crRec = $recs2 | Where-Object { $_.id -eq 'crop' }       | Select-Object -First 1
+        $densC = $null
+        if ($rf2.densidadePorLimiar) { $densC = $rf2.densidadePorLimiar.recorte }
+        $crRec = $recs2 | Where-Object { $_.id -eq 'crop' } | Select-Object -First 1
         $pTot5 = [int]$rf2.decode.width * [int]$rf2.decode.height
-
-        # --- meia escala -------------------------------------------------
-        if ($null -eq $me) {
-            $rows += New-Row $name 'meiaEscala' '(todos)' '-' '-' 'N/A' `
-                     'a referencia nao emite meiaEscala para este fixture'
-        } elseif ($null -eq $hsRec) {
-            $rows += New-Row $name 'meiaEscala' '(todos)' '-' '-' 'N/A' `
-                     'o golden nao tem record de half-scale'
-        } else {
-            $rows += Compare-Value $name 'meiaEscala' 'aplicado'  $hsRec.applied  $me.applied  'exact' 0 0
-            $rows += Compare-Value $name 'meiaEscala' 'oferecido' $hsRec.offered  $me.offered  'exact' 0 0
-            # Inteiros que saem de `w >> 1`: nao ha o que tolerar. Se divergirem,
-            # uma das duas pontas leu outra dimensao ou arredondou o descarte.
-            foreach ($ix in 0..1) {
-                $rows += Compare-Value $name 'meiaEscala' ("entrada[$ix]") $hsRec.inputSize[$ix]  $me.inputSize[$ix]  'exact' 0 0
-                $rows += Compare-Value $name 'meiaEscala' ("saida[$ix]")   $hsRec.outputSize[$ix] $me.outputSize[$ix] 'exact' 0 0
-            }
-            $rows += Compare-Value $name 'meiaEscala' 'descartaLinha'  $hsRec.droppedRow    $me.droppedRow    'exact' 0 0
-            $rows += Compare-Value $name 'meiaEscala' 'descartaColuna' $hsRec.droppedColumn $me.droppedColumn 'exact' 0 0
-
-            $hn = $hsRec.noise; $rn = $me.noise
-            if ($hn -and $rn) {
-                <#
-                O SIGMA DO CEU E UMA DISPERSAO, E DISPERSAO SEGUE A INCLINACAO
-                DA CURVA -- NAO O NIVEL DELA.
-
-                Este e o quarto caso da classe "cota lida no eixo errado", e o
-                primeiro em que a grandeza reprovada esta a QUATRO ELOS da
-                entrada. Os tres anteriores estavam a um:
-
-                    ganhos      above_a / above_b            1 elo
-                    span        3(q3 - q1)                   1 elo
-                    .after      s' = k(max-min)/max'         1 elo
-                    sigma       mediana -> alvo -> midtones -> inclinacao -> sigma
-
-                Cada elo passa a propria cota e o ultimo reprova, porque ele e
-                julgado no eixo [0,1] carregando o que os tres acumularam:
-
-                    lumMediana  1,12 bins  passa
-                      -> target  1,12 bins  passa   (ramo nao-linear: o alvo E a
-                                                     mediana do proprio quadro)
-                        -> midtones  3,12 bins  passa
-                          -> sigma  4,04 bins  REPROVA
-
-                A DERIVACAO. Com a MTF
-
-                    MTF(x,m) = (m-1)x / ((2m-1)x - m)        D = (2m-1)x - m
-
-                `sigma` nao sai de MTF: ele sai da MEDIANA DE |d| entre vizinhos,
-                e para diferencas pequenas d ~ S(x) * dx, com S a inclinacao:
-
-                    S(x,m) = dMTF/dx = m(1-m) / D^2
-
-                Entao sigma e proporcional a S, e a sensibilidade que vale e a de
-                S -- nao a de MTF. As duas sao diferentes: medido no nonlinear,
-                dln(MTF)/dm = -23,3 e dln(S)/dm = -15,7, um fator 1,5. Propagar
-                pelo nivel daria um numero que cobre por acidente.
-
-                    dln(S)/dm = (1-2m)/(m(1-m)) - 2(2x-1)/D
-                    dln(S)/dx = -2(2m-1)/D
-                    dx/ds     = (Y-1)/(1-s)^2          x = (Y - s)/(1 - s)
-
-                As duas derivadas conferidas contra diferenca finita em 9 casas.
-                O `x` e o do CEU: (lumMediana - shadows)/(1 - shadows), e os tres
-                numeros ja estao nos dois records.
-
-                    d(sigma)/sigma <= |dlnS/dm|*dm + |dlnS/dx * dx/ds|*ds
-
-                MEDIDO no nonlinear: termo do midtones 3,88 bins, termo do
-                shadows 1,14, soma 5,02 contra 4,04 observados -- folga 1,24x. E
-                os dois termos sao necessarios: o do midtones sozinho da 3,88 e
-                NAO cobre.
-
-                Nada aqui e ajustado: as duas derivadas sao analiticas, as duas
-                entradas sao medidas, e o piso do eixo fica como minimo para que
-                a cota nunca desca abaixo do instrumento.
-                #>
-                function Compare-MtfDerived($fx, $field, $mine, $refv, $m, $s, $ylum, $dm, $ds, $sigAxis) {
-                    $x  = ($ylum - $s) / (1.0 - $s)
-                    $D  = (2.0 * $m - 1.0) * $x - $m
-                    if ([math]::Abs($D) -lt 1e-12 -or $m -le 0 -or $m -ge 1) { return $null }
-                    $dlnS_dm = (1.0 - 2.0 * $m) / ($m * (1.0 - $m)) - 2.0 * (2.0 * $x - 1.0) / $D
-                    $dlnS_dx = -2.0 * (2.0 * $m - 1.0) / $D
-                    $dx_ds   = ($ylum - 1.0) / [math]::Pow(1.0 - $s, 2)
-                    $rel = [math]::Abs($dlnS_dm) * $dm + [math]::Abs($dlnS_dx * $dx_ds) * $ds
-                    $lim = [math]::Max([math]::Abs([double]$refv) * $rel, 4.0 / $BINS)
-                    $diff = [math]::Abs([double]$mine - [double]$refv)
-                    $ok = ($diff -le $lim)
-                    return New-Row $fx 'meiaEscala' $field ('{0:G9}' -f [double]$mine) ('{0:G9}' -f [double]$refv) `
-                           $(if ($ok) { if ($diff -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
-                           ('{0:F2} bins / limite {1:F2} - propagado pela inclinacao da MTF (dlnS/dm {2:F1}, dm {3:F2} bins)' -f `
-                            ($diff * $BINS), ($lim * $BINS), $dlnS_dm, ($dm * $BINS))
-                }
-
-                $sigDone = $false
-                if ($es -and $stRec -and $stRec.params.operator -eq 'mtf' -and $lk -and
-                    $null -ne $lk.midtones -and $null -ne $es.midtones) {
-                    $dmM = [math]::Abs([double]$lk.midtones - [double]$es.midtones)
-                    $dsM = [math]::Abs([double]$lk.shadows  - [double]$es.shadows)
-                    $rA = Compare-MtfDerived $name 'ruido.antes'  $hn.skyHighFreqBefore $rn.skyHighFreqBefore `
-                          ([double]$es.midtones) ([double]$es.shadows) ([double]$es.luminancia.mediana) $dmM $dsM $null
-                    $rB = Compare-MtfDerived $name 'ruido.depois' $hn.skyHighFreqAfter  $rn.skyHighFreqAfter `
-                          ([double]$es.midtones) ([double]$es.shadows) ([double]$es.luminancia.mediana) $dmM $dsM $null
-                    if ($rA -and $rB) { $rows += $rA; $rows += $rB; $sigDone = $true }
-                }
-                if (-not $sigDone) {
-                    # Sem MTF (asinh) ou sem os parametros: a derivacao acima nao
-                    # vale, e fingir que vale seria pior que o eixo. O eixo entra
-                    # com a razao escrita.
-                    foreach ($fld in @(@('ruido.antes', $hn.skyHighFreqBefore, $rn.skyHighFreqBefore),
-                                       @('ruido.depois', $hn.skyHighFreqAfter, $rn.skyHighFreqAfter))) {
-                        $r9 = Compare-Value $name 'meiaEscala' $fld[0] $fld[1] $fld[2] 'unit' 0 0
-                        $r9.detalhe = $r9.detalhe + ' - eixo [0,1]: a derivacao pela MTF nao se aplica a este operador'
-                        $rows += $r9
-                    }
-                }
-
-                <#
-                RAZAO E BRANCURA SAO QUOCIENTES, E NAO MORAM NO EIXO [0,1].
-
-                Mesmo erro que os ganhos estelares e que o `span`, pela terceira
-                vez: a grandeza comparada e derivada, e herda a incerteza das
-                ENTRADAS amplificada pelo Jacobiano.
-
-                    ratio      = sigma_antes / sigma_depois
-                    whiteness  = sigma(lag 1) / sigma(lag L)
-                    d(a/b)/(a/b) = da/a + db/b
-
-                Medido no `edge`, que e o quadro pequeno (400x300) e portanto o
-                de mediana mais ruidosa: a razao reprovava em 42,76 de 4,00 bins
-                do eixo, e passa em 42,76 de 13,23 pela cota propagada. Nao e
-                alargamento -- 4,00 e a cota de UM valor do eixo, e aqui ha dois
-                divididos um pelo outro.
-
-                A brancura nao tem os dois sigmas no record (so o resultado e o
-                lag), entao o denominador e reconstruido: sigma(lag L) =
-                sigma(lag 1) / whiteness.
-                #>
-                $rows += Compare-Ratio $name 'meiaEscala' 'ruido.razao' `
-                         $hn.ratio $rn.ratio $rn.skyHighFreqBefore $rn.skyHighFreqAfter
-                if ($null -ne $rn.whiteness -and [double]$rn.whiteness -ne 0) {
-                    $farRef = [double]$rn.skyHighFreqBefore / [double]$rn.whiteness
-                    $rows += Compare-Ratio $name 'meiaEscala' 'ruido.brancura' `
-                             $hn.whiteness $rn.whiteness $rn.skyHighFreqBefore $farRef
-                }
-                # O lag do pior caso e um INDICE, nao uma medida: se os dois
-                # lados escolherem lags diferentes, mediram coisas diferentes e
-                # o valor de brancura bater seria coincidencia.
-                $rows += Compare-Value $name 'meiaEscala' 'brancura.lag' $hn.whitenessLag $rn.whitenessLag 'exact' 0 0
-
-                # AFIRMACAO, como o matiz e o croma: a faixa e o que o produto
-                # promete, e o botao aparece ou nao por ela. Os dois lados contra
-                # o limite, nao um contra o outro.
-                foreach ($par in @(@('nosso', $hn.ratio), @('referencia', $rn.ratio))) {
-                    $inBand = ([double]$par[1] -ge 1.8 -and [double]$par[1] -le 2.2)
-                    $rows += New-Row $name 'meiaEscala' ("razao.$($par[0])") ('{0:0.0000}' -f [double]$par[1]) '1,8 a 2,2' `
-                             $(if ($inBand) { 'PASS' } else { 'FORA' }) `
-                             $(if ($inBand) { 'a media de caixa divide o ruido pelo fator previsto' }
-                               else { 'os quatro pixels do bloco nao eram independentes neste quadro' })
-                }
-
-                <#
-                A COTA TEM QUE SAIR DO NUMERO QUE ESTA NO LIMIAR.
-
-                O limiar do ceu e `mediana + 3 * madn` da luminancia. A versao
-                anterior desta linha derivava o Delta de `skyHighFreqBefore` --
-                que e o sigma de ALTA FREQUENCIA e nao o MADN da luminancia. Dois
-                numeros diferentes, e o Delta saia da ordem de 1e-7 quando o
-                verdadeiro e ~1e-5: a curva era lida num ponto onde ela diz zero,
-                e a linha reprovava por 1 pixel contra uma cota de 0.
-
-                Um Delta derivado do numero errado nao e cota derivada -- e cota
-                escolhida com passos extras, e pior que a da secao 7, porque
-                PARECE derivada.
-
-                `skyMedian` e `skyMadn` entraram no record para isto. Enquanto a
-                referencia nao os emitir, a linha cai na cota da secao 7 e diz
-                por que, em vez de ler a curva num ponto que nao significa nada.
-                #>
-                $dThr5 = $null
-                if ($null -ne $hn.skyMedian -and $null -ne $rn.skyMedian -and
-                    $null -ne $hn.skyMadn   -and $null -ne $rn.skyMadn) {
-                    $sig5 = [double]$hn.skySigma
-                    if (-not ($sig5 -gt 0)) { $sig5 = 3.0 }
-                    $dThr5 = [math]::Abs([double]$hn.skyMedian - [double]$rn.skyMedian) +
-                             $sig5 * [math]::Abs([double]$hn.skyMadn - [double]$rn.skyMadn)
-                }
-                $curveSky = $null
-                if ($densM) { $curveSky = $densM.skyPixels }
-                if ($curveSky -and $null -ne $dThr5) {
-                    $rows += Compare-Threshold-Count $name 'meiaEscala' 'ceu.pixels' `
-                             $hn.skyPixels $rn.skyPixels $dThr5 $curveSky
-                } else {
-                    $r5 = Compare-Value $name 'meiaEscala' 'ceu.pixels' $hn.skyPixels $rn.skyPixels 'count' 0 $pTot5
-                    $r5.detalhe = $r5.detalhe + $(if ($null -eq $dThr5) {
-                        ' - cota da secao 7: falta skyMedian/skyMadn na referencia para derivar o Delta'
-                    } else { ' - cota da secao 7, sem curva' })
-                    $rows += $r5
-                }
-            }
-        }
 
         # --- recorte sugerido --------------------------------------------
         if ($null -eq $rc) {
@@ -1617,18 +1460,100 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
                            else { 'uma das duas recusou em silencio' })
             }
 
-            # O retangulo, quando as duas sugerem. Contagem por limiar: as
-            # arestas saem da caixa do componente, entao herdam o Delta do
-            # extenso -- pela mesma cota parcial, e dito na linha.
+            <#
+            A CAIXA DO OBJETO, EXATA -- e e ela que alimenta tudo abaixo.
+
+            Medido: 279,229,960,743 dos DOIS LADOS. Enquanto a caixa bater, a
+            cota propagada para as arestas e ZERO e a comparacao ali e exata --
+            calculado, nao afirmado. Se um dia a caixa divergir em 1 px, a cota
+            das arestas cresce sozinha pelo que a formula fizer com esse 1 px.
+            #>
+            if ($crRec.objectRect -and $rc.objectRect) {
+                foreach ($bi in 0..3) {
+                    $rows += Compare-Value $name 'recorte' `
+                             (@('caixa.x', 'caixa.y', 'caixa.w', 'caixa.h')[$bi]) `
+                             $crRec.objectRect[$bi] $rc.objectRect[$bi] 'exact' 0 0
+                }
+            }
+
+            <#
+            O RETANGULO. A COTA ANTERIOR AQUI ESTAVA NA UNIDADE ERRADA, e o
+            defeito dela e o oposto do habitual: ela nunca reprovava.
+
+            As arestas eram comparadas pela curva de densidade de
+            `signalPixels` -- uma CONTAGEM DE PIXELS perto de um limiar de
+            brilho. Uma aresta de retangulo e uma POSICAO. A cota saia em
+            milhares de pixels e engolia qualquer coisa: quando a margem virou
+            fracao do objeto, `rect.w` mudou 214 px contra uma "cota" de 2543 e
+            saiu PASS~. Uma mudanca real passou sem alarme.
+
+            As quatro instancias anteriores da classe "cota lida no eixo
+            errado" REPROVAVAM implementacao correta, e alguem ia olhar. Esta
+            APROVOU mudanca real, e o sintoma e um PASS. Ninguem olha um PASS.
+
+            O que entra no lugar e propagacao, nao curva: o retangulo e funcao
+            deterministica de (caixa, quadro, margem), entao a cota de cada
+            aresta e o que a DIFERENCA DAS CAIXAS faz com a formula -- e so
+            ela. Com as caixas iguais a cota e 0 e a igualdade vale se e
+            somente se as duas regras de margem coincidirem.
+            #>
             if ($crRec.suggested -and $rc.suggested -and $crRec.rect -and $rc.rect) {
+                $mgn = $crRec.params.margin
+                $deMinhaCaixa  = Get-CropRect $crRec.objectRect $crRec.frameSize $mgn
+                $daCaixaDeles  = Get-CropRect $rc.objectRect    $rc.frameSize    $mgn
+
+                <#
+                ESTA E A TERCEIRA COPIA DA FORMULA DO RETANGULO -- JS, Python e
+                agora PowerShell -- e uma copia que ninguem confere nao serve
+                para isolar nada: se ela derivar do `crop.js`, o `rect(formula)`
+                abaixo aponta divergencia que nao existe, e aponta para a outra
+                ponta.
+
+                Entao a copia se justifica contra ESTE lado antes de julgar o
+                outro: alimentada com a MINHA caixa, ela tem que devolver o MEU
+                retangulo, exatamente. Nao e comparacao com a referencia -- e
+                uma afirmacao sobre o comparador, e o unico veredito aceitavel
+                e igualdade.
+                #>
+                if ($deMinhaCaixa) {
+                    $rows += Compare-Value $name 'recorte' 'rect(copia do comparador)' `
+                             ($deMinhaCaixa -join ',') (($crRec.rect | ForEach-Object { [int]$_ }) -join ',') `
+                             'exact' 0 0
+                }
+
+                # rect(formula): A REGRA DAQUI ALIMENTADA COM A CAIXA DELES.
+                # Se bater com o retangulo deles, a diferenca no valor final e
+                # propagacao da caixa; se nao bater, as duas regras diferem e
+                # nenhuma tolerancia conserta isso.
+                if ($daCaixaDeles) {
+                    $rows += Compare-Value $name 'recorte' 'rect(formula)' `
+                             ($daCaixaDeles -join ',') (($rc.rect | ForEach-Object { [int]$_ }) -join ',') `
+                             'exact' 0 0
+                }
+
+                $dCaixa = 0
+                if ($crRec.objectRect -and $rc.objectRect) {
+                    foreach ($bi in 0..3) {
+                        $dCaixa = [math]::Max($dCaixa,
+                                  [math]::Abs([double]$crRec.objectRect[$bi] - [double]$rc.objectRect[$bi]))
+                    }
+                }
+
                 foreach ($ri in 0..3) {
                     $lbl = @('rect.x', 'rect.y', 'rect.w', 'rect.h')[$ri]
-                    if ($curveSig -and $null -ne $dThrC) {
-                        $r7 = Compare-Threshold-Count $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] $dThrC $curveSig
-                        $r7.detalhe = $r7.detalhe + ' - aresta herda o Delta do extenso'
-                        $rows += $r7
+                    if ($deMinhaCaixa -and $daCaixaDeles) {
+                        $cota = [math]::Abs([double]$deMinhaCaixa[$ri] - [double]$daCaixaDeles[$ri])
+                        $d7 = [math]::Abs([double]$crRec.rect[$ri] - [double]$rc.rect[$ri])
+                        $ok7 = ($d7 -le $cota)
+                        $rows += New-Row $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] `
+                                 $(if ($ok7) { if ($d7 -eq 0) { 'PASS' } else { 'PASS~' } } else { 'FAIL' }) `
+                                 ('difere {0} px / cota {1} px - propagada pela formula a partir da caixa (as caixas diferem {2} px)' -f `
+                                  $d7, $cota, $dCaixa)
                     } else {
-                        $rows += Compare-Value $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] 'count' 0 $pTot5
+                        # Sem caixa dos dois lados nao ha o que propagar, e
+                        # inventar uma cota aqui seria repetir o defeito acima.
+                        $rows += New-Row $name 'recorte' $lbl $crRec.rect[$ri] $rc.rect[$ri] 'N/A' `
+                                 'sem objectRect dos dois lados: a cota desta aresta e propagada e nao ha de onde propagar'
                     }
                 }
                 foreach ($cv in @(@('cobertura.antes', $crRec.coverageBefore, $rc.coverageBefore),

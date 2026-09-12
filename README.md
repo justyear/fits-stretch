@@ -121,10 +121,6 @@ Processing log — fixture-gradient.fit
     This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
 • No crop suggested: the largest extended object covers 8.6% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at.
-• Half-scale copy, offered as a second download and not applied to the file above: 1600 × 1200 reduced to 800 × 600 by averaging each 2 × 2 block.
-    Four independent pixels become one, so the noise in the sky falls by a factor of 1.98 — measured on this frame, across 1,768,443 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
-    No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has.
-    This copy is offered because it is easier to share, not because it is better. The full-resolution one is the honest size of what your telescope recorded.
 • Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.
@@ -214,19 +210,9 @@ What it *does* do, and says so:
   bright core does not become a flat disc of colour. Hue does not move — all
   three channels are scaled by the same number, and the log prints the largest
   hue change it measured on your frame
-- **offers a half-scale copy, as a second button and never as the default.**
-  Averaging each 2 × 2 block turns four independent pixels into one, so the noise
-  in the sky falls by two — and the log prints the factor it *measured* on your
-  frame against the 2.00 that exact averaging predicts. The full-resolution file
-  stays the default, because the reduced one looks better only because it hid
-  noise, and a tool that shipped that by default would be doing the thing it
-  promises not to. When the measured factor does not hold — a demosaiced frame
-  has correlated neighbours and only reaches 1.29 — **the button does not appear
-  at all**, and says why. Telling the truth in a log most people do not read is
-  not the same as not promising
 - **finds the object and suggests a crop, and never applies it.** The rectangle
   is drawn over the image with the consequence in numbers — *"the object goes
-  from 29 % of the frame to 42 %"* — and nothing happens until you click. Two
+  from 29 % of the frame to 59 %"* — and nothing happens until you click. Two
   extended objects in one frame is a deliberate composition, so it does not
   suggest at all and says so: choosing one of them would be deciding your picture
   for you
