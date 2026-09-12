@@ -2039,6 +2039,83 @@
     }
   },
   {
+    "id": "crop",
+    "name": "Suggested crop",
+    "applied": false,
+    "params": {
+      "sigma": 2.5,
+      "window": 25,
+      "density": 0.5,
+      "margin": 0.08,
+      "minFrame": 0.2,
+      "connectivity": 4
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "inputSize": null,
+    "outputSize": null,
+    "droppedRow": false,
+    "droppedColumn": false,
+    "noise": null,
+    "offered": null,
+    "offerReason": null,
+    "suggested": false,
+    "reason": "this frame has 2 extended objects large enough to be the subject, and choosing one of them would be deciding the composition for you — two objects in a frame are usually there on purpose",
+    "frameSize": [
+      1601,
+      1200
+    ],
+    "signalPixels": 654793,
+    "extendedPixels": 643065,
+    "components": 295,
+    "componentsAboveMin": 2,
+    "componentList": [
+      {
+        "rect": [
+          33,
+          267,
+          731,
+          587
+        ],
+        "pixels": 334265,
+        "boxFrac": 0.22334842806579222,
+        "pixelFrac": 0.1739876119092234
+      },
+      {
+        "rect": [
+          850,
+          357,
+          699,
+          568
+        ],
+        "pixels": 308371,
+        "boxFrac": 0.2066583385384135,
+        "pixelFrac": 0.16050957734749116
+      }
+    ],
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": null,
+    "after": null
+  },
+  {
     "id": "half-scale",
     "name": "Half-scale copy",
     "applied": true,
@@ -2199,83 +2276,6 @@
         }
       ]
     }
-  },
-  {
-    "id": "crop",
-    "name": "Suggested crop",
-    "applied": false,
-    "params": {
-      "sigma": 2.5,
-      "window": 25,
-      "density": 0.5,
-      "margin": 0.08,
-      "minFrame": 0.2,
-      "connectivity": 4
-    },
-    "notes": [],
-    "samples": null,
-    "surface": null,
-    "correction": null,
-    "clamped": null,
-    "neutralise": null,
-    "linked": null,
-    "colourFidelity": null,
-    "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
-    "suggested": false,
-    "reason": "this frame has 2 extended objects large enough to be the subject, and choosing one of them would be deciding the composition for you — two objects in a frame are usually there on purpose",
-    "frameSize": [
-      1601,
-      1200
-    ],
-    "signalPixels": 654793,
-    "extendedPixels": 643065,
-    "components": 295,
-    "componentsAboveMin": 2,
-    "componentList": [
-      {
-        "rect": [
-          33,
-          267,
-          731,
-          587
-        ],
-        "pixels": 334265,
-        "boxFrac": 0.22334842806579222,
-        "pixelFrac": 0.1739876119092234
-      },
-      {
-        "rect": [
-          850,
-          357,
-          699,
-          568
-        ],
-        "pixels": 308371,
-        "boxFrac": 0.2066583385384135,
-        "pixelFrac": 0.16050957734749116
-      }
-    ],
-    "rect": null,
-    "objectRect": null,
-    "coverageBefore": null,
-    "coverageAfter": null,
-    "coverageGuard": null,
-    "hueFidelity": null,
-    "chromaNoise": null,
-    "saturationByLuminance": null,
-    "overflow": null,
-    "stars": null,
-    "gains": null,
-    "reference": null,
-    "before": null,
-    "after": null
   },
   {
     "id": "quantise",

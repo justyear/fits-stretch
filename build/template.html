@@ -235,9 +235,11 @@
       <div class="actions">
         <button class="btn primary" id="dlpng">Download PNG</button>
         <button class="btn" id="dlhalf" hidden>Download half-scale PNG</button>
+        <button class="btn" id="dlcrop" hidden>Crop to the object</button>
         <button class="btn" id="copylog">Copy processing log</button>
         <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
       </div>
+      <p class="hint" id="crophint" hidden></p>
       <p class="hint" id="halfhint" hidden></p>
       <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
         unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
@@ -280,7 +282,7 @@ var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
 var elDiag = $('diag'), elDiagBody = $('diagbody');
 var elToast = $('toast');
 
-var state = { log: '', diag: null, full: null, half: null, view: null, w: 0, h: 0, name: '' };
+var state = { log: '', diag: null, full: null, half: null, crop: null, view: null, w: 0, h: 0, name: '' };
 
 /* ------------------------------------------------------------------ *
  * Friendly errors
@@ -521,6 +523,71 @@ function finish(m){
   elView.height = state.view.h;
   elView.getContext('2d').putImageData(new ImageData(state.view.data, state.view.w, state.view.h), 0, 0);
 
+  /* O RETANGULO, DESENHADO SOBRE A TELA E SO SOBRE A TELA.
+   *
+   * Vai no canvas de visualizacao depois do putImageData, e nao nos pixels: o
+   * botao de download reconstroi o proprio canvas a partir de `state.full` ou
+   * de `state.view.data`, que sao os buffers, entao o arquivo salvo nunca leva
+   * o tracejado junto. Um retangulo que aparecesse na imagem baixada seria a
+   * ferramenta desenhando na foto de alguem.
+   *
+   * A escala e a do view: `state.view.w / state.w`. Sem isso o retangulo sai no
+   * lugar certo so quando a imagem cabe inteira na tela.
+   */
+  var crRec = null;
+  for (var cri = 0; m.records && cri < m.records.length; cri++){
+    if (m.records[cri].id === 'crop') crRec = m.records[cri];
+  }
+  state.crop = (crRec && crRec.suggested && !crRec.applied && crRec.rect) ? crRec : null;
+
+  if (state.crop){
+    var vs = state.view.w / state.w;
+    var g = elView.getContext('2d');
+    var rx = state.crop.rect[0] * vs, ry = state.crop.rect[1] * vs;
+    var rw2 = state.crop.rect[2] * vs, rh2 = state.crop.rect[3] * vs;
+    // Duas passadas, clara sobre escura: o retangulo tem que ser visivel tanto
+    // sobre ceu quanto sobre o nucleo brilhante do objeto que ele cerca.
+    g.save();
+    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.55)';
+    g.strokeRect(rx + .5, ry + .5, rw2 - 1, rh2 - 1);
+    g.lineWidth = 1.5; g.strokeStyle = 'rgba(159,184,212,.95)';
+    g.setLineDash([9, 6]);
+    g.strokeRect(rx + .5, ry + .5, rw2 - 1, rh2 - 1);
+    g.restore();
+  }
+
+  /* O BOTAO, COM A CONSEQUENCIA EM NUMERO.
+   *
+   * "Crop to the object" sozinho nao diz o que a pessoa ganha. A §3.2 pede o
+   * numero, e o numero e o que o record ja mediu: de quanto para quanto o
+   * objeto passa a ocupar o quadro.
+   *
+   * Quando nao sugere, o motivo aparece AQUI e nao so no log -- confusao 10 da
+   * lista, tratada do mesmo jeito que no botao de meia escala.
+   */
+  var crBtn = $('dlcrop'), crHint = $('crophint');
+  crBtn.disabled = false;
+  if (state.crop){
+    crBtn.hidden = false;
+    crBtn.textContent = 'Crop to the object (' + state.crop.rect[2] + ' × ' + state.crop.rect[3] + ')';
+    crHint.textContent = 'The object goes from ' + Math.round(100 * state.crop.coverageBefore) +
+                         '% of the frame to ' + Math.round(100 * state.crop.coverageAfter) +
+                         '%. Nothing is cropped until you click — framing is yours.';
+    crHint.hidden = false;
+  } else {
+    crBtn.hidden = true;
+    if (crRec && crRec.applied){
+      crHint.textContent = 'Cropped to ' + crRec.rect[2] + ' × ' + crRec.rect[3] +
+                           '. The log describes the full frame, because that is what was measured.';
+      crHint.hidden = false;
+    } else if (crRec && crRec.reason){
+      crHint.textContent = 'No crop suggested: ' + crRec.reason + '.';
+      crHint.hidden = false;
+    } else {
+      crHint.hidden = true;
+    }
+  }
+
   $('outname').textContent = state.name;
   $('outdims').textContent = m.width + ' × ' + m.height +
     (m.view.factor > 1 ? '  (shown at 1/' + m.view.factor + ')' : '');
@@ -649,6 +716,29 @@ $('dlpng').addEventListener('click', function(){
  * nao deve aprender -- reduzir em 8 bits produziria outro arquivo, e o numero
  * do ruido que o log afirma nao valeria para ele.
  */
+/* APLICAR O RECORTE. O UNICO CAMINHO, E ELE COMECA NUM CLIQUE.
+ *
+ * Reroda a cadeia inteira com `cropApply: true`. Nao recorta a imagem que ja
+ * esta na tela: a etapa refaz a deteccao e recorta no float, antes do quantise,
+ * entao o arquivo sai da mesma aritmetica que qualquer outra saida desta
+ * ferramenta. Recortar o RGBA pronto seria um segundo caminho de producao de
+ * pixel, e este projeto tem um so.
+ *
+ * Sem desfazer, de proposito e por enquanto: a pessoa reabre o arquivo. Um
+ * "desfazer" que reconstruisse estado a partir da tela seria o comeco de uma
+ * segunda fonte de verdade.
+ */
+$('dlcrop').addEventListener('click', function(){
+  var btn = this;
+  if (!state.crop || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Cropping…';
+  var params = {};
+  for (var k in state.defaults) params[k] = state.defaults[k];
+  params.cropApply = true;
+  requestRun(params, 'full');
+});
+
 $('dlhalf').addEventListener('click', function(){
   var btn = this;
   if (!state.half) return;

@@ -133,19 +133,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 66,
-    "preview": 49,
-    "stats": 93,
-    "background": 417,
-    "colour": 503,
-    "transfer": 1402,
-    "saturation": 957,
-    "halfScale": 506,
-    "crop": 148,
+    "header": 1,
+    "decode": 40,
+    "preview": 36,
+    "stats": 141,
+    "background": 367,
+    "colour": 587,
+    "transfer": 858,
+    "saturation": 393,
+    "crop": 112,
+    "halfScale": 358,
     "quantise": 95,
     "downscale": 0,
-    "total": 3537
+    "total": 2194
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

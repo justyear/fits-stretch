@@ -2039,6 +2039,72 @@
     }
   },
   {
+    "id": "crop",
+    "name": "Suggested crop",
+    "applied": false,
+    "params": {
+      "sigma": 2.5,
+      "window": 25,
+      "density": 0.5,
+      "margin": 0.08,
+      "minFrame": 0.2,
+      "connectivity": 4
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "inputSize": null,
+    "outputSize": null,
+    "droppedRow": false,
+    "droppedColumn": false,
+    "noise": null,
+    "offered": null,
+    "offerReason": null,
+    "suggested": false,
+    "reason": "the largest extended object covers 8.4% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at",
+    "frameSize": [
+      1600,
+      1200
+    ],
+    "signalPixels": 150353,
+    "extendedPixels": 118380,
+    "components": 431,
+    "componentsAboveMin": 0,
+    "componentList": [
+      {
+        "rect": [
+          189,
+          717,
+          500,
+          322
+        ],
+        "pixels": 117125,
+        "boxFrac": 0.08385416666666666,
+        "pixelFrac": 0.06100260416666667
+      }
+    ],
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": null,
+    "after": null
+  },
+  {
     "id": "half-scale",
     "name": "Half-scale copy",
     "applied": true,
@@ -2197,72 +2263,6 @@
         }
       ]
     }
-  },
-  {
-    "id": "crop",
-    "name": "Suggested crop",
-    "applied": false,
-    "params": {
-      "sigma": 2.5,
-      "window": 25,
-      "density": 0.5,
-      "margin": 0.08,
-      "minFrame": 0.2,
-      "connectivity": 4
-    },
-    "notes": [],
-    "samples": null,
-    "surface": null,
-    "correction": null,
-    "clamped": null,
-    "neutralise": null,
-    "linked": null,
-    "colourFidelity": null,
-    "mask": null,
-    "inputSize": null,
-    "outputSize": null,
-    "droppedRow": false,
-    "droppedColumn": false,
-    "noise": null,
-    "offered": null,
-    "offerReason": null,
-    "suggested": false,
-    "reason": "the largest extended object covers 8.4% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at",
-    "frameSize": [
-      1600,
-      1200
-    ],
-    "signalPixels": 150353,
-    "extendedPixels": 118380,
-    "components": 431,
-    "componentsAboveMin": 0,
-    "componentList": [
-      {
-        "rect": [
-          189,
-          717,
-          500,
-          322
-        ],
-        "pixels": 117125,
-        "boxFrac": 0.08385416666666666,
-        "pixelFrac": 0.06100260416666667
-      }
-    ],
-    "rect": null,
-    "objectRect": null,
-    "coverageBefore": null,
-    "coverageAfter": null,
-    "coverageGuard": null,
-    "hueFidelity": null,
-    "chromaNoise": null,
-    "saturationByLuminance": null,
-    "overflow": null,
-    "stars": null,
-    "gains": null,
-    "reference": null,
-    "before": null,
-    "after": null
   },
   {
     "id": "quantise",

@@ -27,12 +27,12 @@ Processing log — fixture-oneobject.fit
     690 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
     This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
 • Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
-• A crop was suggested and NOT applied: 1601 × 1200 → 1333 × 999 would take the object from 29% of the frame to 42%.
-    The object was found by neighbourhood occupancy — the same measurement that keeps a galaxy body out of the star selection — and it is 557,356 pixels in 314 connected regions, of which 1 is large enough to be the subject. Framing is authorship, so the rectangle is offered and nothing was done to your file.
-• Half-scale copy, offered as a second download and not applied to the file above: 1601 × 1200 reduced to 800 × 600 by averaging each 2 × 2 block.
-    Four independent pixels become one, so the noise in the sky falls by a factor of 1.98 — measured on this frame, across 1,356,624 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
-    No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has. The last column was dropped rather than interpolated, because interpolating would correlate neighbouring pixels and the number above would stop meaning anything.
+• Cropped to the object, because you asked: 1601 × 1200 → 1333 × 999. The object goes from 29% of the frame to 42%.
+    Every measurement above describes the FULL frame, because that is what was measured: the crop is the last thing that happened and it moved no pixel values, only which pixels are in the file. Nothing was resampled and nothing was interpolated.
+• Half-scale copy, offered as a second download and not applied to the file above: 1333 × 999 reduced to 666 × 499 by averaging each 2 × 2 block.
+    Four independent pixels become one, so the noise in the sky falls by a factor of 1.95 — measured on this frame, across 915,017 pairs of neighbouring sky pixels, against the 2.00 that exact averaging predicts for independent samples. That is the arithmetic of sampling, not a filter: the average is exact and nothing was smoothed.
+    No detail was removed: averaging resamples, it does not smooth, and the full-resolution file above has everything this one has. The last row and column were dropped rather than interpolated, because interpolating would correlate neighbouring pixels and the number above would stop meaning anything.
     This copy is offered because it is easier to share, not because it is better. The full-resolution one is the honest size of what your telescope recorded.
-• Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
+• Not applied: noise reduction, sharpening, deconvolution, star removal, colour grading, or any AI or generative step.
 
 Every number above was measured from the file itself.

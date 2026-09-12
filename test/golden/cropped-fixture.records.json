@@ -2041,7 +2041,7 @@
   {
     "id": "crop",
     "name": "Suggested crop",
-    "applied": false,
+    "applied": true,
     "params": {
       "sigma": 2.5,
       "window": 25,
@@ -2060,7 +2060,10 @@
     "colourFidelity": null,
     "mask": null,
     "inputSize": null,
-    "outputSize": null,
+    "outputSize": [
+      1333,
+      999
+    ],
     "droppedRow": false,
     "droppedColumn": false,
     "noise": null,
@@ -2128,7 +2131,7 @@
       "filter": "box2x2"
     },
     "notes": [
-      "Odd dimension: the last column was dropped rather than interpolated. Interpolating would correlate neighbouring pixels and the noise figure above would stop meaning anything."
+      "Odd dimension: the last row and column were dropped rather than interpolated. Interpolating would correlate neighbouring pixels and the noise figure above would stop meaning anything."
     ],
     "samples": null,
     "surface": null,
@@ -2139,31 +2142,31 @@
     "colourFidelity": null,
     "mask": null,
     "inputSize": [
-      1601,
-      1200
+      1333,
+      999
     ],
     "outputSize": [
-      800,
-      600
+      666,
+      499
     ],
-    "droppedRow": false,
+    "droppedRow": true,
     "droppedColumn": true,
     "noise": {
-      "skyHighFreqBefore": 0.012459959714955072,
-      "skyHighFreqAfter": 0.006292122120674888,
-      "ratio": 1.9802475978674468,
+      "skyHighFreqBefore": 0.011835717360824755,
+      "skyHighFreqAfter": 0.0060674406448551176,
+      "ratio": 1.950693554927619,
       "expectedRatio": 2,
       "withinBand": true,
       "band": [
         1.8,
         2.2
       ],
-      "skyPixels": 1365622,
-      "skyPixelsReduced": 337648,
-      "samplesBefore": 1356624,
-      "samplesAfter": 335020,
-      "whiteness": 0.99316997047029,
-      "whitenessLag": 3,
+      "skyPixels": 924491,
+      "skyPixelsReduced": 226690,
+      "samplesBefore": 915017,
+      "samplesAfter": 224485,
+      "whiteness": 0.9801846406222303,
+      "whitenessLag": 4,
       "note": "first difference of horizontally adjacent sky pixels, divided by sqrt(2) to read as a per-pixel sigma; measured on the same sky on both frames, chosen once on the full one"
     },
     "offered": true,
@@ -2191,92 +2194,92 @@
     "before": {
       "perChannel": [
         {
-          "median": 0.06617837796597238,
-          "madn": 0.023766594189979846,
-          "mad": 0.016030348165371543,
-          "span": 0.5021744106202792,
-          "q1": 0.05510032806897078,
-          "q3": 0.2224917982757305,
-          "sampled": 1920000,
+          "median": 0.08265812161440451,
+          "madn": 0.0573621459211288,
+          "mad": 0.038690237367549445,
+          "span": 0.7411764705882352,
+          "q1": 0.05734340428778515,
+          "q3": 0.3044022278171969,
+          "sampled": 1331667,
           "stride": 1,
-          "nan": 1200,
-          "p001": 0.025986114290074008,
-          "p999": 0.4548714427405203,
-          "totalPixels": 1921200
+          "nan": 0,
+          "p001": 0.025604638742656595,
+          "p999": 0.4695963988708324,
+          "totalPixels": 1331667
         },
         {
-          "median": 0.08775463492790112,
-          "madn": 0.030340516180264825,
-          "mad": 0.020464397801338748,
-          "span": 0.5055161364156557,
-          "q1": 0.07339589532310979,
-          "q3": 0.24190127412832838,
-          "sampled": 1920000,
+          "median": 0.10502784771496147,
+          "madn": 0.06624600675067649,
+          "mad": 0.044682319405555435,
+          "span": 0.7307850766765849,
+          "q1": 0.07661554894331274,
+          "q3": 0.3202105745021744,
+          "sampled": 1331667,
           "stride": 1,
-          "nan": 1200,
-          "p001": 0.03479056992446784,
-          "p999": 0.6072175173571374,
-          "totalPixels": 1921200
+          "nan": 0,
+          "p001": 0.03471427481498436,
+          "p999": 0.625482566567483,
+          "totalPixels": 1331667
         },
         {
-          "median": 0.11931029221026933,
-          "madn": 0.038998339375699936,
-          "mad": 0.02630401954384186,
-          "span": 0.5094071869993133,
-          "q1": 0.10043488212405585,
-          "q3": 0.2702372777904936,
-          "sampled": 1920000,
+          "median": 0.13830777447165638,
+          "madn": 0.07821728768779768,
+          "mad": 0.05275683777674199,
+          "span": 0.7116960402838177,
+          "q1": 0.10484473945220112,
+          "q3": 0.3420767528801404,
+          "sampled": 1331667,
           "stride": 1,
-          "nan": 1200,
-          "p001": 0.049607080186160064,
-          "p999": 0.8261234454871442,
-          "totalPixels": 1921200
+          "nan": 0,
+          "p001": 0.049805447470817124,
+          "p999": 0.8471046005951018,
+          "totalPixels": 1331667
         }
       ]
     },
     "after": {
       "perChannel": [
         {
-          "median": 0.06260776684214542,
-          "madn": 0.013980396187144481,
-          "mad": 0.009429648042050777,
-          "span": 0.49796292057679103,
-          "q1": 0.05638208590829328,
-          "q3": 0.22236972610055694,
-          "sampled": 480000,
+          "median": 0.08099488822766461,
+          "madn": 0.04770820226212468,
+          "mad": 0.03217874157704349,
+          "span": 0.7491416800183109,
+          "q1": 0.05702296482795453,
+          "q3": 0.3067368581673915,
+          "sampled": 332334,
           "stride": 1,
           "nan": 0,
-          "p001": 0.03953612573434043,
-          "p999": 0.43976501106279087,
-          "totalPixels": 480000
+          "p001": 0.03897154192416266,
+          "p999": 0.45523765926604104,
+          "totalPixels": 332334
         },
         {
-          "median": 0.08300907911802853,
-          "madn": 0.017475089790367965,
-          "mad": 0.011786786584626984,
-          "span": 0.5009384298466468,
-          "q1": 0.07512016479743648,
-          "q3": 0.24209964141298543,
-          "sampled": 480000,
+          "median": 0.10090791180285344,
+          "madn": 0.0514849116371137,
+          "mad": 0.03472609715170222,
+          "span": 0.7425040054932479,
+          "q1": 0.07627985046158542,
+          "q3": 0.3237811856260014,
+          "sampled": 332334,
           "stride": 1,
           "nan": 0,
-          "p001": 0.05420004577706569,
-          "p999": 0.5861905851834898,
-          "totalPixels": 480000
+          "p001": 0.053696498054474705,
+          "p999": 0.6032043945983062,
+          "totalPixels": 332334
         },
         {
-          "median": 0.11311512932021058,
-          "madn": 0.022144206854919128,
-          "mad": 0.014936062899581229,
-          "span": 0.5029983978027008,
-          "q1": 0.10290684367132066,
-          "q3": 0.27057297627222093,
-          "sampled": 480000,
+          "median": 0.1305256733043412,
+          "madn": 0.05675672081642646,
+          "mad": 0.03828188372887256,
+          "span": 0.7290913252460516,
+          "q1": 0.10469214923323415,
+          "q3": 0.34772259098191804,
+          "sampled": 332334,
           "stride": 1,
           "nan": 0,
-          "p001": 0.07632562752727551,
-          "p999": 0.797940032043946,
-          "totalPixels": 480000
+          "p001": 0.07531853208209353,
+          "p999": 0.8177615014877546,
+          "totalPixels": 332334
         }
       ]
     }
@@ -2293,7 +2296,7 @@
     },
     "notes": [
       "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
-      "0 values below black and 0 above white were clamped here, out of 5763600."
+      "0 values below black and 0 above white were clamped here, out of 3995001."
     ],
     "samples": null,
     "surface": null,
@@ -2301,8 +2304,8 @@
     "clamped": {
       "low": 0,
       "high": 0,
-      "nonFinite": 3600,
-      "samples": 5763600,
+      "nonFinite": 0,
+      "samples": 3995001,
       "lowPct": 0,
       "highPct": 0
     },

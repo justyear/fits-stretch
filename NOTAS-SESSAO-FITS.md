@@ -1627,6 +1627,76 @@ descoberto depois.
 spec. *"Os fixtures existentes cobrem o resto"* é uma afirmação sobre números que
 ninguém mediu — e neste caso ela estava errada por 0,6 ponto percentual.
 
+## Regra: a frase gerada mudar quando a ferramenta muda é a funcionalidade
+
+A linha "Not applied" ganhou a palavra `cropping` no Módulo 5a. Hesitei, porque
+gente já colou aquela frase em público — e a hesitação estava errada.
+
+**A frase só vale como promessa se listar o que a ferramenta SABE fazer e não
+fez.** Antes deste módulo, negar recorte seria negar uma capacidade inexistente:
+ruído. Depois dele carrega informação — *ela podia ter recortado e não
+recortou*. A palavra não foi acrescentada à frase; **a capacidade foi
+acrescentada à ferramenta, e a frase acompanhou**, que é o mecanismo do Módulo 0
+funcionando.
+
+**A segunda razão é de uso, e é a que eu não tinha visto:** quem vê o retângulo
+desenhado na tela e depois lê o log precisa encontrar ali a confirmação de que o
+retângulo ficou **na tela e não no arquivo**. Sem a palavra, essa confirmação não
+existe em lugar nenhum — nem no log, nem na imagem. A negação é o único lugar
+onde "não recortamos" está escrito.
+
+**A regra para as próximas:** uma linha gerada é escrita exatamente para
+acompanhar, e mudar não é custo — é o que ela faz. **Uma frase que nunca muda é
+decoração.** A pergunta certa ao acrescentar uma capacidade não é *"posso mexer
+na frase?"* e sim *"a frase já deveria ter mudado e não mudou?"* — porque essa
+segunda é o defeito de verdade.
+
+## O retângulo vai no canvas, nunca nos pixels
+
+A sugestão de recorte é desenhada sobre a imagem na tela. **Ela é desenhada no
+contexto do canvas depois do `putImageData`, e não nos buffers** — e a diferença
+importa mais do que parece.
+
+O botão de download reconstrói o próprio canvas a partir de `state.full` ou
+`state.view.data`, que são os buffers de pixel. O tracejado vive apenas no canvas
+de visualização, então **o arquivo salvo nunca o leva junto**.
+
+O motivo não é técnico, é o mesmo do módulo inteiro: **um retângulo que
+aparecesse na imagem baixada seria a ferramenta desenhando na foto de alguém.**
+Uma sugestão que se imprime no resultado deixou de ser sugestão.
+
+Vale como forma geral: **anotação de interface e dado de saída são coisas
+diferentes e moram em lugares diferentes.** Sempre que os dois compartilham um
+buffer, é questão de tempo até a anotação vazar para o arquivo — e o vazamento é
+silencioso, porque na tela os dois parecem a mesma coisa.
+
+## Ordem de etapa decidida por uma pergunta de produto, não de código
+
+Duas ordens do Módulo 5a saíram de perguntar *"o que a pessoa recebe?"* e não
+*"o que é mais fácil?"*:
+
+**1. O recorte roda ANTES da meia escala.** Se o recorte for aplicado, a cópia
+reduzida tem que ser do quadro recortado — senão o segundo botão entrega **um
+enquadramento que a pessoa acabou de descartar**. Nenhum teste teria pegado isso:
+as duas etapas rodam, as duas reportam, e os dois arquivos saem. Só que um deles
+sai errado, e errado de um jeito que só aparece olhando.
+
+**2. O bloco do recorte vem antes do da meia escala no log**, pela mesma razão: a
+ordem do log segue a ordem em que as coisas acontecem com os pixels. Um log fora
+de ordem descreve uma cadeia que não existe.
+
+### E um caso que caiu de graça
+
+O recorte do `fixture-oneobject` sai em **1333 × 999** — os dois lados ímpares.
+A meia escala do quadro recortado descarta **linha E coluna ao mesmo tempo**,
+fechando num só golden um caminho que antes não tinha caso nenhum e que, nos
+fixtures de lado ímpar, só exercitava a coluna.
+
+Anotado porque foi sorte e não projeto: um caso que aparece de graça **não é
+cobertura até alguém perceber que ele está ali e escrever que está.** Um golden
+que exercita um caminho sem ninguém saber é indistinguível de um que não
+exercita.
+
 ## Em aberto
 
 

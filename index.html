@@ -235,9 +235,11 @@
       <div class="actions">
         <button class="btn primary" id="dlpng">Download PNG</button>
         <button class="btn" id="dlhalf" hidden>Download half-scale PNG</button>
+        <button class="btn" id="dlcrop" hidden>Crop to the object</button>
         <button class="btn" id="copylog">Copy processing log</button>
         <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
       </div>
+      <p class="hint" id="crophint" hidden></p>
       <p class="hint" id="halfhint" hidden></p>
       <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
         unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
@@ -1363,6 +1365,27 @@ var CATALOGUE = [
    */
   { id: 'saturation',    label: 'saturation' },
   { id: 'deconv',        label: 'deconvolution',             neverImplemented: true },
+  /* CROPPING ENTRA NA FRASE, e o estado novo nao muda o mecanismo.
+   *
+   * A secao 3.3 do Modulo 5a pede que o registry trate "applied: false" com
+   * "suggested: true". Medido: nao precisa de nada. `notAppliedLabels` derruba
+   * um rotulo quando um record reivindica "applied", e um record que apenas
+   * SUGERE nao reivindica -- entao a frase continua negando o recorte, que e
+   * exatamente o certo, porque nada foi recortado.
+   *
+   *   nao sugeriu           nega        nada foi feito
+   *   sugeriu, nao aplicou  NEGA        nada foi feito -- sugerir nao e fazer
+   *   aplicou               nao nega    o recorte aconteceu
+   *
+   * A segunda linha e a que importa e e a que um "suggested" mal tratado
+   * quebraria: uma ferramenta que parasse de afirmar que nao recorta porque
+   * OFERECEU recortar estaria cobrando pelo que nao entregou.
+   *
+   * Isto acrescenta uma palavra a uma frase que gente ja colou em publico, e e
+   * de proposito: a ferramenta agora sabe recortar, entao negar que recortou e
+   * informacao nova e verdadeira.
+   */
+  { id: 'crop',          label: 'cropping' },
   { id: 'star-split',    label: 'star removal' },          // MIS-PAIRED, see below
   { id: 'background',    label: 'background extraction' },
   // The debt below came due in Module 2. `colour-cal` no longer answers for the
@@ -4295,14 +4318,40 @@ function stepCrop(img, params, report){
   var coverageBefore = obj.pixels / frameArea;
   var coverageAfter = obj.pixels / (rw * rh);
 
+  /* --- APLICAR, e so por pedido explicito -----------------------------
+   *
+   * `params.apply` so chega aqui vindo de um clique. A cadeia nunca o liga
+   * sozinha, e a diferenca entre este ramo e o de cima e a diferenca entre uma
+   * sugestao e o recorte automatico que seria errado.
+   *
+   * O quadro e recortado DEPOIS de tudo que mede: as medianas, o esticamento e
+   * a cor do log descrevem o quadro INTEIRO, e o bloco do log diz isso. Recortar
+   * antes mudaria os numeros que a pessoa ja viu, e a mesma imagem passaria a
+   * ter dois logs diferentes conforme o clique.
+   */
+  var out = img;
+  if (params.apply){
+    var cw = rw, chh = rh, cN = cw * chh;
+    var cut2 = alloc(Float32Array, cN * ch, 'the cropped frame');
+    for (var cc = 0; cc < ch; cc++){
+      var sB = cc * N, dB = cc * cN;
+      for (var yy = 0; yy < chh; yy++){
+        var sRow = sB + (cy0 + yy) * w + cx0, dRow = dB + yy * cw;
+        for (var xx = 0; xx < cw; xx++) cut2[dRow + xx] = data[sRow + xx];
+      }
+    }
+    out = new Image(cut2, cw, chh, ch);
+  }
+
   report({
     id: 'crop',
     name: 'Suggested crop',
-    // SUGGESTED IS NOT APPLIED. Nothing happened to a single pixel, and the
-    // "Not applied" sentence is unaffected: `notAppliedLabels` drops a label
-    // only for a record claiming `applied`. Section 3.3, and it is the whole
-    // difference between this and the automatic crop that would be wrong.
-    applied: false,
+    // SUGERIR NAO E APLICAR. Com `applied: false` a frase "Not applied" fica
+    // intacta, porque `notAppliedLabels` so derruba um rotulo para um record que
+    // reivindica `applied` -- secao 3.3, e e a diferenca inteira entre isto e o
+    // recorte automatico. Com o clique, `applied` vira true e a palavra sai da
+    // frase, que e o comportamento certo: aí o recorte aconteceu.
+    applied: !!params.apply,
     suggested: true,
     reason: null,
     params: effective,
@@ -4317,10 +4366,11 @@ function stepCrop(img, params, report){
     coverageBefore: coverageBefore,
     coverageAfter: coverageAfter,
     coverageGuard: coverageGuard,
+    outputSize: params.apply ? [rw, rh] : null,
     notes: []
   });
 
-  return img;
+  return out;
 }
 /* ------------------------------------------------------------------ *
  * Quantise: float Image -> 8-bit RGBA. Mono is replicated across R, G and B.
@@ -4874,6 +4924,47 @@ function buildLog(ctx){
           'The seed is fixed, so the same file always produces the same image.'
         : ''));
 
+  /* --- o recorte sugerido -------------------------------------------
+   *
+   * TRES ESTADOS, e o do meio e o que define a etapa: sugerido e NAO aplicado.
+   * O log descreve a sugestao e a frase "Not applied" continua negando o
+   * recorte, porque nada foi recortado. As duas coisas ao mesmo tempo nao sao
+   * contradicao -- e a diferenca entre oferecer e fazer, dita duas vezes.
+   *
+   * Quando nao sugere, o motivo vai aqui e tambem ao lado do botao. Nunca
+   * silencio: a confusao 10 da lista e um controle que some sem explicacao.
+   */
+  var cp = null;
+  for (var cpi = 0; cpi < ctx.records.length; cpi++){
+    if (ctx.records[cpi].id === 'crop') cp = ctx.records[cpi];
+  }
+  if (cp){
+    if (cp.applied && cp.rect){
+      L.push('• Cropped to the object, because you asked: ' + cp.frameSize[0] + ' × ' +
+             cp.frameSize[1] + ' → ' + cp.rect[2] + ' × ' + cp.rect[3] + '. The object ' +
+             'goes from ' + fx(100 * cp.coverageBefore, 0) + '% of the frame to ' +
+             fx(100 * cp.coverageAfter, 0) + '%.');
+      L.push('    Every measurement above describes the FULL frame, because that is what ' +
+             'was measured: the crop is the last thing that happened and it moved no ' +
+             'pixel values, only which pixels are in the file. Nothing was resampled and ' +
+             'nothing was interpolated.');
+    } else if (cp.suggested && cp.rect){
+      L.push('• A crop was suggested and NOT applied: ' + cp.frameSize[0] + ' × ' +
+             cp.frameSize[1] + ' → ' + cp.rect[2] + ' × ' + cp.rect[3] + ' would take the ' +
+             'object from ' + fx(100 * cp.coverageBefore, 0) + '% of the frame to ' +
+             fx(100 * cp.coverageAfter, 0) + '%.');
+      L.push('    The object was found by neighbourhood occupancy — the same measurement ' +
+             'that keeps a galaxy body out of the star selection — and it is ' +
+             grp(cp.extendedPixels) + ' pixels in ' + grp(cp.components) + ' connected ' +
+             'regions, of which ' + cp.componentsAboveMin + ' is large enough to be the ' +
+             'subject. Framing is authorship, so the rectangle is offered and nothing ' +
+             'was done to your file.');
+    } else {
+      L.push('• No crop suggested: ' + cp.reason + '.');
+    }
+  }
+
+
   /* --- the half-scale copy ------------------------------------------
    *
    * AFTER the output line, and the order is the argument. The line above
@@ -5366,6 +5457,9 @@ async function openFile(buffer, fileName, opts, post){
     cropDensity: 0.50,
     cropMargin: 0.08,
     cropMinFrame: 0.20,
+    // Aplicar o recorte. FALSO, e so um clique muda isso. Enquadramento e
+    // autoria: a cadeia sugere e nunca decide.
+    cropApply: false,
     // O parametro cropMaxCoverage saiu: a salvaguarda dele e vazia por
     // construcao da cadeia -- ver o comentario em steps/crop.js -- e um
     // parametro que nao governa nada e uma salvaguarda aparente. O record
@@ -5558,6 +5652,37 @@ async function runChain(params, mode, post){
     mark('saturation', step);
   }
 
+  /* Recorte sugerido ----------------------------------------------------
+   *
+   * DEPOIS do esticamento, porque a mascara de sinal e `Y > ceu + 2,5 sigma` e
+   * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
+   * o objeto inteiro mora nos primeiros centesimos do eixo.
+   *
+   * ANTES da meia escala, porque se o recorte for aplicado a copia reduzida tem
+   * que ser do quadro recortado. Sem isso o segundo botao entregaria um enquadr-
+   * amento que a pessoa acabou de descartar.
+   *
+   * `work` so e reatribuido quando `cropApply` vem de um clique. Sem ele a etapa
+   * nao toca em pixel nenhum: mede, escreve o retangulo no record, e devolve o
+   * mesmo quadro.
+   */
+  if (full && params.crop){
+    await yieldNow();
+    step = Date.now();
+    stage('Looking for the object', 85);
+    work = stepCrop(work, {
+      sigma: params.cropSigma,
+      window: params.cropWindow,
+      density: params.cropDensity,
+      margin: params.cropMargin,
+      minFrame: params.cropMinFrame,
+      // So chega true vindo de um clique. A cadeia nunca liga sozinha.
+      apply: !!params.cropApply,
+      stride: SESSION.statStride
+    }, report);
+    mark('crop', step);
+  }
+
   /* Half-scale copy ----------------------------------------------------
    *
    * A SECOND OUTPUT, NOT A REPLACEMENT. `work` is not reassigned: the chain
@@ -5588,35 +5713,6 @@ async function runChain(params, mode, post){
       halfW = halfImg.w; halfH = halfImg.h;
     }
     mark('halfScale', step);
-  }
-
-  /* Recorte sugerido ----------------------------------------------------
-   *
-   * DEPOIS do esticamento, porque a mascara de sinal e `Y > ceu + 2,5 sigma` e
-   * isso so tem significado no quadro que a pessoa vai ver -- num quadro linear
-   * o objeto inteiro mora nos primeiros centesimos do eixo.
-   *
-   * NAO reatribui `work`, e nao tem como: a etapa nao toca em pixel nenhum. Ela
-   * mede, escreve o retangulo no record, e devolve o mesmo quadro. Aplicar e um
-   * clique, e o clique e o passo 5.
-   *
-   * Antes ou depois da meia escala e indiferente hoje -- nenhuma das duas le a
-   * outra. Fica depois porque a meia escala e a que produz arquivo, e a ordem
-   * do log segue a ordem em que as coisas acontecem com os pixels.
-   */
-  if (full && params.crop){
-    await yieldNow();
-    step = Date.now();
-    stage('Looking for the object', 85);
-    stepCrop(work, {
-      sigma: params.cropSigma,
-      window: params.cropWindow,
-      density: params.cropDensity,
-      margin: params.cropMargin,
-      minFrame: params.cropMinFrame,
-      stride: SESSION.statStride
-    }, report);
-    mark('crop', step);
   }
 
   // Quantise ----------------------------------------------------------
@@ -5868,7 +5964,7 @@ var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
 var elDiag = $('diag'), elDiagBody = $('diagbody');
 var elToast = $('toast');
 
-var state = { log: '', diag: null, full: null, half: null, view: null, w: 0, h: 0, name: '' };
+var state = { log: '', diag: null, full: null, half: null, crop: null, view: null, w: 0, h: 0, name: '' };
 
 /* ------------------------------------------------------------------ *
  * Friendly errors
@@ -6109,6 +6205,71 @@ function finish(m){
   elView.height = state.view.h;
   elView.getContext('2d').putImageData(new ImageData(state.view.data, state.view.w, state.view.h), 0, 0);
 
+  /* O RETANGULO, DESENHADO SOBRE A TELA E SO SOBRE A TELA.
+   *
+   * Vai no canvas de visualizacao depois do putImageData, e nao nos pixels: o
+   * botao de download reconstroi o proprio canvas a partir de `state.full` ou
+   * de `state.view.data`, que sao os buffers, entao o arquivo salvo nunca leva
+   * o tracejado junto. Um retangulo que aparecesse na imagem baixada seria a
+   * ferramenta desenhando na foto de alguem.
+   *
+   * A escala e a do view: `state.view.w / state.w`. Sem isso o retangulo sai no
+   * lugar certo so quando a imagem cabe inteira na tela.
+   */
+  var crRec = null;
+  for (var cri = 0; m.records && cri < m.records.length; cri++){
+    if (m.records[cri].id === 'crop') crRec = m.records[cri];
+  }
+  state.crop = (crRec && crRec.suggested && !crRec.applied && crRec.rect) ? crRec : null;
+
+  if (state.crop){
+    var vs = state.view.w / state.w;
+    var g = elView.getContext('2d');
+    var rx = state.crop.rect[0] * vs, ry = state.crop.rect[1] * vs;
+    var rw2 = state.crop.rect[2] * vs, rh2 = state.crop.rect[3] * vs;
+    // Duas passadas, clara sobre escura: o retangulo tem que ser visivel tanto
+    // sobre ceu quanto sobre o nucleo brilhante do objeto que ele cerca.
+    g.save();
+    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.55)';
+    g.strokeRect(rx + .5, ry + .5, rw2 - 1, rh2 - 1);
+    g.lineWidth = 1.5; g.strokeStyle = 'rgba(159,184,212,.95)';
+    g.setLineDash([9, 6]);
+    g.strokeRect(rx + .5, ry + .5, rw2 - 1, rh2 - 1);
+    g.restore();
+  }
+
+  /* O BOTAO, COM A CONSEQUENCIA EM NUMERO.
+   *
+   * "Crop to the object" sozinho nao diz o que a pessoa ganha. A §3.2 pede o
+   * numero, e o numero e o que o record ja mediu: de quanto para quanto o
+   * objeto passa a ocupar o quadro.
+   *
+   * Quando nao sugere, o motivo aparece AQUI e nao so no log -- confusao 10 da
+   * lista, tratada do mesmo jeito que no botao de meia escala.
+   */
+  var crBtn = $('dlcrop'), crHint = $('crophint');
+  crBtn.disabled = false;
+  if (state.crop){
+    crBtn.hidden = false;
+    crBtn.textContent = 'Crop to the object (' + state.crop.rect[2] + ' × ' + state.crop.rect[3] + ')';
+    crHint.textContent = 'The object goes from ' + Math.round(100 * state.crop.coverageBefore) +
+                         '% of the frame to ' + Math.round(100 * state.crop.coverageAfter) +
+                         '%. Nothing is cropped until you click — framing is yours.';
+    crHint.hidden = false;
+  } else {
+    crBtn.hidden = true;
+    if (crRec && crRec.applied){
+      crHint.textContent = 'Cropped to ' + crRec.rect[2] + ' × ' + crRec.rect[3] +
+                           '. The log describes the full frame, because that is what was measured.';
+      crHint.hidden = false;
+    } else if (crRec && crRec.reason){
+      crHint.textContent = 'No crop suggested: ' + crRec.reason + '.';
+      crHint.hidden = false;
+    } else {
+      crHint.hidden = true;
+    }
+  }
+
   $('outname').textContent = state.name;
   $('outdims').textContent = m.width + ' × ' + m.height +
     (m.view.factor > 1 ? '  (shown at 1/' + m.view.factor + ')' : '');
@@ -6237,6 +6398,29 @@ $('dlpng').addEventListener('click', function(){
  * nao deve aprender -- reduzir em 8 bits produziria outro arquivo, e o numero
  * do ruido que o log afirma nao valeria para ele.
  */
+/* APLICAR O RECORTE. O UNICO CAMINHO, E ELE COMECA NUM CLIQUE.
+ *
+ * Reroda a cadeia inteira com `cropApply: true`. Nao recorta a imagem que ja
+ * esta na tela: a etapa refaz a deteccao e recorta no float, antes do quantise,
+ * entao o arquivo sai da mesma aritmetica que qualquer outra saida desta
+ * ferramenta. Recortar o RGBA pronto seria um segundo caminho de producao de
+ * pixel, e este projeto tem um so.
+ *
+ * Sem desfazer, de proposito e por enquanto: a pessoa reabre o arquivo. Um
+ * "desfazer" que reconstruisse estado a partir da tela seria o comeco de uma
+ * segunda fonte de verdade.
+ */
+$('dlcrop').addEventListener('click', function(){
+  var btn = this;
+  if (!state.crop || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Cropping…';
+  var params = {};
+  for (var k in state.defaults) params[k] = state.defaults[k];
+  params.cropApply = true;
+  requestRun(params, 'full');
+});
+
 $('dlhalf').addEventListener('click', function(){
   var btn = this;
   if (!state.half) return;

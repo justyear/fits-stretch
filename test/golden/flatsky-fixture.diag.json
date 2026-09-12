@@ -133,19 +133,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 68,
-    "preview": 48,
-    "stats": 94,
-    "background": 462,
-    "colour": 426,
-    "transfer": 665,
-    "saturation": 611,
-    "halfScale": 492,
-    "crop": 132,
-    "quantise": 88,
+    "header": 0,
+    "decode": 28,
+    "preview": 25,
+    "stats": 72,
+    "background": 311,
+    "colour": 455,
+    "transfer": 604,
+    "saturation": 320,
+    "crop": 80,
+    "halfScale": 340,
+    "quantise": 89,
     "downscale": 0,
-    "total": 2462
+    "total": 1758
   },
   "historyCards": [
     "SAT synthetic frame for the selective saturation step.",

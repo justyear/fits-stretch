@@ -388,6 +388,47 @@ function buildLog(ctx){
           'The seed is fixed, so the same file always produces the same image.'
         : ''));
 
+  /* --- o recorte sugerido -------------------------------------------
+   *
+   * TRES ESTADOS, e o do meio e o que define a etapa: sugerido e NAO aplicado.
+   * O log descreve a sugestao e a frase "Not applied" continua negando o
+   * recorte, porque nada foi recortado. As duas coisas ao mesmo tempo nao sao
+   * contradicao -- e a diferenca entre oferecer e fazer, dita duas vezes.
+   *
+   * Quando nao sugere, o motivo vai aqui e tambem ao lado do botao. Nunca
+   * silencio: a confusao 10 da lista e um controle que some sem explicacao.
+   */
+  var cp = null;
+  for (var cpi = 0; cpi < ctx.records.length; cpi++){
+    if (ctx.records[cpi].id === 'crop') cp = ctx.records[cpi];
+  }
+  if (cp){
+    if (cp.applied && cp.rect){
+      L.push('• Cropped to the object, because you asked: ' + cp.frameSize[0] + ' × ' +
+             cp.frameSize[1] + ' → ' + cp.rect[2] + ' × ' + cp.rect[3] + '. The object ' +
+             'goes from ' + fx(100 * cp.coverageBefore, 0) + '% of the frame to ' +
+             fx(100 * cp.coverageAfter, 0) + '%.');
+      L.push('    Every measurement above describes the FULL frame, because that is what ' +
+             'was measured: the crop is the last thing that happened and it moved no ' +
+             'pixel values, only which pixels are in the file. Nothing was resampled and ' +
+             'nothing was interpolated.');
+    } else if (cp.suggested && cp.rect){
+      L.push('• A crop was suggested and NOT applied: ' + cp.frameSize[0] + ' × ' +
+             cp.frameSize[1] + ' → ' + cp.rect[2] + ' × ' + cp.rect[3] + ' would take the ' +
+             'object from ' + fx(100 * cp.coverageBefore, 0) + '% of the frame to ' +
+             fx(100 * cp.coverageAfter, 0) + '%.');
+      L.push('    The object was found by neighbourhood occupancy — the same measurement ' +
+             'that keeps a galaxy body out of the star selection — and it is ' +
+             grp(cp.extendedPixels) + ' pixels in ' + grp(cp.components) + ' connected ' +
+             'regions, of which ' + cp.componentsAboveMin + ' is large enough to be the ' +
+             'subject. Framing is authorship, so the rectangle is offered and nothing ' +
+             'was done to your file.');
+    } else {
+      L.push('• No crop suggested: ' + cp.reason + '.');
+    }
+  }
+
+
   /* --- the half-scale copy ------------------------------------------
    *
    * AFTER the output line, and the order is the argument. The line above
