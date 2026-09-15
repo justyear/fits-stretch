@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -1305,6 +1305,59 @@ if ($Only -eq 'all' -or $Only -eq 'escritor') {
     )
     Write-Fits (Join-Path $outDir 'fixture-duasdecl.fit') $cardsD `
                ([FitsFixture]::FloatBytes($imgD, $W, $H, 3, $false))
+}
+
+# ------------------------------------------- BAYERPAT que discorda dos pixels
+#
+# O RAMO `pattern.corrected`, QUE NENHUM FIXTURE IMPRIMIA.
+#
+# O `compare-frases` mediu: as duas metades da frase "...so the green sites line
+# up with the <eixo> diagonal the pixels actually show" existiam no log.js e nao
+# apareciam em golden nenhum. O `seestar` e o `nobayer` casam de primeira, entao
+# o caminho da correcao nunca rodava.
+#
+# OS PIXELS SAO OS MESMOS DO `seestar`, byte a byte. So o BAYERPAT muda: GRBG
+# (verdes na diagonal principal, que e o que os pixels mostram) vira RGGB
+# (verdes na anti-diagonal). A trelica mede `main`, o header declara `anti`, e o
+# codigo espelha o padrao para GBRG.
+#
+# E A IMAGEM SAI DIFERENTE DO `seestar`, DE PROPOSITO: GBRG tem R e B trocados
+# em relacao a GRBG. Isso e o comportamento CERTO -- a trelica decide o eixo dos
+# verdes, e qual dos dois sitios restantes e vermelho so vem do header. Header
+# errado, cor trocada, e o log diz que espelhou.
+#
+# Um terceiro par controlado com o `seestar`: mesmos pixels, um cartao diferente.
+if ($Only -eq 'all' -or $Only -eq 'bayer') {
+    $W = 1920; $H = 1080
+    Write-Host "fixture-bayerespelhado.fit  ($W x $H, int16, BAYERPAT discorda dos pixels)"
+    $cards = @(
+        (New-Card 'SIMPLE'   'T'   'conforms to FITS standard')
+        (New-Card 'BITPIX'   16    'unsigned 16-bit via BZERO')
+        (New-Card 'NAXIS'    2)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'BZERO'    32768 'offset for unsigned data')
+        (New-Card 'BSCALE'   1)
+        (New-Card 'BAYERPAT' 'RGGB' 'DISAGREES with the pixels, on purpose' -AsString)
+        (New-Card 'ROWORDER' 'BOTTOM-UP' 'first row is image bottom' -AsString)
+        (New-Card 'XBAYROFF' 0)
+        (New-Card 'YBAYROFF' 0)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'CFA probe, mirrored pattern' '' -AsString)
+        (New-Card 'EXPTIME'  '10.' 'seconds')
+        ('HISTORY MIRROR same pixels as fixture-seestar.fit, byte for byte.'.PadRight(80))
+        ('HISTORY MIRROR The ONLY difference is BAYERPAT: GRBG there, RGGB here.'.PadRight(80))
+        ('HISTORY MIRROR The greens are on the MAIN diagonal in the pixels, and'.PadRight(80))
+        ('HISTORY MIRROR RGGB puts them on the anti-diagonal, so the reader has'.PadRight(80))
+        ('HISTORY MIRROR to mirror the declared pattern to GBRG to match what it'.PadRight(80))
+        ('HISTORY MIRROR measured. GBRG swaps red and blue against GRBG, so this'.PadRight(80))
+        ('HISTORY MIRROR frame comes out with the colours exchanged -- which is'.PadRight(80))
+        ('HISTORY MIRROR correct: the lattice settles the green axis, and only'.PadRight(80))
+        ('HISTORY MIRROR the header can say which of the other two sites is red.'.PadRight(80))
+        ('HISTORY MIRROR External truth, from neither implementation.'.PadRight(80))
+    )
+    Write-Fits (Join-Path $outDir 'fixture-bayerespelhado.fit') $cards ([FitsFixture]::Build($W, $H))
 }
 # ------------------------------------------------------ mosaico sem BAYERPAT
 #

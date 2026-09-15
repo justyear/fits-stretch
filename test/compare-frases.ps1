@@ -71,14 +71,6 @@ $DECLARADAS = @(
        classe = 'DIVIDA'
        porque = 'precisa de um quadro de DOIS eixos, dimensoes pares, com HISTORY de empilhamento e sem BAYERPAT -- um stack mono, ou um stack de cor que ficou em 2D. Nao e o caso mais comum do publico-alvo (o stack de camera colorida sai com 3 planos e nem chega aqui), mas e um arquivo real e plausivel e a suite nao o tem' }
 
-    @{ chave = 'so the green sites line up with the'
-       classe = 'DIVIDA'
-       porque = 'o ramo `pattern.corrected`: BAYERPAT no header que NAO bate com a diagonal verde medida, e e espelhado. O seestar e o nobayer casam de primeira, entao o caminho da correcao nunca roda' }
-
-    @{ chave = 'diagonal the pixels actually show'
-       classe = 'DIVIDA'
-       porque = 'mesma frase do ramo `pattern.corrected` acima, segunda metade' }
-
     @{ chave = 'The asinh stretch could not reach that target'
        classe = 'DIVIDA'
        porque = 'precisa de um quadro em que o asinh nao alcance o alvo -- mediana ja acima dele. O asinh-fixture usa o gradient, cuja mediana esta muito abaixo. Tres literais desta mesma frase' }

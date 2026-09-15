@@ -1,0 +1,222 @@
+{
+  "file": "fixture-bayerespelhado.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": 16,
+    "NAXIS": 2,
+    "NAXIS1": 1920,
+    "NAXIS2": 1080,
+    "BZERO": 32768,
+    "BSCALE": 1,
+    "ROWORDER": "BOTTOM-UP",
+    "BAYERPAT": "RGGB",
+    "XBAYROFF": 0,
+    "YBAYROFF": 0,
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "CFA probe, mirrored pattern",
+    "EXPTIME": 10,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": 16,
+    "kind": "16-bit unsigned integer (BZERO 32768)",
+    "bzero": 32768,
+    "bscale": 1,
+    "width": 1920,
+    "height": 1080,
+    "planes": 1,
+    "rawMin": 511,
+    "rawMax": 20650,
+    "nonFinite": 0,
+    "normMin": 0.007797360189211872,
+    "normMax": 0.3150988021667811,
+    "scaleBasis": "container range [0, 65535]",
+    "scaleMode": "int",
+    "scaleLo": 0,
+    "scaleHi": 65535,
+    "scaleDiv": 65535,
+    "scaleSource": "container"
+  },
+  "rowOrder": {
+    "keyword": "BOTTOM-UP",
+    "flipApplied": true
+  },
+  "cfa": {
+    "evenDims": true,
+    "isMosaic": true,
+    "headerDeclared": true,
+    "trustedHeader": true,
+    "decidedBy": "BAYERPAT keyword (statistics used only for the green axis)",
+    "ratioH": 3.231042731569182,
+    "ratioV": 2.7281793299438326,
+    "threshold": 1.15,
+    "latticeMedians": {
+      "r0c0": 0.010744810744810745,
+      "r0c1": 0.01221001221001221,
+      "r1c0": 0.009768009768009768,
+      "r1c1": 0.010744810744810745
+    },
+    "latticeContrast": 0.11111111111111112,
+    "greenAxis": "main",
+    "stackedHistory": false
+  },
+  "pattern": {
+    "pattern": "GBRG",
+    "source": "header",
+    "corrected": true,
+    "notes": [
+      "green sites measured on the main diagonal; pattern mirrored to GBRG to match"
+    ]
+  },
+  "linearity": {
+    "globalMedian": 0.010996668446885889,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.010376134889753566,
+      "madn": 0.00019806151048285954,
+      "q1": 0.010238803692683299,
+      "q3": 0.010513466086823835,
+      "shadows": 0.010394502332204764,
+      "midtones": 0.00492362474276183,
+      "target": 0.085,
+      "pixelsBlack": 12,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.010986495765621425,
+      "madn": 0.00021345283162689215,
+      "q1": 0.010833905546654459,
+      "q3": 0.011123826962691692,
+      "shadows": 0.010394502332204764,
+      "midtones": 0.00492362474276183,
+      "target": 0.085,
+      "pixelsBlack": 12,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.01104753185320821,
+      "madn": 0.00021191804909860147,
+      "q1": 0.010910200656137941,
+      "q3": 0.011200122072175174,
+      "shadows": 0.010394502332204764,
+      "midtones": 0.00492362474276183,
+      "target": 0.085,
+      "pixelsBlack": 12,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.010849164568551155,
+      "luminanceMADN": 0.00016237937012371118,
+      "shadows": 0.010394502332204764,
+      "midtones": 0.00492362474276183,
+      "target": 0.085,
+      "luminanceSpan": 0.0006866559853513365,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 12,
+      "clipHigh": 0,
+      "highlightCut": 0.014389257648584725
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 0.9616038054482263,
+        "bOverG": 0.9870427699469145
+      },
+      "ratiosAfter": {
+        "rOverG": 0.963711796797279,
+        "bOverG": 0.9926878308083742
+      },
+      "maxRatioDrift": 3.552713678800501e-15,
+      "driftSamples": 2073577,
+      "highlightPixels": 20782,
+      "pixelsRescaled": 2062
+    }
+  },
+  "view": {
+    "width": 1920,
+    "height": 1080,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 30,
+    "roworder": 0,
+    "cfa": 22,
+    "debayer": 66,
+    "preview": 29,
+    "stats": 74,
+    "background": 317,
+    "colour": 443,
+    "transfer": 615,
+    "saturation": 388,
+    "crop": 110,
+    "quantise": 122,
+    "downscale": 0,
+    "total": 1811
+  },
+  "historyCards": [
+    "MIRROR same pixels as fixture-seestar.fit, byte for byte.",
+    "MIRROR The ONLY difference is BAYERPAT: GRBG there, RGGB here.",
+    "MIRROR The greens are on the MAIN diagonal in the pixels, and",
+    "MIRROR RGGB puts them on the anti-diagonal, so the reader has",
+    "MIRROR to mirror the declared pattern to GBRG to match what it",
+    "MIRROR measured. GBRG swaps red and blue against GRBG, so this",
+    "MIRROR frame comes out with the colours exchanged -- which is",
+    "MIRROR correct: the lattice settles the green axis, and only",
+    "MIRROR the header can say which of the other two sites is red.",
+    "MIRROR External truth, from neither implementation."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                   16 / unsigned 16-bit via BZERO",
+    "NAXIS   =                    2",
+    "NAXIS1  =                 1920",
+    "NAXIS2  =                 1080",
+    "BZERO   =                32768 / offset for unsigned data",
+    "BSCALE  =                    1",
+    "BAYERPAT= 'RGGB    '           / DISAGREES with the pixels, on purpose",
+    "ROWORDER= 'BOTTOM-UP'          / first row is image bottom",
+    "XBAYROFF=                    0",
+    "YBAYROFF=                    0",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'CFA probe, mirrored pattern'",
+    "EXPTIME =                  10. / seconds",
+    "HISTORY MIRROR same pixels as fixture-seestar.fit, byte for byte.",
+    "HISTORY MIRROR The ONLY difference is BAYERPAT: GRBG there, RGGB here.",
+    "HISTORY MIRROR The greens are on the MAIN diagonal in the pixels, and",
+    "HISTORY MIRROR RGGB puts them on the anti-diagonal, so the reader has",
+    "HISTORY MIRROR to mirror the declared pattern to GBRG to match what it",
+    "HISTORY MIRROR measured. GBRG swaps red and blue against GRBG, so this",
+    "HISTORY MIRROR frame comes out with the colours exchanged -- which is",
+    "HISTORY MIRROR correct: the lattice settles the green axis, and only",
+    "HISTORY MIRROR the header can say which of the other two sites is red.",
+    "HISTORY MIRROR External truth, from neither implementation.",
+    "END"
+  ]
+}

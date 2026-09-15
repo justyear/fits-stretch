@@ -138,7 +138,11 @@ window.__GOLDEN = [
   // O ramo dos 0,02 da regra linear, que o inventario de margens mostrou nunca
   // ter sido exercitado dos dois lados: HISTORY declarando autostretch com a
   // mediana em ~0,011, longe demais para a regra acreditar no header.
-  ['declaraestica-fixture', '/f/test/fixtures/fixture-declaraestica.fit']
+  ['declaraestica-fixture', '/f/test/fixtures/fixture-declaraestica.fit'],
+  // O ramo `pattern.corrected`: BAYERPAT no header que NAO bate com a diagonal
+  // verde medida. Mesmos pixels do seestar, um cartao diferente -- e a imagem
+  // sai com R e B trocados, que e o comportamento certo para um header errado.
+  ['bayerespelhado-fixture', '/f/test/fixtures/fixture-bayerespelhado.fit']
 ];
 
 /* ------------------------------------------------------------------ *

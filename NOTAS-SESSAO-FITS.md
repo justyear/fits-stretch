@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **284.477 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **286.875 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2138,28 +2138,34 @@ força do aviso.
 é o **silêncio**. E o aviso forte da §3.3 está escrito na spec e **não
 implementado**.
 
-**14. Nove frases do log sem caso** — `test/compare-frases.ps1`, 143 frases, 133
-com caso (93%). As nove são dívida de fixture e estão declaradas com o motivo; a
-décima é impossível por natureza. O mapa do que a suíte não vê:
+**14. Sete frases do log sem caso** — `test/compare-frases.ps1`, 143 frases, 135
+com caso (94%). O ramo `pattern.corrected` do CFA fechou com o
+`fixture-bayerespelhado`; sobram sete dívidas de fixture, declaradas com o
+motivo, mais uma impossível por natureza. O mapa do que a suíte não vê:
 
 ```
 NaN na entrada · quadro MONO de lado impar · quadro 2D com HISTORY de stack
-o ramo `pattern.corrected` do CFA · o asinh que nao alcanca o alvo
-a variante do alvo no ramo nao-linear
+o asinh que nao alcanca o alvo · a variante do alvo no ramo nao-linear
 ```
 
-**15. O `autostretch` do Siril não deixa rastro** — é modo de visualização e não
-toca nos pixels (medido: mediana idêntica, `HISTORY` só com empilhamento). Boa
-notícia para a regra: não há falso positivo por esse caminho. **Má notícia para a
-primeira entrada do catálogo**, que aposta num termo que a operação não escreve.
-O que grava rastro é a transformação de histograma, e é ela que o próximo arquivo
-mede.
+**15. O catálogo tem a primeira entrada MEDIDA — e a primeira REFUTADA.** O
+Siril 1.4.4 não escreve `autostretch` (é modo de visualização, não toca nos
+pixels) e escreve `Histogram Transf. (mid=..., lo=..., hi=...)`. A entrada 2 casa,
+e casa porque o padrão para no prefixo `transf` — **acerta, e o motivo de acertar
+não estava escrito**. Faltam cinco SUPOSTO, e cada uma fecha com um arquivo do
+programa correspondente.
+
+**E uma possibilidade anotada:** `mid` e `lo` são os midtones e o ponto preto da
+MTF; um parser que os lesse saberia com que parâmetros o quadro foi esticado, e
+poderia conferi-los contra a mediana observada. **Ressalva medida:** reconstruir
+0,250309 a partir de `(mid=0.001, lo=0.001)` pela MTF deste projeto **não fecha**
+— dá 0,15. Quem implementar começa por descobrir a convenção do Siril.
 
 **16. `\bcurves?\b` fica SUPOSTO com o risco escrito.** O custo do falso positivo
-só existe na janela de mediana entre 0,02 e 0,05, e **um dos dezenove fixtures
+só existe na janela de mediana entre 0,02 e 0,05, e **um dos vinte fixtures
 está dentro dela** — o `bigobject`, em 0,04938, que é o mesmo que o inventário de
 margens pegou a 1,2% do limiar de 0,05. Exposto pelos dois lados. Fecha com um
-corpus de headers reais; hoje n=2.
+corpus de headers reais; hoje n=3.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -3886,3 +3892,118 @@ um instrumento novo mede a si mesmo primeiro.
 **E a diferença entre 93% e 100% é o que este projeto vende.** Sete por cento das
 frases do log nunca foram vistas impressas — e a frase falsa do
 `fixture-declaraestica` estava exatamente nesse grupo até ontem.
+
+## A primeira medição do catálogo fechou duas entradas em direções opostas
+
+Um arquivo do Siril 1.4.4 com a transformação de histograma **aplicada de
+verdade** — mediana 0,001177 → 0,250309 — grava:
+
+```
+mean stacking with winsorized sigma clipping ... normalized output ...
+TOP-DOWN mirror
+Assigned ICC profile: sRGB-elle-V4-srgbtrc.icc
+Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+```
+
+**Uma medição, duas entradas, dois sentidos:**
+
+| entrada | antes | agora |
+|---|---|---|
+| `/autostretch/i` | SUPOSTO, *"a mais provável de ser confirmada primeiro"* | **REFUTADO** para o Siril 1.4.4 — a palavra não aparece |
+| `/histogram\s*transf/i` | SUPOSTO, *"a forma abreviada não foi vista"* | **MEDIDO**, com o texto verbatim e a versão |
+
+**A refutação é a que ensina**, e ela tem a forma que já estava antecipada: no
+Siril, *autostretch* é **modo de visualização** — muda como a tela mostra o
+quadro e não toca nos pixels. Medido num segundo arquivo: olhar em autostretch e
+salvar devolve **a mediana original** e nenhum rastro.
+
+> **O botão de visualização e a operação de arquivo têm o mesmo nome, e só a
+> segunda deixa rastro — com outro nome.** A entrada mais provável de ser
+> confirmada era a que não tinha candidato.
+
+### A entrada que acerta, e o detalhe que ninguém registrou
+
+`/histogram\s*transf/i` casa `Histogram Transf.` — e casa **porque o padrão para
+no prefixo `transf`**. Conferido:
+
+```
+histogram\s*transf           casa "Histogram Transf."     SIM
+histogram\s*transformation   casa "Histogram Transf."     NAO
+```
+
+O Siril escreve a forma abreviada. A entrada sobrevive porque quem a escreveu
+parou em `transf` — e **não há registro de por quê**.
+
+**Então: acerta, e o motivo de acertar não estava escrito.** Isso é diferente de
+acertar por desenho, e é exatamente a distinção que a procedência existe para não
+deixar borrada. Um leitor futuro que visse só o verde concluiria que a entrada
+foi pensada para a abreviação; o comentário agora diz que não se sabe.
+
+### E a linha traz mais do que a tabela usa
+
+`mid=0.001, lo=0.001` são **os midtones e o ponto preto da MTF**. Um parser que
+os lesse saberia não só *que* foi esticado, mas **com que parâmetros** — e
+poderia conferir contra a mediana observada, que é a mesma conferência de
+falsificação da spec da escala, aplicada ao esticamento.
+
+**Anotado e não feito, com uma ressalva medida:** reconstruir 0,250309 a partir
+de `(mid=0.001, lo=0.001)` pela MTF deste projeto **não fecha** — dá 0,15. Ou a
+convenção do Siril para `mid` é outra, ou os valores são por canal, ou há um
+passo a mais. **Quem for implementar começa por descobrir isso, não por confiar
+nos números** — e essa ressalva vale mais que a ideia, porque sem ela o próximo
+a tentar perderia a rodada que eu acabei de perder.
+
+## Um instrumento novo mede a si mesmo primeiro
+
+Regra, com o caso concreto da rodada.
+
+O `compare-frases` extrai literais de string do `log.js` por expressão regular. A
+primeira rodada devolveu quatro "frases sem caso" que eram **pedaços de código**:
+o apóstrofo de `someone's post`, dentro de um **comentário**, abria uma string que
+não existe e engolia metade do arquivo até o próximo apóstrofo.
+
+**E elas tinham a mesma cara das verdadeiras** — texto em inglês, tamanho
+plausível, nenhum golden as continha. Nada na saída distinguia o achado real do
+artefato do instrumento.
+
+**A regra:** um instrumento novo mede a si mesmo antes de medir o objeto. E o
+teste é barato: rodar contra um caso cuja resposta se conhece, ou olhar os
+extremos da saída — os quatro falsos estavam no topo da lista, e bastou lê-los.
+
+**O que a torna necessária:** um instrumento que erra produz um resultado com a
+mesma forma do certo, e a forma é tudo que se tem para julgar. É a terceira vez
+nesta sessão — antes foram a contagem de `PROGRAM` nos fixtures (que parecia
+medição) e a contagem de 703 linhas do varredor (errada por dois).
+
+## O ramo do CFA espelhado, fechado — e a verificação provou o outro lado
+
+`fixture-bayerespelhado`: **os mesmos pixels do `seestar`**, com `BAYERPAT =
+RGGB` em vez de `GRBG`. A treliça mede os verdes na diagonal principal, o header
+declara a anti-diagonal, e o código espelha para `GBRG`.
+
+```
+• Colour filter array: BAYERPAT = RGGB read from the header, mirrored to GBRG
+  so the green sites line up with the main diagonal the pixels actually show.
+```
+
+**E a imagem sai com R e B trocados em relação ao `seestar`, de propósito** —
+`GBRG` troca os dois sítios não-verdes. É o comportamento certo: a treliça decide
+o eixo dos verdes, e **qual dos dois sítios restantes é vermelho só vem do
+header**. Header errado, cor trocada, e o log diz que espelhou.
+
+**O `compare-frases` reprovou antes de eu apagar as declarações**, e é a metade
+que quase nunca se testa:
+
+```
+FRASES FAIL -- 2 declaracao(oes) que nao valem mais:
+  so the green sites line up with the
+  diagonal the pixels actually show
+```
+
+Uma dívida declarada que **ganhou caso** é uma declaração que envelheceu, e o
+verificador a derrubou sozinho. **Um registro de dívida que não reprova quando a
+dívida é paga vira ficção com o tempo** — e essa metade do mecanismo raramente é
+exercitada, porque exige que alguém pague uma dívida.
+
+Terceiro par controlado com o `seestar`: mesmos pixels, um cartão diferente.
+Cobertura de frases: **143 frases, 135 com caso (94%), 8 sem.**

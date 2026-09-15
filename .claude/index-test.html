@@ -4884,21 +4884,70 @@ function buildLog(ctx){
  *   DOCUMENTADO  esta escrito na documentacao do programa
  *   SUPOSTO      ninguem verificou; e o que se acredita
  *
- * Hoje TODAS as sete sao SUPOSTO. Isso nao as torna erradas -- torna-as nao
- * verificadas, que e uma coisa diferente e que so aparece quando esta escrita.
+ * Estado hoje: UMA MEDIDA, UMA REFUTADA, cinco SUPOSTO. As duas primeiras sao o
+ * mesmo arquivo do Siril 1.4.4 -- ele NAO escreve "autostretch" e escreve
+ * "Histogram Transf.", entao uma medicao fechou duas entradas em direcoes
+ * opostas.
  *
- * O que fecha cada uma e um arquivo do programa correspondente com a operacao
- * aplicada, reportando so as linhas de HISTORY. Ver investigacao-regra-linear.md
- * secao 3.2: um arquivo do Siril ja esticado decide as quatro primeiras.
+ * O que fecha cada uma das cinco restantes e um arquivo do programa
+ * correspondente com a operacao aplicada, reportando so as linhas de HISTORY.
  *
  * A ORDEM IMPORTA: o laco pula uma regra cujo rotulo ja esta em `historyHits`.
  */
 var STRETCH_HISTORY = [
-  // SUPOSTO -- termo do Siril para o esticamento automatico. E o candidato mais
-  // provavel de ser confirmado primeiro, e o que o arquivo do Leon decide.
+  /* REFUTADO -- e a refutacao e a primeira medicao que esta tabela recebeu.
+   *
+   * Um arquivo do Siril 1.4.4 com a transformacao de histograma APLICADA DE
+   * VERDADE (mediana 0,001177 -> 0,250309) NAO contem a palavra `autostretch`
+   * em lugar nenhum do HISTORY. As quatro linhas que ele grava sao:
+   *
+   *     mean stacking with winsorized sigma clipping ... normalized output ...
+   *     TOP-DOWN mirror
+   *     Assigned ICC profile: sRGB-elle-V4-srgbtrc.icc
+   *     Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+   *
+   * E o motivo e o que torna isto uma licao e nao um detalhe: no Siril o
+   * "autostretch" e um MODO DE VISUALIZACAO. Ele muda como a tela mostra o
+   * quadro e nao toca nos pixels -- medido tambem, num segundo arquivo: olhar em
+   * autostretch e salvar devolve a mediana original, 0,001177, e nenhum rastro.
+   *
+   * O botao de visualizacao e a operacao de arquivo tem o mesmo nome, e so a
+   * segunda deixa rastro -- COM OUTRO NOME. A entrada mais provavel de ser
+   * confirmada primeiro era a que nao tinha candidato.
+   *
+   * Fica no lugar porque outro programa pode gravar a palavra, e remover uma
+   * entrada refutada para UM escritor seria trocar uma suposicao por outra.
+   */
   [/autostretch/i,            'Autostretch'],
-  // SUPOSTO -- "Histogram Transformation" existe no Siril e no PixInsight; qual
-  // deles grava a frase, e com que capitalizacao, nao foi verificado.
+
+  /* MEDIDO -- Siril 1.4.4, texto verbatim:
+   *
+   *     Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+   *
+   * Unica das sete que casa o arquivo medido, e a unica MEDIDA das sete.
+   *
+   * E ELA ACERTA POR UM DETALHE QUE NINGUEM REGISTROU: o padrao usa o PREFIXO
+   * `transf`, nao a palavra inteira. Conferido -- `histogram\s*transf` casa
+   * "Histogram Transf."; `histogram\s*transformation` NAO casa. O Siril escreve
+   * a forma abreviada, e a entrada sobrevive porque quem a escreveu parou em
+   * `transf`.
+   *
+   * Nao ha registro de por que parou. Entao: acerta, e o motivo de acertar nao
+   * estava escrito -- que e diferente de acertar por desenho, e a procedencia
+   * existe para nao deixar os dois parecerem a mesma coisa.
+   *
+   * E A LINHA TRAZ OS PARAMETROS, que e mais do que esta tabela usa: `mid` e
+   * `lo` sao os midtones e o ponto preto da MTF. Um parser que os lesse saberia
+   * nao so QUE foi esticado, mas COM QUE PARAMETROS, e poderia conferir contra a
+   * mediana observada -- a mesma conferencia de falsificacao da
+   * spec-escala-decisao.md, aplicada ao esticamento.
+   *
+   * ANOTADO E NAO FEITO, e com uma ressalva medida: reconstruir 0,250309 a
+   * partir de (mid=0.001, lo=0.001) pela MTF padrao deste projeto NAO fecha --
+   * da 0,15. Ou a convencao do Siril para `mid` e outra, ou os valores sao por
+   * canal, ou ha um passo a mais. Quem for implementar comeca por descobrir
+   * isso, nao por confiar nos numeros.
+   */
   [/histogram\s*transf/i,     'Histogram Transf.'],
   // SUPOSTO -- o Siril tem um esticamento asinh. A palavra tambem aparece em
   // contexto que NAO e esticamento (discussao de escala), e isso nao foi medido.
