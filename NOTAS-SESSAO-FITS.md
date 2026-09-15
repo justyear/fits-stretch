@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **283.753 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **284.477 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2138,6 +2138,29 @@ força do aviso.
 é o **silêncio**. E o aviso forte da §3.3 está escrito na spec e **não
 implementado**.
 
+**14. Nove frases do log sem caso** — `test/compare-frases.ps1`, 143 frases, 133
+com caso (93%). As nove são dívida de fixture e estão declaradas com o motivo; a
+décima é impossível por natureza. O mapa do que a suíte não vê:
+
+```
+NaN na entrada · quadro MONO de lado impar · quadro 2D com HISTORY de stack
+o ramo `pattern.corrected` do CFA · o asinh que nao alcanca o alvo
+a variante do alvo no ramo nao-linear
+```
+
+**15. O `autostretch` do Siril não deixa rastro** — é modo de visualização e não
+toca nos pixels (medido: mediana idêntica, `HISTORY` só com empilhamento). Boa
+notícia para a regra: não há falso positivo por esse caminho. **Má notícia para a
+primeira entrada do catálogo**, que aposta num termo que a operação não escreve.
+O que grava rastro é a transformação de histograma, e é ela que o próximo arquivo
+mede.
+
+**16. `\bcurves?\b` fica SUPOSTO com o risco escrito.** O custo do falso positivo
+só existe na janela de mediana entre 0,02 e 0,05, e **um dos dezenove fixtures
+está dentro dela** — o `bigobject`, em 0,04938, que é o mesmo que o inventário de
+margens pegou a 1,2% do limiar de 0,05. Exposto pelos dois lados. Fecha com um
+corpus de headers reais; hoje n=2.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -3795,3 +3818,71 @@ jogaria essa informação fora junto com o arquivo**.
 tratam o mesmo desacordo de formas opostas, uma das duas está errada — e a que
 está errada é quase sempre a mais nova, escrita sem olhar para a que já existia.
 Aqui a mais nova era a recusa, e ela caiu.
+
+## O autostretch do Siril é de VISUALIZAÇÃO e não deixa rastro
+
+Meio resultado do arquivo que veio, e ele vale por si.
+
+O botão de autostretch do Siril é **modo de exibição**: ele muda como a tela
+mostra o quadro e **não toca nos pixels**. O arquivo voltou com mediana
+**0,001177 — idêntica à do original** — e `HISTORY` só com empilhamento e espelho
+de linha.
+
+**A consequência para a regra, e ela é boa notícia:** um arquivo olhado em
+autostretch e salvo **continua linear e continua declarando que é**. Não há falso
+positivo por esse caminho — nem pela mediana, nem pelo `HISTORY`.
+
+**E a consequência para o catálogo é mais afiada, e é má notícia para a primeira
+entrada.** `STRETCH_HISTORY` começa com `/autostretch/i`, e o que acabamos de
+medir é que **a operação chamada "autostretch" no Siril não escreve nada**, porque
+não faz nada aos pixels. Se o termo aparecer num `HISTORY`, ele veio de outra
+coisa — outro programa, outra versão, ou uma operação com nome parecido.
+
+> **A entrada mais provável de ser confirmada primeiro acabou de ficar sem o
+> candidato mais óbvio.** O que grava rastro é a *transformação de histograma*, e
+> é essa que o próximo arquivo vai medir.
+
+**A forma geral, e ela é a razão de isto ser registro e não nota de rodapé:**
+operação de **visualização** e operação de **arquivo** têm o mesmo nome em muitas
+ferramentas, e só a segunda deixa rastro. Um catálogo de termos de `HISTORY` está
+implicitamente apostando que o termo nomeia a segunda — e essa aposta não é sobre
+texto, é sobre **o que a ferramenta faz com o botão**.
+
+## Cobertura de frases: 143 no log, 133 com caso, 10 sem
+
+`test/compare-frases.ps1`. Tira os comentários do `log.js`, extrai os literais de
+string, fica com os que parecem prosa, e procura cada um na união dos dezenove
+goldens de log.
+
+```
+143 frases no log.js
+133 com caso   (93%)
+ 10 sem caso    9 DIVIDA, 1 IMPOSSIVEL
+```
+
+**As nove dívidas, e elas são um mapa do que a suíte não vê:**
+
+```
+non-finite pixels were left out       nenhum fixture com NaN na ENTRADA
+odd frame dimensions rule out         nenhum quadro MONO de lado impar
+the header records stacking           nenhum quadro 2D com HISTORY de stack
+so the green sites line up            o ramo `pattern.corrected` do CFA
+diagonal the pixels actually show     (mesma frase, segunda metade)
+The asinh stretch could not reach     3 literais do asinh inalcancavel
+target background held at each ch.    variante do alvo no ramo nao-linear
+```
+
+A única **IMPOSSÍVEL** é *"this browser cannot allocate a canvas at full size"* —
+depende de o navegador falhar em alocar memória, e um golden que dependesse de
+pressão de memória seria pior que a frase sem caso.
+
+**O primeiro resultado do instrumento estava errado, e parecia plausível:** o
+regex de literais pegava o apóstrofo de *"someone's post"* dentro de um
+comentário e abria uma string que não existe, engolindo metade do arquivo.
+Saíram quatro "frases" que eram pedaços de código — **com a mesma cara das
+verdadeiras**. Tirar os comentários antes é o conserto, e a lição é a de sempre:
+um instrumento novo mede a si mesmo primeiro.
+
+**E a diferença entre 93% e 100% é o que este projeto vende.** Sete por cento das
+frases do log nunca foram vistas impressas — e a frase falsa do
+`fixture-declaraestica` estava exatamente nesse grupo até ontem.

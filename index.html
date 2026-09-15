@@ -4909,10 +4909,24 @@ var STRETCH_HISTORY = [
   // SUPOSTO -- "Midtones Transfer Function" e o nome da operacao nas duas
   // ferramentas; a forma abreviada no HISTORY nao foi vista.
   [/midtone/i,                'Midtones transfer'],
-  // SUPOSTO, E A MAIS ARRISCADA DAS SETE: `curves` e palavra comum em ingles e
-  // pode casar em linha de HISTORY que nao fala de esticamento nenhum. As outras
-  // seis sao termos tecnicos; esta nao e. Falso positivo aqui reduz o limiar da
-  // regra linear de 0,05 para 0,02 num quadro que nunca foi esticado.
+  // SUPOSTO, E A MAIS ARRISCADA DAS SETE -- e o risco esta medido, nao suposto.
+  //
+  // `curves` e a unica das sete que NAO e termo tecnico: e palavra comum em
+  // ingles e pode casar numa linha de HISTORY que nao fala de esticamento.
+  //
+  // O CUSTO DO FALSO POSITIVO, e ele so existe numa janela estreita: casar aqui
+  // troca o limiar da regra linear de 0,05 para 0,02. Isso so muda o veredito
+  // quando a mediana do quadro esta ENTRE os dois. Fora da janela o veredito e o
+  // mesmo com ou sem o falso positivo.
+  //
+  // Medido nos dezenove fixtures: UM esta dentro da janela -- o `bigobject`, em
+  // 0,04938. E e o mesmo que o inventario de margens ja pegou a 1,2% do limiar
+  // de 0,05, entao ele esta exposto pelos dois lados.
+  //
+  // NAO MEDIDO, e e o que fecharia: existe HISTORY real que contenha "curves"
+  // sem falar de esticamento? Precisa de um corpus de headers reais, que o
+  // projeto ainda nao tem (n=2). Ate la fica SUPOSTO com o risco escrito -- que
+  // e exatamente para o que a procedencia serve.
   [/\bcurves?\b/i,            'Curves'],
   // SUPOSTO para `modasinh` (asinh modificado, do Siril).
   //
