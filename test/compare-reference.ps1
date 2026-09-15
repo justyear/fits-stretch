@@ -1570,12 +1570,11 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             A referencia passou a emitir `densidadePorLimiar.recorte.componentes`
             e a cota caiu de 960,6 para 10 ali.
 
-            O QUE ESTA COTA COBRE, e vale dizer porque decide se ela e completa:
-            a curva e parametrizada pelo limiar de SINAL. Ela cobre a fronteira
-            da ocupacao SE a referencia recomputa a ocupacao ao mover o limiar
-            de sinal -- que e o que a cadeia faz, ja que a ocupacao e contada
-            sobre a mascara de sinal. Se ela nao recomputa, falta o termo da
-            ocupacao e ele nao tem curva.
+            A COTA E COMPLETA, e isso foi conferido do outro lado: o laco da
+            referencia refaz o `box_sum` sobre a mascara perturbada e reaplica o
+            teste de 0,50 ANTES de rotular. Entao mover o limiar de sinal move a
+            ocupacao junto, e a curva cobre as duas fronteiras -- nao so a do
+            sinal. Nao ha termo faltando aqui.
             #>
             foreach ($t in @(@('sinal.pixels',   $crRec.signalPixels,   $rc.signalPixels),
                              @('extenso.pixels', $crRec.extendedPixels, $rc.extendedPixels),

@@ -2041,16 +2041,14 @@ começo de uma segunda fonte de verdade.
 - **`decode.rawMin/rawMax`** viraram exatos, cota zero, com a derivação lida do
   `decodeRawExato` da referência em vez de repetida aqui.
 - **O controle negativo em varredura** existe: `negative-controls-reference.ps1`,
-  53 campos, 0 divergentes.
+  399 de 447 linhas com cota, 0 divergentes.
 
-Fica aberto o que a varredura **descobriu**, e é pequeno:
+E a ponta solta que ela deixou, também fechada:
 
-- **A tabela do varredor cobre 53 das 418 linhas com cota** — as 45 propagadas e
-  as 8 de posição, que foi por onde começar. Crescer é uma linha na tabela mais
-  um ramo em `Set-GoldenField`.
-- **A cota de `componentes` cobre a fronteira do sinal**, e cobre a da ocupação
-  **se** a referência recomputa a ocupação ao mover o limiar de sinal. Está
-  escrito na linha. Se não recomputa, falta o termo e ele não tem curva.
+- **A cota de `componentes` é COMPLETA**, conferido do outro lado: o laço da
+  referência refaz o `box_sum` sobre a máscara perturbada e reaplica o teste de
+  0,50 **antes** de rotular, então mover o limiar de sinal move a ocupação junto
+  e a curva cobre as duas fronteiras. Não há termo faltando.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -2764,3 +2762,142 @@ passa despercebida, porque nada na tela depende dele.
 
 Depois: **todo fixture com record de recorte tem cota derivada**, e a cota da
 §7 sumiu do bloco.
+
+## Todo caminho de recusa grava os mesmos campos do caminho de sucesso
+
+Forma geral do achado dos sete fixtures que recusam o recorte.
+
+> **A recusa não é menos medida. É medida com resultado diferente.**
+
+O caminho que recusa é o que menos chama atenção: não produz retângulo, não
+muda pixel, não muda a frase gerada. **Nada na tela depende dele** — e é
+exatamente por isso que a falta de um campo de diagnóstico ali não aparece.
+Ninguém olha, nada quebra, e o campo simplesmente não existe.
+
+Medido: `skyMedian`/`skyMadn` iam no record de sucesso e não no de recusa. Sete
+dos treze fixtures recusam, e eram **exatamente** os sete sem cota derivada —
+sem os dois números o comparador não calcula o Δ e cai numa cota de 0,05% dos
+pixels do quadro, que para 12 componentes vale 960 e nunca reprova.
+
+**A medição que a etapa não usa é a que o comparador precisa.** A etapa que
+recusa não precisa da mediana do céu para nada: ela já decidiu. Quem precisa é
+quem vai julgar se os dois lados recusaram *pelo mesmo motivo* e *no mesmo
+lugar*.
+
+**A regra:** todo caminho de recusa grava os mesmos campos de diagnóstico do
+caminho de sucesso. O que muda entre eles é o **veredito**, não o **registro**.
+
+## Uma coluna nova precisa de varredura de quem a produz, não só de quem a consome
+
+O varredor de controles negativos achou algo na primeira rodada, e era sobre si
+mesmo: acusou as oito linhas de `rect.*` de **"COTA QUE NÃO REPROVA"** — o pior
+veredito da lista, e falso.
+
+A cota delas existe e vale zero. O que faltava era ela **chegar na coluna**: a
+coluna `cota` foi acrescentada ao `New-Row`, os três comparadores genéricos
+foram religados, e a chamada manual do bloco do retângulo — que constrói o
+número, imprime em prosa e passa adiante sete argumentos em vez de oito — ficou
+para trás.
+
+**A regra:** ao acrescentar uma coluna, varra **todos os produtores** dela, não
+só os que a consomem. O consumidor avisa quando a coluna falta — este avisou, e
+avisou errado. O produtor esquecido não avisa nada: ele preenche `$null`, que é
+um valor legítimo, e a linha sai bonita.
+
+E o corolário que virou a primeira regra do script:
+
+> **Um instrumento que julga o que não exercitou é pior que um que se cala.**
+
+O veredito errado dele é indistinguível do certo, e gasta a confiança que existe
+para o achado verdadeiro. Hoje o varredor só dá veredito ao que perturbou; o que
+tem cota vazia sai numa lista à parte, *"não controláveis"*, com o nome.
+
+## `$ALVOS` e `$alvos` são a mesma variável — terceira vez
+
+O varredor nasceu lendo **zero** campos: a tabela de alvos tinha 43 entradas e a
+varredura não achava nenhuma. A causa é a armadilha que já está neste arquivo:
+
+```powershell
+$ALVOS = @( ... 43 entradas ... )   # a tabela
+$alvos = @()                        # o acumulador -- A MESMA VARIAVEL
+```
+
+**Nomes de variável em PowerShell são insensíveis a maiúsculas.** O acumulador
+apagou a tabela antes do laço, e a mensagem resultante era plausível: *"399
+campos com cota e sem entrada na tabela"* — exatamente o que se veria se a
+tabela estivesse incompleta.
+
+É a terceira instância registrada, e as três custaram tempo de depuração por
+serem **silenciosas e plausíveis**: `param([string]$Left)` transformando um
+Bitmap em texto, `$D` contra `param($d)` num scriptblock, e agora esta. O padrão
+comum é **um nome curto genérico reaproveitado em dois papéis** no mesmo escopo.
+
+**A regra prática:** uma tabela de configuração e o acumulador que a consome
+nunca compartilham a raiz do nome. `$ALVOS` / `$sobVarredura`, não `$ALVOS` /
+`$alvos`. E quando um laço vem vazio sem erro, a primeira hipótese é o nome, não
+a lógica.
+
+## A varredura de controles negativos, fechada: 399 de 447
+
+A tabela cresceu de 7 campos para 43, e a cobertura de 53 linhas para **399**.
+
+```
+701 linhas no comparador
+447 carregam cota
+399 sob varredura      0 divergentes, em 3 passadas
+ 48 fora              isolamento de formula
+ 50 das 399 testadas so por fora (cota zero, ou menor que 2 num campo inteiro)
+```
+
+**As 48 que ficam de fora, e o motivo é de construção, não dívida:** as linhas
+`ganho(formula)`, `shadows(formula)` e `midtones(formula)` têm o lado "nosso"
+**calculado pelo comparador** a partir das entradas *deles*. Nenhum campo do
+golden as alimenta, então perturbar o golden não as move — e um controle
+negativo que não consegue mover o valor não testa cota nenhuma. Elas são
+verificadas pelo que já são: uma afirmação de que as duas fórmulas coincidem
+quando recebem as mesmas entradas.
+
+### Perturbar tudo de uma vez tem uma armadilha, e ela se mede
+
+Mover todos os campos numa rodada é o que faz 399 linhas saírem no tempo de duas
+rodadas em vez de 798. Só que **algumas cotas são calculadas a partir de campos
+que estão na tabela**: `clipLow` tira a dela de `|shadows − ref| + |lum.mediana
+− ref|`, e `mascara.abaixoDoLimiar` da `mascara.fundo` e da `mascara.ruido`.
+Perturbar o alvo **e** a fonte da cota dele na mesma rodada mede uma cota que só
+existe dentro do teste.
+
+Supor quais interferem seria a mesma doença que a varredura existe para tratar.
+Então ela **mede**: depois de cada rodada, a cota de cada linha é comparada com
+a da linha de base; se mudou, aquela linha não recebe veredito nesta passada e
+vai para a próxima, onde as fontes dela ficam quietas.
+
+```
+passada 1    399 campos
+passada 2     56 campos     <- as que tinham a cota deslocada
+passada 3      2 campos
+```
+
+**Converge sozinha e sem lista escrita à mão.** Se parasse de progredir, o que
+sobrasse sairia nomeado em vez de aprovado — o mesmo princípio do *"só dá
+veredito ao que exercitou"*.
+
+### Cota zero é um caso próprio
+
+Multiplicar zero por três não perturba nada e a rodada leria **PASS** — o
+veredito exato que a varredura existe para desconfiar. Cota zero **afirma** algo
+diferente: *a menor diferença possível já reprova*. Por fora o teste vira isso;
+por dentro não há o que testar, porque não existe folga dentro de zero. As duas
+coisas são ditas, nunca somem numa aprovação.
+
+**Medido:** 1 pixel em `rect.w` reprova. Antes desta rodada, 214 pixels
+passavam.
+
+> **E o varredor errou a própria contagem por dois, na mesma rodada.** Ele
+> imprimia **703** onde o comparador imprime **701**:
+> o `Write-Host` do comparador **não some quando ele roda como processo filho**
+> — em PowerShell 5.1 a saída de `Write-Host` desce para o stdout do processo —
+> e as duas linhas de resumo dele vinham junto com o CSV, lidas como duas linhas
+> a mais. Não mudavam veredito nenhum, porque não têm cota e nunca casam com um
+> alvo. Mas **um instrumento que erra a própria contagem por dois não merece
+> crédito nos outros números**, e o conserto é filtrar pelo veredito: só passa
+> linha que tem um.
