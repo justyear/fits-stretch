@@ -2063,17 +2063,29 @@ modelar o operador asinh. Os outros três órfãos (`float16`, `floatmax`,
 `nobayer`) são novos e esperados — entraram nesta rodada e a referência ainda não
 os viu.
 
-**10. A escala do float: a quarta saída está avaliada e a decisão não está
-tomada.** Ver `investigacao-escala-float.md`. O primeiro header real derrubou a
-§2 (nenhuma das três chaves do padrão existe nele) e abriu a §3.D — **ler o
-escritor, não os valores**. O que falta para decidir:
+**10. A escala do float: a spec de decisão está escrita, o conserto não começou.**
+`spec-escala-decisao.md`, com `investigacao-escala-float.md` como evidência. A §1
+fechou pelos dois extremos medidos: o caso principal assina (Siril + Seestar,
+`PROGRAM`/`CREATOR`/`HISTORY`), o arquivo de script é **totalmente mudo** (seis
+cartões, zero `HISTORY`). Não há meio-termo.
 
-- **quantos arquivos reais assinam quem os escreveu.** Hoje n=1, e os fixtures
-  não servem: eles assinam porque eu os escrevi assim.
-- **um arquivo escrito por script** (`astropy`), o candidato natural a não
-  assinar nada — é ele que dimensiona o caso residual.
+A decisão: **ler o escritor, conferir contra os pixels, e declarar quando ninguém
+assinou.** Recusar fica só para a contradição entre as duas fontes.
 
-Nada de conserto antes disso.
+O que trava o conserto, e é o de sempre:
+
+- **não existe fixture MUDO.** Os quatorze trazem `PROGRAM` porque o gerador
+  escreve — o caso residual, que é metade da decisão, não tem caso.
+- **não existe arquivo que se contradiga** (declara normalizado, máximo fora de
+  [0,1]), que é o único que exercita a recusa. O lugar dele é o corpus
+  `malformed`.
+- **não existe arquivo com duas declarações de escala no `HISTORY`**, então *"a
+  última vence"* é afirmação e não controle.
+
+**E o próximo item não é a escala: é a regra dos 0,05.** A escala erra alto —
+branco ou preto, que se anuncia. A regra linear/não-linear erra baixo: medido,
+uma imagem 38% mais escura que parece escolha estética. Errar baixo é o que este
+projeto recusa em todo lugar.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -3275,41 +3287,61 @@ substantivo mais largo da frase e pergunte *"quantos casos desse substantivo eu
 olhei?"*. "A cadeia" — um fixture. "O header" — três chaves. Se o denominador da
 medição for menor que o substantivo, a frase precisa do denominador dentro dela.
 
-## Medir cobertura numa população que eu mesmo gerei é zero informação
+## Uma contagem que parece medição
 
-Treze dos quatorze fixtures trazem `PROGRAM` e `INSTRUME`. **O número não vale
-nada como evidência**: eles trazem porque eu escrevi o gerador assim.
+O caso: perguntei aos fixtures que fração dos arquivos traz assinatura do
+escritor. **Treze de quatorze.** O número não vale nada — eles trazem `PROGRAM`
+porque eu escrevi o gerador assim.
 
-Perguntar aos fixtures que fração dos arquivos traz assinatura de escritor é
-perguntar à minha própria decisão se ela foi tomada. É a classe do Módulo 5a com
-outro disfarce — e o disfarce é bom, porque **a contagem parece uma medição**:
-tem denominador, tem numerador, e sai de um comando.
+**E o disfarce é bom, que é o ponto.** A contagem tem numerador, tem denominador,
+sai de um comando, e imprime uma tabela. **Parece medição.** Tudo que distingue
+uma medição de uma tautologia — a forma da saída, o esforço de obter, a precisão
+do resultado — está presente. O que falta é a única coisa que importa: a
+população contada não é independente de quem conta.
+
+Isso a separa das instâncias anteriores da classe. Na meia escala, os fixtures
+mentiam sobre **o mundo** e a suíte não tinha como saber. Aqui a suíte está
+respondendo sobre **mim**: *"você escreveu `PROGRAM` nos seus arquivos?"* — sim,
+escrevi. Zero informação, com aparência de dado.
 
 **O sinal para reconhecer:** se eu escrevi a coisa que estou contando, a contagem
-mede a minha decisão e não o mundo. Vale para header, vale para nome de arquivo,
-vale para qualquer metadado que o gerador inventa — e é diferente de contar
-pixels, que o gerador produz por regra e não por escolha caso a caso.
+mede a minha decisão e não o mundo. E vale distinguir: contar **pixels** de um
+fixture é legítimo, porque o gerador os produz por regra e a regra tem
+consequências que eu não escolhi caso a caso. Contar **metadados** que eu digitei
+não é — não há regra, há digitação.
 
-O único número com valor de evidência na cobertura foi **1 de 1**.
+O único número com valor de evidência foi **1 de 1**, e depois **1 de 1** do outro
+lado: um arquivo real com assinatura, um arquivo de script com seis cartões e
+nada mais.
 
-## Os fixtures erraram a magnitude, não a forma
+## Erro de sim/não contra erro de fator: o eixo que a suíte não tem
 
 ```
 max / p99,9      pior fixture     5,18
                  arquivo real    29,02
 ```
 
-**O arquivo real é 5,6× mais extremo que o pior caso sintético.** A fragilidade
-do `max` como grandeza de decisão estava medida — certa em forma, e subestimada
-por um fator 5,6 em magnitude.
+**Os fixtures acertaram a FORMA e subestimaram a MAGNITUDE em 5,6×.**
 
-Isso é uma variante nova da classe da representatividade, e mais traiçoeira que a
-original: lá os fixtures diziam *"o botão dispara"* quando a população real não
-disparava — **erro de sim/não**, visível assim que alguém rodou em dado real.
-Aqui eles dizem a coisa certa com o número errado, e **um número errado por 5,6×
-ainda passa em toda verificação de consistência** — porque nenhuma delas compara
-com o mundo.
+E a variante é mais cara que a original, por um motivo mecânico:
 
-**A regra:** quando uma medição sintética vai calibrar um limiar, o número dela é
-um piso, não uma estimativa. A cauda de dado real é mais longa que a de qualquer
-gerador, porque o gerador só produz o que alguém pensou em escrever.
+| | como aparece | quando aparece |
+|---|---|---|
+| **erro de sim/não** (meia escala) | o portão não abre em dado real | **na primeira rodada** com dado real |
+| **erro de fator 5,6** | nunca aparece sozinho | **nunca**, até alguém comparar com o mundo |
+
+Um erro de sim/não é autoanunciante: a pessoa roda, o botão não aparece, e a
+conversa começa. **Um número errado por 5,6× passa em TODA verificação de
+consistência** — golden, referência Python, controle negativo, varredura de
+unidades — porque **nenhuma delas compara com o mundo**. Elas comparam a
+ferramenta consigo mesma, com uma segunda implementação, e com uma cota derivada;
+nenhuma pergunta se a população de teste tem a mesma cauda que a real.
+
+É a representatividade outra vez, **no eixo que a suíte não tem** — e a suíte não
+pode tê-lo, porque o eixo é "quanto o dado real é mais extremo que o sintético" e
+isso só se mede com dado real.
+
+**A consequência operacional, e ela é a regra:** quando uma medição sintética vai
+calibrar um limiar, **o número dela é um piso, não uma estimativa**. A cauda de
+dado real é mais longa que a de qualquer gerador, porque o gerador só produz o
+que alguém pensou em escrever — e ninguém pensa em escrever a cauda.
