@@ -4865,13 +4865,64 @@ function buildLog(ctx){
  * a clone.
  * ------------------------------------------------------------------ */
 
+/* O CATALOGO DE TERMOS DE ESTICAMENTO, COM PROCEDENCIA POR ENTRADA.
+ *
+ * Esta tabela e uma afirmacao sobre O QUE OUTROS PROGRAMAS ESCREVEM, e ate esta
+ * linha ser escrita ela nao tinha origem registrada em lugar nenhum -- nem
+ * comentario, nem spec, nem NOTAS. Sete padroes, nenhuma evidencia.
+ *
+ * E o circuito estava fechado: a unica coisa na suite que a "confirmava" e o
+ * HISTORY do `fixture-nonlinear`, QUE FOI ESCRITO A PARTIR DESTA MESMA CRENCA.
+ * Uma crenca virou codigo, a mesma crenca virou fixture, e o fixture confirma o
+ * codigo -- duas pecas, um autor, zero contato com o mundo, e um verde
+ * indistinguivel do verde de uma coisa medida.
+ *
+ * A defesa nao e desconfiar mais: e anotar DE ONDE VEIO, entrada por entrada.
+ * Tres niveis, e a diferenca entre eles muda o que a proxima pessoa faz:
+ *
+ *   MEDIDO       lido de um arquivo real, com o texto verbatim
+ *   DOCUMENTADO  esta escrito na documentacao do programa
+ *   SUPOSTO      ninguem verificou; e o que se acredita
+ *
+ * Hoje TODAS as sete sao SUPOSTO. Isso nao as torna erradas -- torna-as nao
+ * verificadas, que e uma coisa diferente e que so aparece quando esta escrita.
+ *
+ * O que fecha cada uma e um arquivo do programa correspondente com a operacao
+ * aplicada, reportando so as linhas de HISTORY. Ver investigacao-regra-linear.md
+ * secao 3.2: um arquivo do Siril ja esticado decide as quatro primeiras.
+ *
+ * A ORDEM IMPORTA: o laco pula uma regra cujo rotulo ja esta em `historyHits`.
+ */
 var STRETCH_HISTORY = [
+  // SUPOSTO -- termo do Siril para o esticamento automatico. E o candidato mais
+  // provavel de ser confirmado primeiro, e o que o arquivo do Leon decide.
   [/autostretch/i,            'Autostretch'],
+  // SUPOSTO -- "Histogram Transformation" existe no Siril e no PixInsight; qual
+  // deles grava a frase, e com que capitalizacao, nao foi verificado.
   [/histogram\s*transf/i,     'Histogram Transf.'],
+  // SUPOSTO -- o Siril tem um esticamento asinh. A palavra tambem aparece em
+  // contexto que NAO e esticamento (discussao de escala), e isso nao foi medido.
   [/asinh/i,                  'Asinh stretch'],
+  // SUPOSTO -- GHS e um script de terceiro, nao uma operacao nativa; se ele
+  // grava HISTORY, e com que texto, e a entrada com menos base das sete.
   [/generalised hyperbolic|generalized hyperbolic|\bGHS\b/i, 'GHS'],
+  // SUPOSTO -- "Midtones Transfer Function" e o nome da operacao nas duas
+  // ferramentas; a forma abreviada no HISTORY nao foi vista.
   [/midtone/i,                'Midtones transfer'],
+  // SUPOSTO, E A MAIS ARRISCADA DAS SETE: `curves` e palavra comum em ingles e
+  // pode casar em linha de HISTORY que nao fala de esticamento nenhum. As outras
+  // seis sao termos tecnicos; esta nao e. Falso positivo aqui reduz o limiar da
+  // regra linear de 0,05 para 0,02 num quadro que nunca foi esticado.
   [/\bcurves?\b/i,            'Curves'],
+  // SUPOSTO para `modasinh` (asinh modificado, do Siril).
+  //
+  // E a alternativa `|autostretch` daqui e CODIGO MORTO, por construcao: a regra
+  // 1 casa a mesma palavra e poe o mesmo rotulo, e o laco pula uma regra cujo
+  // rotulo ja esta em `historyHits`. Esta linha so e alcancada quando a regra 1
+  // NAO casou -- ou seja, quando `autostretch` nao esta no texto. Fica anotado
+  // em vez de removido: remover e mudanca de comportamento zero, e mexer numa
+  // tabela sem procedencia enquanto ela esta sendo medida e trocar a ordem das
+  // coisas.
   [/modasinh|autostretch/i,   'Autostretch']
 ];
 

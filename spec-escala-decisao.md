@@ -1,6 +1,7 @@
 # Spec de decisão: como a escala de um FITS float é escolhida
 
-**Status: spec de decisão. Só a §4.3 está implementada.**
+**Status: spec de decisão. Só a §4.3 está implementada. A §3 mudou: a
+contradição declara, não recusa.**
 **Evidência:** `investigacao-escala-float.md` — toda medição citada aqui está lá.
 
 ---
@@ -8,7 +9,8 @@
 ## 0. A decisão, em uma linha
 
 > **A escala vem de quem escreveu o arquivo, conferida contra os pixels. Quando
-> ninguém assinou, a ferramenta escolhe e diz que escolheu.**
+> ninguém assinou — ou quando a declaração e os pixels discordam — a ferramenta
+> escolhe, e diz que escolheu.**
 
 O que muda: hoje a decisão salta das chaves do padrão FITS direto para uma
 estatística sobre os valores. Entre as duas existe um degrau — **a declaração do
@@ -95,14 +97,9 @@ máximo já é calculado no decode:
 
 ```
 declaracao CONSISTENTE com os dados   ->  usa a declaracao          (degrau 4)
-declaracao CONTRADITA pelos dados     ->  RECUSA                    (nao ha 5)
+declaracao CONTRADITA pelos dados     ->  degrau 5, com aviso FORTE (3.1)
 sem declaracao                        ->  degrau 5, declarando      (secao 4)
 ```
-
-**A contradição é o único caso em que recusar é certo**, e o motivo é preciso:
-as duas únicas fontes de verdade disponíveis — o que o escritor declarou e o que
-os pixels mostram — **discordam entre si**. Escolher uma delas seria a ferramenta
-decidindo qual das duas mentiu, e ela não tem base para isso.
 
 **Medido no arquivo real:** `HISTORY` diz *"normalized output"*, máximo
 **1,000000000 exato**. Consistente.
@@ -116,10 +113,111 @@ decidindo qual das duas mentiu, e ela não tem base para isso.
 | "escala de 16 bits" | `max > 65535` |
 
 > **Confiar e conferir é uma promessa diferente de confiar.** A primeira degrada
-> para uma recusa explícita quando a fonte falha; a segunda degrada para uma
-> imagem errada com aparência de certa.
+> para um aviso explícito quando a fonte falha; a segunda degrada para uma imagem
+> errada com aparência de certa.
 
----
+### 3.1 A contradição NÃO recusa — e esta seção mudou de posição
+
+**A versão anterior desta spec mandava RECUSAR na contradição.** A razão parecia
+boa: as duas únicas fontes de verdade discordam, e escolher uma seria a
+ferramenta decidindo qual mentiu.
+
+**Estava inconsistente com a §4 desta mesma spec**, e a inconsistência foi
+apontada de fora: a §4 argumenta que declarar é honesto quando o erro se anuncia
+e a decisão é inevitável. **Escolher uma escala é inevitável nos dois casos** — o
+mudo e o contraditório. Não existe versão de "abrir o arquivo" que pule isso.
+
+**O que a medição diz, e ela é o que decide.** Quatro contradições construídas
+sobre o `fixture-gradient`, cada uma com a declaração de um lado e os pixels do
+outro, caindo no degrau 5:
+
+| contradição | ramo do degrau 5 | **saída (mediana G)** | média |
+|---|---|---|---|
+| *nenhuma* — o quadro como ele é | `unit` ÷1 | **22** | 25,47 |
+| declara `[0,1]`, pixels vão a 15.083 | `float16` ÷65535 | **22** | 25,51 |
+| declara `[0,1]`, pixels vão a 94.269 | `floatmax` ÷94.269 | **22** | 25,48 |
+| declara `16 bits`, pixels vão a 0,566 | `unit` ÷1 | **22** | 25,50 |
+
+**As quatro dão a MESMA imagem, e é a imagem certa.** O degrau 5 acerta o quadro
+em todas as contradições testadas — porque a MTF renormaliza e nenhuma delas
+cruza um limiar absoluto.
+
+**E obedecer à declaração contradita seria PIOR nas duas direções:**
+
+```
+declara [0,1] e os pixels vao a 15.083  ->  obedecer (÷1) estoura tudo: BRANCO
+declara 16 bits e os pixels vao a 0,566 ->  obedecer (÷65535) da PRETO
+```
+
+Ou seja: **a contradição não é um caso em que a ferramenta precisa escolher entre
+duas verdades. É um caso em que uma das duas está velha, e os pixels são a que
+não envelhece.**
+
+**O único resultado errado que a contradição produz é ALTO:**
+
+```
+max 1,508 (declaracao [0,1] contradita por pouco)  ->  99,98% PRETO
+```
+
+Branco e preto não são plausíveis. Ninguém publica um quadro preto achando que
+deu certo.
+
+### 3.2 O caso plausível-e-errado existe — e NÃO é da contradição
+
+Procurado de propósito, e ele aparece:
+
+```
+k=2,9   rawMax 1,367   mediana 0,04862   LINEAR       saida 22
+k=3,0   rawMax 1,414   mediana 0,05029   NAO-LINEAR   saida 13
+```
+
+**Uma imagem 38% mais escura, que parece escolha estética.** É o hazard que a §4
+não encontrou na escala — e ele **não é causado pela contradição**: é a regra dos
+0,05 sendo cruzada. **Acontece igual num arquivo mudo, e igual num arquivo com
+declaração perfeitamente consistente.**
+
+Então ele não distingue a contradição do resto, e não pode justificar tratá-la
+diferente. Ele justifica outra coisa, e é a razão de a
+`investigacao-regra-linear.md` ter virado prioridade.
+
+### 3.3 A contradição tem MAIS informação, não menos — e é isso que o aviso usa
+
+O argumento que fecha a mudança:
+
+> **O arquivo mudo e o contraditório recebem o mesmo tratamento porque o degrau 5
+> é o mesmo código com os mesmos modos de falha. Mas o contraditório sabe mais, e
+> o aviso dele diz mais.**
+
+No mudo, a ferramenta só pode dizer *"nada aqui declara a escala; eu escolhi"*.
+No contraditório, ela pode dizer **as duas coisas e qual valeu**:
+
+> *This file's header says it was written normalised to 0–1, and its pixels run
+> to 15083 — the two disagree. The header is the one that can go stale: a later
+> program can rescale the values without recording it. The scale below was taken
+> from the pixels, not from that line, and the picture is the same either way —
+> but if the header is right and the pixels were damaged, nothing here can tell.*
+
+**Recusar jogaria essa informação fora junto com o arquivo.** E a forma é a mesma
+do CFA e da calibração — a suposição, a consequência, e o que não é detectável.
+
+### 3.4 E as duas regras passam a ter a mesma forma
+
+Era a inconsistência que motivou a mudança, e some com ela:
+
+| desacordo | antes | agora |
+|---|---|---|
+| header diz esticado, pixels dizem que não (regra dos 0,02) | descarta o header, processa | **processa, dizendo qual venceu** |
+| header diz normalizado, pixels dizem que não (escala) | **RECUSA** | **processa, dizendo qual venceu** |
+
+**Duas instâncias do mesmo problema, com a mesma resposta, diferindo só na força
+do aviso.** É o que se espera de duas instâncias do mesmo problema — e a linha da
+regra dos 0,05 já foi escrita nessa forma nesta sessão: *"the file says one thing
+and its own values say another, and this line is which one was believed."*
+
+**O que continua recusando:** nada, nesta spec. A recusa segue existindo para o
+que o corpus `malformed` já cobre — arquivo que não é FITS, geometria impossível,
+dado cortado. **Contradição entre header e pixels não é malformação: é um header
+velho, e um header velho tem um arquivo bom embaixo.**
 
 ## 4. O arquivo mudo: DECLARAR, e eu não tenho argumento contra
 
@@ -273,7 +371,7 @@ honestamente um palpite e o log diz que é.
 | | detectável |
 |---|---|
 | outro programa **acrescentou** `HISTORY` | **sim** — §5.2, a última linha vence |
-| declaração **contradiz** os pixels | **sim** — §3, e recusa |
+| declaração **contradiz** os pixels | **sim** — §3, e vira aviso forte com as duas afirmações nomeadas |
 | outro programa **reescreveu pixels sem registrar nada** | **NÃO** |
 
 A terceira vai para o log, pela mesma regra do CFA: *a escala veio do que o
@@ -308,23 +406,22 @@ próximo tenha.
 
 ---
 
-## 7. O que a suíte precisa antes do conserto
+## 7. O que a suíte precisa — os três casos, FEITOS
 
-Três casos, e **nenhum existe hoje**:
+1. ~~**Um fixture MUDO.**~~ `fixture-mudo`: os seis cartões do `astropy` e nada
+   mais. Os quatorze anteriores traziam `PROGRAM` porque o gerador os escreve, e
+   o caso residual — metade da decisão — não tinha caso.
+2. ~~**Um arquivo que se CONTRADIZ.**~~ `f1-declara-normalizado-mente`, no corpus
+   `malformed`. **E o sentido dele mudou com a §3.1:** ele não vira `rejeita`
+   quando a conferência entrar — continua `aceita`, e o que passa a existir é o
+   **aviso**. O caso segue valendo, e prova outra coisa: hoje a contradição passa
+   em **silêncio**, e é o silêncio que vai mudar.
+3. ~~**Um arquivo com DUAS declarações de escala no `HISTORY`.**~~
+   `fixture-duasdecl`, e ele **discrimina**: as duas leituras possíveis dão
+   vereditos opostos sobre o mesmo arquivo.
 
-1. **Um fixture MUDO.** Os quatorze atuais trazem `PROGRAM` e `INSTRUME` porque o
-   gerador os escreve — o caso residual, que é metade da decisão, **não tem
-   caso**. Um fixture com os seis cartões do `astropy` e nada mais.
-2. **Um arquivo que se CONTRADIZ**: declara normalizado e traz máximo fora de
-   [0,1]. É o único caso que exercita a recusa da §3, e o lugar dele é o corpus
-   `malformed` — é um arquivo que mente sobre si mesmo, que é exatamente o que
-   aquele corpus coleciona.
-3. **Um arquivo com DUAS declarações de escala no `HISTORY`**, para a regra da
-   §5.2. Sem ele, "a última vence" é afirmação e não controle.
-
-**O item 1 é o que impede começar.** Escrever o degrau 5 sem um fixture mudo é
-escrever o caminho do caso residual sem nunca percorrê-lo — e esta sessão já
-pagou essa conta três vezes.
+**O que falta agora está do outro lado:** a tabela de escritores precisa de mais
+de um arquivo por escritor, e a §1 está em n=1.
 
 ---
 

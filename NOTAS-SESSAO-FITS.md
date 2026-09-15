@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **280.640 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **283.753 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2126,6 +2126,18 @@ dos limiares dos passos que ele **não** testa. Perto do limiar do passo que ele
 testa, a proximidade pode ser deliberada e valiosa; perto do limiar de outro
 passo, ela é **posição não controlada**, e o golden ali fixa um acidente.
 
+**13. A contradição header-contra-pixels passou a DECLARAR, não recusar.** A §3
+da `spec-escala-decisao.md` mudou: a recusa era inconsistente com a §4 da própria
+spec, e a medição fechou — quatro contradições construídas dão **a mesma imagem,
+e é a imagem certa**; obedecer à declaração contradita é que daria branco ou
+preto. As duas regras (0,02 e escala) passam a ter a mesma forma, diferindo só na
+força do aviso.
+
+**O que isso deixa em aberto:** o `f1-declara-normalizado-mente` continua
+`aceita` no corpus `malformed` — o que muda no dia do conserto não é o veredito,
+é o **silêncio**. E o aviso forte da §3.3 está escrito na spec e **não
+implementado**.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -3658,3 +3670,128 @@ medição**, e até agora ela não dizia que isso tinha acontecido.
 > **Um ramo sem fixture não é só um ramo não testado: é um ramo cujas frases
 > ninguém leu.** O código daquele caminho foi revisado; o texto que ele emite,
 > nunca — porque ninguém nunca o viu impresso.
+
+## Um fixture deve ficar longe dos limiares dos passos que ele NÃO testa
+
+A regra que saiu da moeda do `fixture-saturation`, e ela é mais geral que o caso.
+
+| onde o fixture está | o que a proximidade significa |
+|---|---|
+| perto do limiar do passo **que ele testa** | pode ser **deliberada** — é o caso apertado, e ter um é bom |
+| perto do limiar de **outro passo** | **posição não controlada**: ninguém a escolheu, ninguém a revisou, e o golden ali fixa um acidente |
+
+O `fixture-saturation` existe para a saturação. A recusa do recorte nele é
+incidental, e está a **2,8%** do piso de 20%. Uma mexida no limiar de sinal vira
+a moeda, e o diff do golden vai parecer regressão quando for **a fronteira sendo
+cruzada** — o pior formato de falso positivo, porque consome a atenção de quem
+investiga e treina a ignorar diffs.
+
+**E é por isso que o inventário de margens vale por si**, independentemente do
+que ele achou: com dez limiares e dezenove fixtures são 99 posições, e ninguém
+escolhe 99 posições. A maioria é acidente; a questão é se o acidente está
+**registrado**.
+
+## Uma frase que ninguém viu impressa nunca foi revisada
+
+A regra que saiu do `fixture-declaraestica`, e ela é o melhor argumento a favor
+de fixture que este projeto produziu.
+
+> **Um ramo sem fixture não é só um ramo não testado: é um ramo cujas frases
+> ninguém leu.**
+
+O código do caminho `historyHits && mediana < 0,02` passou por revisão — alguém
+escreveu a condição, alguém leu o diff. **O texto que ele emite, não** — porque
+ninguém nunca o viu impresso, e revisar uma string dentro de um `else` é
+diferente de ler a frase que ela produz num log real.
+
+A frase era:
+
+> *"Data is linear: median 0.01010, **no stretch recorded in the header**."*
+
+num arquivo cujo header registra `Autostretch` e `Midtones transfer`. **Ela foi
+escrita como incondicional** porque, no momento em que foi escrita, o ramo em que
+ela é falsa não tinha como acontecer com os fixtures existentes.
+
+**A consequência para um produto cujo produto é texto:** cobertura de código e
+cobertura de *frases* não são a mesma coisa. Um ramo pode estar coberto por um
+teste que verifica o **número** e nunca imprime a **frase** — e num log, a frase
+é o que o usuário lê.
+
+**O teste barato:** para cada ramo que emite texto, existe um caso que faz aquele
+texto aparecer num golden? Se não existe, a frase está escrita e **não está
+verificada**, mesmo com o ramo "coberto".
+
+## As duas regras tratavam o mesmo desacordo de formas opostas
+
+Achado ao pôr o `fixture-declaraestica` de pé, e ele é de coerência de produto,
+não de código:
+
+```
+regra dos 0,02   header diz esticado, pixels dizem que nao   -> DESCARTA o header
+spec da escala   header diz normalizado, pixels dizem que nao -> RECUSA
+```
+
+**O mesmo desacordo entre as duas únicas fontes de verdade, com respostas
+incompatíveis — e as duas iam coexistir no mesmo arquivo.**
+
+A tentação é explicar a diferença pela gravidade do erro. **Não é isso**, e a
+medição diz por quê.
+
+### O que decide: a consequência de errar, e ela foi medida
+
+A §4 da spec da escala já tinha estabelecido a forma: *quando o erro se anuncia e
+a decisão é inevitável, declarar é honesto e recusar é higiene performática*. E
+**escolher uma escala é inevitável nos dois casos** — não existe abrir o arquivo
+sem escolher uma, e não existe esticar sem decidir se já foi esticado.
+
+Quatro contradições construídas sobre o `fixture-gradient`, com a declaração de
+um lado e os pixels do outro:
+
+```
+o quadro como ele e                        saida 22   media 25,47
+declara [0,1], pixels vao a 15.083         saida 22   media 25,51
+declara [0,1], pixels vao a 94.269         saida 22   media 25,48
+declara 16 bits, pixels vao a 0,566        saida 22   media 25,50
+```
+
+**As quatro dão a mesma imagem, e é a imagem certa.** A MTF renormaliza, nenhuma
+cruza limiar absoluto, e o caminho de fallback **acerta o quadro em todas**.
+
+E o achado que fecha: **obedecer à declaração contradita seria pior nas duas
+direções** — `[0,1]` com pixels a 15.083 dá branco; `16 bits` com pixels a 0,566
+dá preto.
+
+> **A contradição não é um caso em que a ferramenta precisa escolher entre duas
+> verdades. É um caso em que uma das duas está velha — e os pixels são a que não
+> envelhece.**
+
+### O plausível-e-errado existe, e não é da contradição
+
+Procurado de propósito:
+
+```
+k=2,9   mediana 0,04862   LINEAR       saida 22
+k=3,0   mediana 0,05029   NAO-LINEAR   saida 13
+```
+
+38% mais escuro, e parece escolha estética. **Mas acontece igual num arquivo mudo
+e igual num arquivo com declaração perfeitamente consistente** — é a regra dos
+0,05 sendo cruzada, não a contradição. Não distingue os casos, então não pode
+justificar tratá-los diferente.
+
+### E a contradição tem MAIS informação, não menos
+
+O argumento que fecha:
+
+> O mudo e o contraditório recebem o mesmo tratamento porque o fallback é o mesmo
+> código com os mesmos modos de falha. **Mas o contraditório sabe mais, e o aviso
+> dele diz mais.**
+
+No mudo, a ferramenta só pode dizer *"nada aqui declara a escala; eu escolhi"*.
+No contraditório, ela diz **as duas afirmações e qual valeu** — e **recusar
+jogaria essa informação fora junto com o arquivo**.
+
+**A regra geral, e ela vale além deste caso:** quando duas regras do mesmo sistema
+tratam o mesmo desacordo de formas opostas, uma das duas está errada — e a que
+está errada é quase sempre a mais nova, escrita sem olhar para a que já existia.
+Aqui a mais nova era a recusa, e ela caiu.
