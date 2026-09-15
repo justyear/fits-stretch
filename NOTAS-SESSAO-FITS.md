@@ -2063,6 +2063,18 @@ modelar o operador asinh. Os outros três órfãos (`float16`, `floatmax`,
 `nobayer`) são novos e esperados — entraram nesta rodada e a referência ainda não
 os viu.
 
+**10. A escala do float: a quarta saída está avaliada e a decisão não está
+tomada.** Ver `investigacao-escala-float.md`. O primeiro header real derrubou a
+§2 (nenhuma das três chaves do padrão existe nele) e abriu a §3.D — **ler o
+escritor, não os valores**. O que falta para decidir:
+
+- **quantos arquivos reais assinam quem os escreveu.** Hoje n=1, e os fixtures
+  não servem: eles assinam porque eu os escrevi assim.
+- **um arquivo escrito por script** (`astropy`), o candidato natural a não
+  assinar nada — é ele que dimensiona o caso residual.
+
+Nada de conserto antes disso.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -3192,3 +3204,112 @@ decidi"*.
 o produto escolhe, o log herda a mistura — e o leitor perde a única distinção que
 importa num produto que promete auditabilidade. **Não refatorado**; registrado
 para que a alternativa tenha que argumentar contra isto.
+
+## Quando a informação não está nos dados, procure quem a escreveu
+
+O caso mais forte da sessão sobre o que "medir" quer dizer.
+
+A medição tinha provado que **nenhuma estatística** decide a escala de um FITS
+float: dois arquivos com os mesmos valores de pixel têm que receber a mesma
+resposta, e *"[0,1] exposto 3× mais brilhante"* e *"escala de 16 bits muito
+fraca"* **são os mesmos números**. A conclusão estava certa.
+
+**A conclusão seguinte estava errada, e o erro foi de escopo.** Escrevi: *"a
+informação está em `DATAMAX`/`BUNIT` ou não está em lugar nenhum; quando não
+está, declare ou recuse"* — tratando **três chaves** como se fossem **o header**.
+
+O primeiro arquivo real não tem nenhuma das três. Tem:
+
+```
+PROGRAM  = 'Siril 1.4.4'
+CREATOR  = 'ZWO Seestar S30 Pro'
+HISTORY    "additive+scaling normalized input, normalized output"
+```
+
+**A convenção não está nos valores. Está no header, escrita por quem gravou, em
+palavras.**
+
+**A forma geral:** quando uma decisão precisa de informação que os dados não
+carregam, existe uma terceira fonte entre "os dados" e "desistir" — **o registro
+de quem produziu os dados**. Ele não é estimativa: é declaração, e declaração se
+verifica por contradição em vez de por erro-padrão.
+
+E é isso que a torna melhor que um palpite bom:
+
+```
+declaracao consistente com os dados   ->  usa a declaracao
+declaracao CONTRADITA pelos dados     ->  RECUSA: as duas fontes discordam
+sem declaracao                        ->  caso residual
+```
+
+**Medido:** o `HISTORY` diz *"normalized output"* e o máximo é **1,000000000
+exato**. A conferência custa zero — o máximo já é calculado — e transforma
+*"confiar no header"* em *"confiar no header **e conferir contra os pixels**"*,
+que é uma promessa diferente.
+
+E a mudança de desenho que isso provoca é a mais importante: **declarar-ou-recusar
+sai do caso principal e vai para o residual.** Um produto que recusa o arquivo
+mais comum do seu público não funciona; um que recusa o arquivo sem procedência
+declarada está fazendo o que promete.
+
+## Segunda vez na mesma investigação: conclusão mais larga que a medição
+
+A primeira foi *"tudo que roda depois da MTF é invariante a escala"* — derrubada
+por um fixture da própria suíte. A segunda, **duas rodadas depois, no mesmo
+documento**, foi *"a informação está nessas três chaves ou não está em lugar
+nenhum"* — derrubada pelo primeiro arquivo real.
+
+As duas têm a mesma forma, e não é a de errar uma conta:
+
+| | a medição | a frase que escrevi |
+|---|---|---|
+| 1ª | um fixture, escalas testadas | *"a cadeia"* |
+| 2ª | três chaves que eu tinha listado | *"o header"* |
+
+**Em ambas, o salto foi do que eu tinha olhado para tudo que existe.** E em
+ambas o contraexemplo estava perto — na suíte, e no único arquivo real
+disponível.
+
+**A regra, e ela é mecânica:** ao escrever uma conclusão universal, sublinhe o
+substantivo mais largo da frase e pergunte *"quantos casos desse substantivo eu
+olhei?"*. "A cadeia" — um fixture. "O header" — três chaves. Se o denominador da
+medição for menor que o substantivo, a frase precisa do denominador dentro dela.
+
+## Medir cobertura numa população que eu mesmo gerei é zero informação
+
+Treze dos quatorze fixtures trazem `PROGRAM` e `INSTRUME`. **O número não vale
+nada como evidência**: eles trazem porque eu escrevi o gerador assim.
+
+Perguntar aos fixtures que fração dos arquivos traz assinatura de escritor é
+perguntar à minha própria decisão se ela foi tomada. É a classe do Módulo 5a com
+outro disfarce — e o disfarce é bom, porque **a contagem parece uma medição**:
+tem denominador, tem numerador, e sai de um comando.
+
+**O sinal para reconhecer:** se eu escrevi a coisa que estou contando, a contagem
+mede a minha decisão e não o mundo. Vale para header, vale para nome de arquivo,
+vale para qualquer metadado que o gerador inventa — e é diferente de contar
+pixels, que o gerador produz por regra e não por escolha caso a caso.
+
+O único número com valor de evidência na cobertura foi **1 de 1**.
+
+## Os fixtures erraram a magnitude, não a forma
+
+```
+max / p99,9      pior fixture     5,18
+                 arquivo real    29,02
+```
+
+**O arquivo real é 5,6× mais extremo que o pior caso sintético.** A fragilidade
+do `max` como grandeza de decisão estava medida — certa em forma, e subestimada
+por um fator 5,6 em magnitude.
+
+Isso é uma variante nova da classe da representatividade, e mais traiçoeira que a
+original: lá os fixtures diziam *"o botão dispara"* quando a população real não
+disparava — **erro de sim/não**, visível assim que alguém rodou em dado real.
+Aqui eles dizem a coisa certa com o número errado, e **um número errado por 5,6×
+ainda passa em toda verificação de consistência** — porque nenhuma delas compara
+com o mundo.
+
+**A regra:** quando uma medição sintética vai calibrar um limiar, o número dela é
+um piso, não uma estimativa. A cauda de dado real é mais longa que a de qualquer
+gerador, porque o gerador só produz o que alguém pensou em escrever.

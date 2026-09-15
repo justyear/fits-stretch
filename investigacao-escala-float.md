@@ -14,9 +14,10 @@ senão         -> divisor = mx, o MAIOR PIXEL DO QUADRO
 A objeção: o último faz **um pixel definir a escala do quadro inteiro**, e dois
 empilhamentos do mesmo alvo podem normalizar diferente.
 
-**O que a medição mudou na pergunta:** a escala, sozinha, é quase inofensiva. O
-perigo é o **acoplamento entre a escala e limiares absolutos a montante** — e
-esse acoplamento não é sobre o divisor, é sobre de que os limiares dependem.
+**Onde ela está hoje:** a escala, sozinha, é quase inofensiva — o perigo é o
+**acoplamento entre a escala e limiares absolutos a montante**. E o primeiro
+arquivo real medido (§1) mostrou que a convenção que falta **está no header**,
+escrita por quem gravou, o que abre uma quarta saída (§3.D) que não adivinha.
 
 ---
 
@@ -160,56 +161,80 @@ O conserto não é adivinhar melhor a escala. É **tirar a dependência**.
 
 ---
 
-## 1. O que existe de fato como convenção — A ÚNICA SEÇÃO NÃO MEDIDA
+## 1. O que existe de fato como convenção — PRIMEIRO ARQUIVO REAL MEDIDO
 
-Ela decide entre as saídas da §3 e **não vai virar código antes de ser
-verificada**. Fica em confiança declarada, não em afirmação.
+**n = 1, e ele derruba a §2 como estava escrita.** Um empilhador de telescópio
+inteligente, saída de Siril, float32, trazido por um parceiro de teste:
+
+```
+BITPIX    -32
+BZERO     0.0        BSCALE  1.0
+DATAMIN   AUSENTE
+DATAMAX   AUSENTE
+BUNIT     AUSENTE
+ROWORDER  BOTTOM-UP
+
+min 0,000000000   max 1,000000000   mediana 0,001177378
+p99,9 0,034454248                   max/p99,9 = 29,02
+```
+
+**AS TRÊS CHAVES QUE A §2 CHAMAVA DE DECISIVAS NÃO EXISTEM.** `DATAMIN`,
+`DATAMAX` e `BUNIT`, as únicas evidências do padrão FITS que podiam legitimar um
+divisor, estão ausentes — **no caso mais comum do público-alvo.**
+
+Uma decisão apoiada nelas não decide nada onde importa. Ela seria correta e
+inútil, que é um jeito particularmente caro de errar: passaria em revisão,
+passaria na suíte, e cairia no ramo do palpite exatamente nos arquivos que as
+pessoas trazem.
+
+### 1.1 O que o arquivo real trouxe no lugar
+
+```
+PROGRAM  = 'Siril 1.4.4'
+CREATOR  = 'ZWO Seestar S30 Pro'
+PRODUCER = 'ZWO'
+
+HISTORY  "additive+scaling normalized input, normalized output"
+```
+
+**A convenção está no header — escrita por quem gravou, em palavras.** Não são
+chaves do padrão FITS: são a assinatura do escritor e o registro do que ele fez.
+E o `HISTORY` **declara a normalização explicitamente**.
+
+Isso abre uma saída que a §2.2 tinha dado por fechada, e a §3.D a avalia.
+
+### 1.2 Dois números deste arquivo que valem por si
+
+**`max/p99,9 = 29,02`.** O fixture mais extremo da suíte dá **5,18**. O arquivo
+real é **5,6× mais extremo que o pior caso sintético** — um pixel a 29× o
+percentil 99,9, decidindo a escala do quadro inteiro se ele caísse no ramo
+`/max`. A medição da §2.1, feita só em fixtures, **subestimava a fragilidade**.
+
+> É a lição da representatividade outra vez, e agora do outro lado: os fixtures
+> não mentiram sobre o comportamento, mentiram sobre a **magnitude**. Uma
+> propriedade medida só em dado sintético pode estar certa em forma e errada em
+> escala, e "errada em escala" é o bastante quando o número decide um limiar.
+
+**`max = 1,000000000` exato.** A saída normalizada do Siril fixa o máximo em 1,0
+por construção. Então **toda a população do caso principal senta no mesmo ponto**,
+e a distância dela até o penhasco (`mx > 1,5`) é **50% de exposição** — uma
+margem que não veio de medição nenhuma, e sim da constante 1,5 ter sido escolhida
+como "um pouco acima de 1". Funciona. Mas funciona por uma folga que ninguém
+derivou, sobre uma população que está toda no mesmo lugar.
+
+### 1.3 O resto da tabela continua sem medição
 
 | escritor | o que se acredita | confiança |
 |---|---|---|
-| **Siril** | float32 já em [0,1]; grava `HISTORY` das operações | **alta** — é o caso que o ramo `mx <= 1.5` atende |
-| **Seestar (S30/S50)** | inteiro de 16 bits, `BZERO = 32768` | **alta** — é o que o `fixture-seestar` reproduz |
-| **PixInsight** | internamente [0,1]; ao exportar FITS de 32 bits pode gravar em [0,1] **ou** na faixa do contêiner, conforme opção | **média** — há uma opção, e opção é coisa que se erra |
-| **astropy** | grava o array como ele está: **sem convenção nenhuma** | **alta** — é biblioteca, não aplicativo |
-| **fpack / funpack** | preserva `BITPIX`; para float quantiza por padrão, com o dither no header | **média-alta** — o `fixture-rice` exercita |
+| **Siril** | float32 em [0,1], e **declara isso no `HISTORY`** | **MEDIDO, n=1** |
+| **Seestar (S30/S50)** | subs em inteiro de 16 bits, `BZERO = 32768` | **alta** — o `fixture-seestar` reproduz; e o arquivo real mostra que o stack passa pelo Siril e sai float |
+| **PixInsight** | internamente [0,1]; ao exportar FITS de 32 bits pode gravar em [0,1] **ou** na faixa do contêiner | **média** — há uma opção, e opção é coisa que se erra |
+| **astropy** | grava o array como está: **sem convenção e sem assinatura** | **alta** — é biblioteca, não aplicativo |
+| **fpack / funpack** | preserva `BITPIX`; para float quantiza por padrão | **média-alta** |
 
-### 1.1 O que trazer de cada arquivo, para fechar esta seção
-
-Só header, **nunca pixel**, e os arquivos não entram na árvore. Por fonte
-(Siril, PixInsight, fpack, Seestar), um arquivo de cada caminho que o aplicativo
-oferece — no caso do PixInsight, **um de cada opção de exportação**.
-
-**As chaves, em ordem de importância:**
-
-```
-BITPIX  NAXIS  NAXIS1  NAXIS2  NAXIS3
-BZERO  BSCALE          <- a transformacao fisica declarada
-DATAMIN  DATAMAX       <- a faixa DECLARADA pelo escritor: a chave da decisao
-BUNIT                  <- unidade fisica; se existe, os valores nao sao [0,1]
-ROWORDER
-todos os HISTORY e COMMENT   <- e quem escreveu, e o que ele fez
-qualquer chave nao-padrao    <- Siril e PixInsight gravam as proprias
-ZIMAGE ZBITPIX ZCMPTYPE ZQUANTIZ ZDITHER0    <- so nos .fz
-```
-
-**E três números dos pixels, que não são pixels:**
-
-```
-minimo  maximo  mediana
-```
-
-São o que decide se o arquivo cai em `[0,1]`, na escala de 16 bits ou fora das
-duas — e a mediana é o que diz se ele é linear ou já esticado. **Três números
-por arquivo não reconstroem imagem nenhuma.**
-
-**O que NÃO trazer, e a regra é do `CLAUDE.md`:** `OBJECT`, `DATE-OBS`,
-`TELESCOP`, `INSTRUME`, o nome do arquivo, o caminho. A fonte vai como *"um
-parceiro de teste"* e o escritor como classe (*"Siril 1.2"*), nunca como
-identificação.
-
-**A pergunta que a lista fecha:** existe algum escritor que grave float **fora**
-de [0,1] e **fora** da escala de 16 bits — ou seja, algum arquivo real que o
-ramo `/max` esteja realmente atendendo? Se não existir, ele é um portão sem
+A linha do **astropy** é a que interessa para a §3: é o escritor que
+provavelmente **não** assina, e é por isso que a quarta saída precisa de um caso
+residual em vez de substituir as outras.
 população.
 
 ---
@@ -286,8 +311,17 @@ real e vale por si — e **não pode** consertar a ambiguidade, porque a
 ambiguidade não é ruído: é informação ausente.
 
 **Consequência de desenho, e ela decide a §3:** a informação que falta está no
-**header** (`DATAMAX`, `BUNIT`, `HISTORY`) ou não está em lugar nenhum. Quando
-não está, a resposta honesta não é um palpite melhor — é declarar ou recusar.
+**header** ou não está em lugar nenhum.
+
+> **E eu fechei uma porta a mais do que a medição fechava.** A frase acima estava
+> certa e a conclusão que tirei dela era estreita demais: *"quando não está, a
+> resposta honesta é declarar ou recusar"* tratou `DATAMAX`/`BUNIT` como se
+> fossem todo o header. O arquivo real da §1 não tem nenhuma das duas — e tem
+> `PROGRAM`, `CREATOR` e um `HISTORY` que **declara a normalização em palavras**.
+>
+> O que a §2.2 prova é que **nenhuma estatística** resolve. Ela não prova nada
+> sobre o header, porque eu só tinha olhado para três chaves dele. A quarta saída
+> está na §3.D, e ela é a que cobre o caso principal.
 
 ### 2.3 A fronteira de responsabilidade que `normalisePhysical` não tem
 
@@ -321,26 +355,144 @@ junto) tenha que argumentar contra isto.
 
 ---
 
-## 3. Quando a resposta certa é RECUSAR ou DECLARAR
+## 3. As quatro saídas
 
-Três saídas, e a escolha depende da §1:
+**A §2.2 fechou a porta ESTATÍSTICA, e só ela.** A frase era *"a convenção não
+está nos valores"* — e isso continua verdade. Mas o arquivo real da §1.1 mostra
+que a convenção **está no header, escrita por quem gravou**, e essa porta a §2.2
+não tinha olhado.
 
-**A. DECLARAR A CONSEQUÊNCIA.** O ramo fica e o log ganha o que falta: que o
-divisor veio de um punhado de pixels, e que dois arquivos do mesmo alvo podem
-normalizar diferente por isso. É a mesma forma das correções do CFA e da
-calibração — *declarar a suposição **e** o que acontece se ela estiver errada*.
+### D. LER O ESCRITOR, NÃO OS VALORES — a quarta, e a que cobre o caso principal
 
-**B. RECUSAR.** Quando `mx > 1.5` e não há `DATAMAX`, `BUNIT` nem `HISTORY` que
-identifique o escritor, a ferramenta **não tem base para escolher escala** e diz
-isso, em vez de produzir uma imagem plausível a partir de um palpite. É a mesma
-decisão do botão que não aparece e do recorte que não sugere.
+Um arquivo com `PROGRAM = 'Siril 1.4.4'` e `HISTORY` dizendo *"normalized
+output"* está em [0,1] **por declaração**, não por inferência. Não é uma
+estimativa com erro-padrão: é o escritor dizendo o que fez.
 
-**C. TIRAR O RAMO `/max`.** Se a §1 mostrar que ninguém grava float nessa faixa,
-ele não tem população real — e cai na classe mais cara já registrada aqui.
+**Por que ela é diferente das outras três:** A, B e C tratam do que fazer quando
+não se sabe. **D é sobre reconhecer quando se sabe** — e a §1 mede que, no caso
+mais comum, se sabe.
 
-**Nenhuma das três é "adivinhar melhor".** E a §2.2 fecha a porta para uma
-quarta: não existe estatística que resolva isto.
+**A máquina já existe nesta base de código.** `STRETCH_HISTORY` em `run.js` é
+uma tabela de expressões regulares sobre as linhas de `HISTORY`, e o que ela
+produz (`historyHits`) já alimenta a regra linear/não-linear, já vai para o
+record e já é impresso no log:
 
+```js
+var STRETCH_HISTORY = [
+  [/autostretch/i,        'Autostretch'],
+  [/histogram\s*transf/i, 'Histogram Transf.'],
+  ...
+];
+```
+
+D é **a mesma forma, para outra pergunta**. Não é mecanismo novo: é a segunda
+aplicação de um mecanismo que já passou por revisão, já tem lugar no diag e já
+tem precedente de ler uma declaração em vez de inferir de pixel.
+
+#### D.1 A cobertura, medida — e a medida dos fixtures não vale
+
+| população | traz `PROGRAM`/`CREATOR`/`HISTORY` utilizável |
+|---|---|
+| **fixtures sintéticos** | **13 de 14** — e o número **não é evidência** |
+| **arquivos reais** | **1 de 1** — `PROGRAM`, `CREATOR`, `PRODUCER` e `HISTORY` |
+
+> **Os treze fixtures trazem `PROGRAM` porque eu os escrevi assim.** Medir
+> cobertura de header numa população que eu mesmo gerei é perguntar à minha
+> própria decisão se ela foi tomada. **Zero informação**, e é exatamente a classe
+> da §2 do Módulo 5a com outro disfarce — a suíte confirmando o que a suíte
+> assumiu.
+>
+> O único número com valor de evidência aqui é **1 de 1**, e n=1 é n=1.
+
+O `fixture-rice` é o que não traz, e por um motivo que importa para a
+implementação: **num `.fz` o HDU primário tem só `SIMPLE/BITPIX/NAXIS/EXTEND`**,
+e tudo mora na extensão `BINTABLE`. Uma leitura de escritor tem que olhar o
+header da **extensão de imagem**, não o primário — o código já acha esse HDU, mas
+a regra tem que dizer qual header ela lê.
+
+#### D.2 A ordem de precedência que D exige
+
+D não substitui as evidências do padrão: **entra abaixo delas e acima de
+qualquer estatística.**
+
+```
+1. BITPIX > 0                    o conteiner decide       PADRAO
+2. BSCALE/BZERO diferentes de (1,0)  declaracao explicita  PADRAO
+3. DATAMIN/DATAMAX               faixa declarada           PADRAO
+4. PROGRAM/CREATOR + HISTORY     o escritor declarado      <- D
+5. estatistica sobre os valores  palpite                   <- hoje, sozinho
+```
+
+Hoje a decisão salta de 1–2 direto para 5. **D preenche o degrau que falta, e é
+o degrau onde o caso principal mora.**
+
+#### D.3 O caso residual, que é onde A e B passam a valer
+
+Quando **nenhuma** das chaves existe — nem padrão, nem assinatura — aí sim não há
+base. É o caso do **astropy**: uma biblioteca grava o array como está e
+tipicamente não assina nada.
+
+**E essa é a mudança de desenho que D provoca:** declarar-ou-recusar deixa de ser
+a política do caso principal e passa a ser a do **residual**. Um produto que
+recusa o arquivo mais comum do seu público é um produto que não funciona; um que
+recusa o arquivo sem procedência declarada está fazendo o que promete.
+
+#### D.4 O risco, e o que dele é detectável
+
+**Um header pode mentir, ou envelhecer.** Três formas, e elas não são iguais:
+
+| risco | detectável? |
+|---|---|
+| o arquivo passou por outro programa que **acrescentou** `HISTORY` | **sim** — `HISTORY` é append-only por convenção, então a última linha é a última operação; ler a ordem, não só a presença |
+| o arquivo passou por outro programa que **reescreveu pixels sem registrar** | **NÃO** — e isto tem que ser declarado, não mitigado |
+| a declaração **contradiz os dados** | **sim, e é barato** |
+
+A terceira é a que dá uma verificação de graça: uma declaração de *"normalized
+output"* é **falsificável**. Se o header diz [0,1] e o máximo é 32.000, a
+declaração está errada ou o arquivo mudou depois — e o certo ali não é escolher
+um dos dois, é **recusar**, porque as duas únicas fontes de verdade disponíveis
+discordam.
+
+```
+declaracao consistente com os dados   ->  usa a declaracao
+declaracao CONTRADITA pelos dados     ->  RECUSA: as duas fontes discordam
+sem declaracao                        ->  caso residual (D.3)
+```
+
+**Medido no arquivo real:** `HISTORY` diz *"normalized output"* e o máximo é
+**1,000000000 exato**. Consistente. A verificação não custa nada — o máximo já é
+calculado — e transforma D de "confiar no header" em **"confiar no header e
+conferir contra os pixels"**, que é uma promessa diferente e muito mais forte.
+
+**O que não é detectável fica escrito no log**, pela regra que esta mesma rodada
+aplicou ao CFA: declarar a suposição *e* o que acontece se ela estiver errada.
+Aqui seria — *a escala veio do que `PROGRAM` declara; se este arquivo passou por
+outro programa que mudou os valores sem registrar, a escala pode estar errada e
+nada aqui percebe*.
+
+#### D.5 O que D não resolve
+
+- **É um registro de comportamento de terceiro.** Se o Siril mudar de convenção
+  numa versão futura, a tabela fica errada em silêncio. Mitigação possível: o log
+  imprimir **qual regra casou e qual versão foi lida**, de modo que a entrada
+  velha apareça no artefato em vez de só no código.
+- **Não cobre escritor sem assinatura**, por construção — é o D.3.
+- **Não torna o ramo `/max` correto**; torna-o **raro**, o que é outra coisa. Se
+  a §1 crescer e ninguém real cair nele, a saída C volta à mesa.
+
+### As outras três, com o papel que passam a ter
+
+**A. DECLARAR A CONSEQUÊNCIA.** Continua valendo, e agora como **complemento de
+D**, não como alternativa: mesmo quando a escala vem de uma declaração, o log tem
+que dizer de onde ela veio e o que não é detectável.
+
+**B. RECUSAR.** Continua valendo, e **muda de lugar**: do caso principal para o
+residual (D.3) e para a contradição (D.4).
+
+**C. TIRAR O RAMO `/max`.** Continua em aberto e **depende da §1 crescer**. O
+arquivo real não cai nele — cai no `unit`, com máximo 1,0 exato.
+
+**Nenhuma das quatro é "adivinhar melhor".** D é a única que **não adivinha**.
 ---
 
 ## 4. O que muda no resto da cadeia se a escala mudar
@@ -375,10 +527,15 @@ Enquanto forem, **qualquer divisor é uma escolha com consequência**.
 
 - **Não tocou em código de conserto.** As cópias escaladas foram construídas em
   memória, no navegador, e nada foi versionado.
-- **Não mediu arquivo de terceiro.** Tudo saiu de fixtures sintéticos.
-- **Não fechou a §1**, que é a única que decide entre A, B e C.
+- **Não mediu pixel de terceiro.** O arquivo real entrou como **header e três
+  números**, pela regra do `CLAUDE.md`; nenhum pixel dele foi lido aqui e nenhum
+  arquivo dele entrou na árvore.
+- **Não fechou a §1**: n=1. Um arquivo real mostra que D cobre o caso principal
+  e **não mostra qual fração da população traz assinatura**.
 - **Não propôs limiar novo.** Trocar 0,05 por outro número escolhido seria
   repetir o defeito com outro valor.
+- **Não escreveu a tabela de escritores.** Ela é o coração de D e precisa de mais
+  de um arquivo para existir sem inventar entradas.
 
 ## 6. Ordem
 
@@ -388,6 +545,21 @@ Enquanto forem, **qualquer divisor é uma escolha com consequência**.
    `unit` e um em `int`: **dois dos quatro ramos do leitor nunca tinham sido
    exercitados.**
 2. ~~**A curva de transição.**~~ **FEITO** — §0.4.
-3. **Inventário de cabeçalhos**, pela lista da §1.1. Fecha a §1 e decide entre
-   A, B e C.
-4. Só então o conserto, com o que ele mudar na spec do Módulo 0.
+3. ~~**O primeiro header real.**~~ **FEITO**, e ele reescreveu a §1 e abriu a
+   §3.D.
+4. **Mais headers, e a pergunta mudou.** Não é mais *"existe `DATAMAX`?"* — a
+   resposta medida é não. É:
+
+   > **Que fração dos arquivos que as pessoas trazem assina quem os escreveu?**
+
+   Por fonte, o mesmo formato da §1.1: chaves, `HISTORY` completo, e mínimo /
+   máximo / mediana. O que decide entre D-com-residual e B é **quantos caem no
+   residual**.
+
+   E um caso que vale procurar de propósito: **um arquivo escrito por script**
+   (`astropy`), que é o candidato natural a não assinar nada.
+
+5. **A tabela de escritores**, se a cobertura justificar — com a verificação de
+   contradição da §3.D.4 desde o primeiro dia, porque é ela que separa *"confiar
+   no header"* de *"confiar no header e conferir contra os pixels"*.
+6. Só então o conserto, com o que ele mudar na spec do Módulo 0.
