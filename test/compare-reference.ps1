@@ -1830,6 +1830,37 @@ foreach ($g in (Get-ChildItem -LiteralPath $gold -Filter '*-fixture.records.json
     $rows += New-Row $base 'cadeia' '(todos)' '-' '-' 'N/A' `
              'golden existe e a referencia nao tem contrapartida para ele - nenhuma linha deste fixture foi comparada'
 }
+
+<#
+UM REGISTRO DE DIVIDA QUE NAO REPROVA QUANDO A DIVIDA E PAGA VIRA FICCAO.
+
+O `$KNOWN` tinha so metade do mecanismo: uma entrada faz a linha sair como KNOWN
+em vez de FAIL, e nada nunca perguntava se ela ainda vale. Divergencia resolvida
+-> a linha volta a PASS, a entrada continua na lista, e ninguem sabe.
+
+E a metade que falta e justamente a que quase nunca se exercita, porque ela exige
+que alguem PAGUE uma divida -- o caso raro. Foi o `compare-frases` que mostrou o
+valor dela: ao fechar o ramo do CFA espelhado, ele reprovou com "2 declaracoes
+que nao valem mais" antes de qualquer pessoa notar.
+
+Hoje `$KNOWN` esta vazio, entao esta checagem nao tem o que fazer. Ela entra
+agora exatamente por isso: um registro vazio e onde o defeito espera, porque
+ninguem escreve a guarda quando nao ha nada para guardar.
+#>
+$knownVelhos = @()
+foreach ($k in $KNOWN) {
+    $usou = $rows | Where-Object {
+        $_.resultado -eq 'KNOWN' -and $_.fixture -eq ($k.fixture -replace '-fixture', '') -and $_.campo -eq $k.field
+    }
+    if (-not $usou) { $knownVelhos += ('{0} | {1}' -f $k.fixture, $k.field) }
+}
+if ($knownVelhos.Count) {
+    foreach ($v in $knownVelhos) {
+        $p = $v -split ' \| '
+        $rows += New-Row $p[0] 'divida' $p[1] '-' '-' 'FAIL' `
+                 'entrada em $KNOWN que nao vale mais: a linha nao saiu como KNOWN nesta rodada. Ou a divergencia foi resolvida e a entrada tem que sair, ou o campo sumiu e a entrada aponta para o vazio'
+    }
+}
 # -Csv existe porque a tabela formatada trunca a coluna do veredito quando os
 # campos sao largos (um sha256 empurra tudo para fora da tela), e "quais
 # linhas reprovaram" e a pergunta que mais se faz deste script.

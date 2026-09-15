@@ -168,6 +168,18 @@ function Rec($recs, $id) {
 }
 
 # ---------------------------------------------------------------------------
+
+# E O `$SEMCOBERTURA` TAMBEM E UM REGISTRO DE DIVIDA, e tinha a mesma metade
+# faltando: ele lista limiares que este inventario nao mede, com o motivo. No dia
+# em que um deles ganhar uma grandeza escalar e entrar no `$LIMIARES`, a entrada
+# aqui vira mentira -- e nada reprovava.
+#
+# A checagem e trivial: um id que esteja nas DUAS listas e uma entrada que
+# envelheceu.
+$cobertosAgora = @()
+foreach ($s in $SEMCOBERTURA) {
+    foreach ($L in $LIMIARES) { if ($L.id -eq $s.id) { $cobertosAgora += $s.id } }
+}
 $linhas = @()
 $fixtures = @()
 foreach ($f in (Get-ChildItem -LiteralPath $gold -Filter '*-fixture.diag.json' | Sort-Object Name)) {
@@ -280,5 +292,12 @@ if ($declaradosVelhos.Count) {
     $bad += $declaradosVelhos.Count
 }
 
+if ($cobertosAgora.Count) {
+    Write-Host ''
+    Write-Host ('MARGENS FAIL -- {0} entrada(s) em $SEMCOBERTURA que ja sao medidas:' -f $cobertosAgora.Count)
+    $cobertosAgora | ForEach-Object { Write-Host ('  ' + $_) }
+    Write-Host 'O limiar entrou em $LIMIARES. Apague a entrada em vez de deixa-la envelhecer.'
+    $bad += $cobertosAgora.Count
+}
 if ($bad -gt 0) { exit 1 }
 Write-Host 'MARGENS PASS'

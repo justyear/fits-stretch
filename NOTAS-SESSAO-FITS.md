@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **286.875 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **288.164 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2148,18 +2148,22 @@ NaN na entrada · quadro MONO de lado impar · quadro 2D com HISTORY de stack
 o asinh que nao alcanca o alvo · a variante do alvo no ramo nao-linear
 ```
 
-**15. O catálogo tem a primeira entrada MEDIDA — e a primeira REFUTADA.** O
-Siril 1.4.4 não escreve `autostretch` (é modo de visualização, não toca nos
-pixels) e escreve `Histogram Transf. (mid=..., lo=..., hi=...)`. A entrada 2 casa,
-e casa porque o padrão para no prefixo `transf` — **acerta, e o motivo de acertar
-não estava escrito**. Faltam cinco SUPOSTO, e cada uma fecha com um arquivo do
-programa correspondente.
+**15. O catálogo tem a primeira entrada MEDIDA e a primeira REFUTADA.** O Siril
+1.4.4 não escreve `autostretch` (é modo de visualização, não toca nos pixels) e
+escreve `Histogram Transf. (mid=..., lo=..., hi=...)`. A entrada 2 casa, e casa
+porque o padrão para no prefixo `transf` — **acerta, e o motivo de acertar não
+estava escrito**. Faltam cinco SUPOSTO.
 
-**E uma possibilidade anotada:** `mid` e `lo` são os midtones e o ponto preto da
-MTF; um parser que os lesse saberia com que parâmetros o quadro foi esticado, e
-poderia conferi-los contra a mediana observada. **Ressalva medida:** reconstruir
-0,250309 a partir de `(mid=0.001, lo=0.001)` pela MTF deste projeto **não fecha**
-— dá 0,15. Quem implementar começa por descobrir a convenção do Siril.
+**Os parâmetros do `HISTORY` NÃO servem para reconstruir**, e a causa está
+medida: o Siril arredonda para três casas, e `lo` perde **100%** da informação
+(0,000368 → 0,000) porque é exatamente onde o ponto preto mora num quadro linear.
+Servem para detectar, para ordem de grandeza, e — melhor uso — para **conferir**
+a mediana observada contra o `mid` declarado, que é a falsificação da spec da
+escala aplicada ao esticamento. **Anotado, não implementado.**
+
+**E uma confirmação externa que veio de graça:** os três canais usam os mesmos
+parâmetros — o Siril estica **LIGADO**, a mesma decisão que o Módulo 3 tomou aqui
+por medição própria e por outro caminho.
 
 **16. `\bcurves?\b` fica SUPOSTO com o risco escrito.** O custo do falso positivo
 só existe na janela de mediana entre 0,02 e 0,05, e **um dos vinte fixtures
@@ -4007,3 +4011,115 @@ exercitada, porque exige que alguém pague uma dívida.
 
 Terceiro par controlado com o `seestar`: mesmos pixels, um cartão diferente.
 Cobertura de frases: **143 frases, 135 com caso (94%), 8 sem.**
+
+## Segunda instância do arredondamento de três casas do Siril
+
+A primeira está acima e custou um dia. A segunda apareceu ao tentar reconstruir
+um esticamento a partir dos parâmetros que o `HISTORY` declara.
+
+```
+HISTORY diz   mid=0.002     lo=0.000
+real          mid=0.002428  lo=0.000368
+```
+
+Com os valores reais, a reconstrução fecha em **3,5e-08 por pixel** — precisão de
+float32. Com os valores escritos, não fecha: minha tentativa deu 0,15 contra
+0,250309 observado, e eu tinha anotado a falha sem saber a causa.
+
+**E o dano é assimétrico, que é o que torna isto uma classe e não um detalhe:**
+
+| campo | escrito | real | perda |
+|---|---|---|---|
+| `mid` | 0,002 | 0,002428 | **18%** — ainda diz a ordem de grandeza |
+| `lo` | 0,000 | 0,000368 | **100%** — três casas não distinguem de zero |
+
+**O campo que mais precisa de precisão é o que recebe menos.** O ponto preto de
+um quadro linear mora exatamente na ordem de `1e-4`, e três casas decimais
+começam a resolver em `5e-4`. A formatação é uniforme; a grandeza que ela
+descreve não é.
+
+> **Um formato de saída com casas fixas destrói informação de forma desigual, e
+> destrói mais justamente onde os valores são pequenos.** Quem escolhe "três
+> casas" está escolhendo uma precisão ABSOLUTA para campos que vivem em escalas
+> diferentes — e para o campo que mora abaixo do último dígito, a saída é zero.
+
+**A consequência prática para o catálogo:** os parâmetros do `HISTORY` **não
+servem para reconstruir**. Servem para detectar, para dar ordem de grandeza, e —
+o uso melhor e mais barato — para **conferir**: se o header declara `mid=0,002` e
+a mediana observada é compatível com um MTF dessa ordem, as duas fontes
+concordam; se declara `mid=0,002` e a mediana está em 0,001, alguma coisa está
+errada. É a conferência de falsificação da spec da escala **aplicada ao
+esticamento**.
+
+## O Siril estica LIGADO — confirmação externa e independente
+
+Os **três canais** do arquivo medido usam os **mesmos** `mid` e `lo`. A hipótese
+de que fossem por canal foi levantada e a medição a descartou.
+
+E isso é mais do que um detalhe de parser: **a ferramenta de referência do campo
+toma a mesma decisão que o Módulo 3 tomou aqui**, por medição própria e por outro
+caminho — uma curva derivada da luminância, com todos os canais multiplicados
+pelo mesmo número, porque curva por canal é um balanço de branco não declarado.
+
+> **Duas rotas independentes chegando na mesma escolha é o tipo de confirmação
+> que uma suíte não pode produzir**, por mais verde que fique: ela compara a
+> ferramenta consigo mesma e com uma segunda implementação escrita a partir da
+> mesma spec. Concordar com quem nunca leu a spec é evidência de outra natureza.
+
+## Acertar por acidente e acertar por desenho dão o mesmo verde
+
+`/histogram\s*transf/i` casa `Histogram Transf.` — e casa porque o padrão para no
+**prefixo** `transf`. Conferido:
+
+```
+histogram\s*transf           casa "Histogram Transf."     SIM
+histogram\s*transformation   casa "Histogram Transf."     NAO
+```
+
+**Não há registro de por que quem escreveu parou em `transf`.** E a minha própria
+anotação, escrita no dia anterior, dizia que *"a forma abreviada no HISTORY não
+foi vista"* — ou seja, do ponto de vista do projeto a abreviação **não estava
+antecipada**, e a entrada sobrevive por uma escolha cuja razão ninguém registrou.
+
+> **Uma entrada que acerta por acidente e uma que acerta por desenho produzem
+> exatamente o mesmo verde. Só o comentário separa as duas.**
+
+E a diferença importa no dia da manutenção: quem vê o verde conclui que a entrada
+foi pensada para aquele formato e a trata como estável. Quem lê *"acerta, e o
+motivo não estava escrito"* sabe que a próxima versão do Siril pode mudar a
+abreviação e derrubar a entrada sem aviso.
+
+**A regra geral:** procedência não é só *"de onde veio o valor"* — é também
+*"por que ele funciona"*. As duas envelhecem, e a segunda envelhece em silêncio.
+
+## Todo registro de dívida reprova quando a dívida é paga
+
+Regra geral, aplicada à suíte inteira depois que o `compare-frases` mostrou o
+valor: ao fechar o ramo do CFA espelhado, ele reprovou com *"2 declarações que
+não valem mais"* **antes de qualquer pessoa notar**.
+
+**A auditoria dos registros de dívida da suíte:**
+
+| registro | reprovava quando a dívida é paga? |
+|---|---|
+| `compare-frases` `$DECLARADAS` | **sim** |
+| `compare-margens` `$DECLARADOS` | **sim** |
+| `negative-controls` âncoras de clip | **sim** — lidas do golden em tempo de execução |
+| `malformed.json` | **sim** — veredito exato por caso |
+| `compare-reference` `$KNOWN` | **NÃO** ← consertado |
+| `compare-margens` `$SEMCOBERTURA` | **NÃO** ← consertado |
+
+Os dois consertados tinham só metade do mecanismo: `$KNOWN` fazia uma linha sair
+como KNOWN em vez de FAIL e **nada perguntava se a entrada ainda valia**;
+`$SEMCOBERTURA` lista limiares que o inventário não mede, e **nada notaria** se um
+deles entrasse na lista dos medidos.
+
+**E o `$KNOWN` está vazio hoje**, o que é justamente a razão de a guarda entrar
+agora: **um registro vazio é onde o defeito espera**, porque ninguém escreve a
+guarda quando não há nada para guardar — e quando houver, o autor da entrada vai
+estar pensando na dívida, não no dia em que ela é paga.
+
+> **Um registro de dívida que não reprova quando a dívida é paga vira ficção com
+> o tempo.** E a metade que detecta isso é a que quase nunca se exercita, porque
+> exige que alguém *pague* — o caso raro, e o único em que a entrada velha passa
+> de inútil a mentirosa.

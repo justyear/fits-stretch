@@ -78,17 +78,43 @@ var STRETCH_HISTORY = [
    * estava escrito -- que e diferente de acertar por desenho, e a procedencia
    * existe para nao deixar os dois parecerem a mesma coisa.
    *
-   * E A LINHA TRAZ OS PARAMETROS, que e mais do que esta tabela usa: `mid` e
-   * `lo` sao os midtones e o ponto preto da MTF. Um parser que os lesse saberia
-   * nao so QUE foi esticado, mas COM QUE PARAMETROS, e poderia conferir contra a
-   * mediana observada -- a mesma conferencia de falsificacao da
-   * spec-escala-decisao.md, aplicada ao esticamento.
+   * E A LINHA TRAZ OS PARAMETROS, mas NAO servem para o que parecia.
    *
-   * ANOTADO E NAO FEITO, e com uma ressalva medida: reconstruir 0,250309 a
-   * partir de (mid=0.001, lo=0.001) pela MTF padrao deste projeto NAO fecha --
-   * da 0,15. Ou a convencao do Siril para `mid` e outra, ou os valores sao por
-   * canal, ou ha um passo a mais. Quem for implementar comeca por descobrir
-   * isso, nao por confiar nos numeros.
+   * `mid` e `lo` sao os midtones e o ponto preto da MTF. A tentacao e
+   * reconstruir o esticamento a partir deles. NAO DA, e a causa foi medida do
+   * outro lado, num arquivo cujos parametros foram resolvidos numericamente e
+   * conferidos pixel a pixel:
+   *
+   *     HISTORY diz   mid=0.002     lo=0.000
+   *     real          mid=0.002428  lo=0.000368
+   *
+   * O Siril ARREDONDA PARA TRES CASAS ao escrever. Com os valores reais, a
+   * reconstrucao fecha em 3,5e-08 por pixel -- precisao de float32. Com os
+   * valores escritos, nao fecha: `lo` vira 0,000 exato.
+   *
+   * E o dano e assimetrico. `mid` perde 18% e ainda diz a ordem de grandeza;
+   * `lo` perde 100% DA INFORMACAO, porque tres casas nao distinguem 0,000368 de
+   * zero -- e 0,000368 e exatamente a ordem onde o ponto preto mora num quadro
+   * linear. O campo que mais precisa de precisao e o que recebe menos.
+   *
+   * SEGUNDA INSTANCIA do arredondamento de tres casas do Siril neste projeto. A
+   * primeira esta no NOTAS e custou um dia.
+   *
+   * PARA O QUE ELES SERVEM, e e mais barato e mais util:
+   *
+   *   detectar    que houve esticamento -- o que a tabela ja faz
+   *   ordem de grandeza  midtones ~0,002 e a escala do que foi aplicado
+   *   CONFERIR    se a mediana observada e compativel com um MTF de midtones
+   *               dessa ordem, as duas fontes concordam. Se o HISTORY declara
+   *               mid=0,002 e a mediana esta em 0,001, alguma coisa esta errada.
+   *
+   * A terceira e a conferencia de falsificacao da spec-escala-decisao.md
+   * aplicada ao ESTICAMENTO, e nao so a escala. Anotada, nao feita.
+   *
+   * E UMA CONFIRMACAO EXTERNA QUE VEIO DE GRACA: os TRES canais do arquivo usam
+   * os MESMOS mid e lo. O Siril estica LIGADO, nao por canal -- que e a mesma
+   * decisao que o Modulo 3 tomou aqui por medicao propria, chegando nela por
+   * outro caminho. A ferramenta de referencia do campo faz a mesma escolha.
    */
   [/histogram\s*transf/i,     'Histogram Transf.'],
   // SUPOSTO -- o Siril tem um esticamento asinh. A palavra tambem aparece em
@@ -110,13 +136,13 @@ var STRETCH_HISTORY = [
   // quando a mediana do quadro esta ENTRE os dois. Fora da janela o veredito e o
   // mesmo com ou sem o falso positivo.
   //
-  // Medido nos dezenove fixtures: UM esta dentro da janela -- o `bigobject`, em
+  // Medido nos vinte fixtures: UM esta dentro da janela -- o `bigobject`, em
   // 0,04938. E e o mesmo que o inventario de margens ja pegou a 1,2% do limiar
   // de 0,05, entao ele esta exposto pelos dois lados.
   //
   // NAO MEDIDO, e e o que fecharia: existe HISTORY real que contenha "curves"
   // sem falar de esticamento? Precisa de um corpus de headers reais, que o
-  // projeto ainda nao tem (n=2). Ate la fica SUPOSTO com o risco escrito -- que
+  // projeto ainda nao tem (n=3). Ate la fica SUPOSTO com o risco escrito -- que
   // e exatamente para o que a procedencia serve.
   [/\bcurves?\b/i,            'Curves'],
   // SUPOSTO para `modasinh` (asinh modificado, do Siril).
