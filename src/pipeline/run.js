@@ -62,11 +62,18 @@ var STRETCH_HISTORY = [
    */
   [/autostretch/i,            'Autostretch'],
 
-  /* MEDIDO -- Siril 1.4.4, texto verbatim:
+  /* MEDIDO -- Siril 1.4.4, e a amostra e de DOIS arquivos, nao de um.
    *
-   *     Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+   * Dois alvos diferentes, a mesma versao, a mesma sessao:
    *
-   * Unica das sete que casa o arquivo medido, e a unica MEDIDA das sete.
+   *     arquivo A   Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+   *     arquivo B   Histogram Transf. (mid=0.002, lo=0.000, hi=1.000)
+   *
+   * Duas cenas distintas, MESMO FORMATO DE LINHA e mesma estrutura. E o que
+   * torna esta entrada MEDIDA e nao apenas vista uma vez: o que ela reconhece e
+   * a forma, e a forma repetiu.
+   *
+   * Unica das sete que casa os arquivos medidos, e a unica MEDIDA das sete.
    *
    * E ELA ACERTA POR UM DETALHE QUE NINGUEM REGISTROU: o padrao usa o PREFIXO
    * `transf`, nao a palavra inteira. Conferido -- `histogram\s*transf` casa
@@ -82,7 +89,7 @@ var STRETCH_HISTORY = [
    *
    * `mid` e `lo` sao os midtones e o ponto preto da MTF. A tentacao e
    * reconstruir o esticamento a partir deles. NAO DA, e a causa foi medida do
-   * outro lado, num arquivo cujos parametros foram resolvidos numericamente e
+   * outro lado, no arquivo B, cujos parametros foram resolvidos numericamente e
    * conferidos pixel a pixel:
    *
    *     HISTORY diz   mid=0.002     lo=0.000

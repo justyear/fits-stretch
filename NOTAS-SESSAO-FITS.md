@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **288.164 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **288.540 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2171,6 +2171,20 @@ está dentro dela** — o `bigobject`, em 0,04938, que é o mesmo que o inventá
 margens pegou a 1,2% do limiar de 0,05. Exposto pelos dois lados. Fecha com um
 corpus de headers reais; hoje n=3.
 
+**17. `chromaNoise.growthPct` imprime sempre `0.00%`.** Casas fixas (2) num
+campo cujos valores medidos vão de 7,7e-10 a 4,0e-7 — quatro a sete ordens abaixo
+do último dígito, e não distingue valores 500× diferentes. **Não é erro de
+veredito** (a salvaguarda dispara em 2%); é a perda da distinção entre *"zero"* e
+*"abaixo da resolução"*, que este projeto já registrou como importante.
+
+Os dois campos irmãos — `maxRatioDrift` e `maxHueDrift`, mesma família de
+grandeza minúscula — já usam `toExponential(1)`. **`growthPct` ficou de fora por
+inconsistência, não por decisão.** Custa uma linha e uma recaptura dos vinte
+goldens de log.
+
+**E a pergunta que generaliza, para quando alguém mexer no log:** para cada campo
+com casas fixas, qual é a menor magnitude que ele precisa distinguir de zero?
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -4123,3 +4137,100 @@ estar pensando na dívida, não no dia em que ela é paga.
 > o tempo.** E a metade que detecta isso é a que quase nunca se exercita, porque
 > exige que alguém *pague* — o caso raro, e o único em que a entrada velha passa
 > de inútil a mentirosa.
+
+## Toda estrutura de exceção nasce com as duas metades — especialmente vazia
+
+Generalização do `$KNOWN`, e ela vale muito além deste projeto.
+
+Uma estrutura de exceção — lista de casos conhecidos, dívida declarada, testes
+ignorados, avisos suprimidos — tem **duas metades**:
+
+```
+1. a entrada faz o caso passar               <- todo mundo escreve
+2. a entrada reprova quando nao vale mais    <- quase ninguem escreve
+```
+
+**A segunda metade quase nunca é escrita, e a auditoria mediu quanto:** dos seis
+registros de dívida da suíte, **dois não a tinham**.
+
+> **Um registro vazio é onde o defeito espera, porque ninguém escreve a guarda
+> quando não há nada para guardar.**
+
+O `$KNOWN` estava **vazio**. Escrever a guarda parecia desnecessário — não há
+entrada para envelhecer. Mas o momento em que alguém escreve a primeira entrada é
+o pior momento possível para pensar nisso: quem escreve está pensando **na
+dívida**, no problema que precisa contornar agora, e não no dia em que ela é
+paga. A guarda tem que já estar lá quando a primeira entrada chegar.
+
+**E a metade que falta é a que quase nunca se exercita**, porque exige que alguém
+*pague* uma dívida — o caso raro. Foi o `compare-frases` que mostrou o valor: ao
+fechar o ramo do CFA espelhado, ele reprovou com *"2 declarações que não valem
+mais"* **antes de qualquer pessoa notar**.
+
+**A regra:** escreva as duas metades juntas, sempre, mesmo — **principalmente** —
+quando a estrutura nasce vazia. Custa cinco linhas no dia em que não há nada, e
+ninguém as escreve no dia em que há.
+
+## Uma dúvida que tinha resposta, e não afirmar foi o certo
+
+Dois arquivos do Siril, dois alvos, a mesma versão, a mesma sessão:
+
+```
+arquivo A   Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
+arquivo B   Histogram Transf. (mid=0.002, lo=0.000, hi=1.000)
+```
+
+Eu tinha registrado a primeira linha como o texto verbatim da entrada MEDIDO, e
+na rodada seguinte chegaram parâmetros com outros números. **Não afirmei que eram
+o mesmo arquivo** — anotei que não sabia e descrevi cada um pelo que era.
+
+**A resposta existia e era favorável:** são dois arquivos, e isso **fortalece** a
+entrada. Duas cenas distintas, o mesmo formato de linha, a mesma estrutura —
+amostra de dois, não de um. O que a entrada reconhece é a **forma**, e a forma
+repetiu.
+
+**A lição não é "eu estava certo".** É que o custo de não afirmar foi **uma
+frase**, e o custo de afirmar errado seria uma entrada MEDIDO apoiada numa
+identidade inventada — dentro da tabela cujo defeito inteiro era *acreditar sem
+medir*. Num registro de procedência, **"não sei se são o mesmo arquivo" é um dado
+válido**; "são o mesmo arquivo" sem verificar seria exatamente o que a tabela
+existe para impedir.
+
+## O mesmo arredondamento no NOSSO log: `growthPct`
+
+A observação do Siril generaliza, e a auditoria do próprio log achou uma
+instância.
+
+```
+chromaNoise.growthPct    impresso com fx(..., 2)  ->  sempre "0.00%"
+valores reais nos vinte fixtures:  7,7e-10  a  4,0e-7
+```
+
+**Quatro a sete ordens de grandeza abaixo do último dígito impresso.** O campo
+imprime `0.00%` em todos os vinte, e **não distingue valores 500× diferentes**.
+
+Não é erro de veredito — a salvaguarda dispara em 2%, e 4e-7 é de fato
+desprezível. **É perda da informação que separa "exatamente zero" de "abaixo da
+resolução"** — e esse par é uma distinção que este projeto já registrou como
+importante: *"zero contra zero não é acordo"*.
+
+**E a casa já sabe a resposta, duas linhas acima:**
+
+```js
+cf.maxRatioDrift.toExponential(1)   // "4.4e-16"
+hf.maxHueDrift.toExponential(1)     // "3.5e-14 of a turn"
+```
+
+Os dois campos da mesma família — grandeza minúscula que existe para provar que
+**não** mudou — usam notação exponencial. **`growthPct` é o que ficou de fora**, e
+por inconsistência, não por decisão registrada.
+
+**Proposta, anotada e não implementada:** `growthPct` passa a exponencial quando
+cai abaixo da resolução das duas casas. Custa uma linha e uma recaptura dos vinte
+goldens de log.
+
+**E a forma geral, que é o que fica:** um formato de saída com casas fixas impõe
+uma precisão **absoluta** a campos que vivem em escalas diferentes. **O campo que
+mais precisa é o que recebe menos — e não por descuido, por estrutura do
+formato.** A pergunta que pega é barata: *para cada campo com casas fixas, qual é
+a menor magnitude que ele precisa distinguir de zero?*
