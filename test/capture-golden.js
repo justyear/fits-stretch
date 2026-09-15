@@ -105,7 +105,22 @@ window.__GOLDEN = [
   // O TERCEIRO ESTADO do recorte: aplicado. O unico golden com cropApply, e o
   // unico caso permanente em que a palavra 'cropping' SAI da frase -- porque a
   // ferramenta recortou. Sem ele o estado existe no codigo e nao na suite.
-  ['cropped-fixture',    '/f/test/fixtures/fixture-oneobject.fit', { cropApply: true }]
+  ['cropped-fixture',    '/f/test/fixtures/fixture-oneobject.fit', { cropApply: true }],
+  // Os tres ramos que nunca tiveram caso, e os dois pares controlados.
+  //
+  // `normalisePhysical` decide o divisor em quatro ramos e, ate aqui, doze dos
+  // treze goldens caiam em `unit` e um em `int`. Os outros dois -- dividir por
+  // 65535, e dividir pelo MAIOR PIXEL DO QUADRO -- nunca foram exercitados.
+  //
+  // float16 e floatmax sao A MESMA CENA em escalas fisicas diferentes, entao a
+  // diferenca entre os dois goldens e o ramo e nada mais.
+  ['float16-fixture',  '/f/test/fixtures/fixture-float16.fit'],
+  ['floatmax-fixture', '/f/test/fixtures/fixture-floatmax.fit'],
+  // E o mosaico SEM BAYERPAT: os mesmos pixels do seestar, byte a byte, com um
+  // cartao a menos. E o unico caso em que o padrao sai do teste de trelica e a
+  // atribuicao vermelho/azul e SUPOSTA -- a frase que o log imprime sobre isso
+  // existia sem nenhum fixture que a imprimisse.
+  ['nobayer-fixture',  '/f/test/fixtures/fixture-nobayer.fit']
 ];
 
 /* ------------------------------------------------------------------ *

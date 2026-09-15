@@ -1805,6 +1805,31 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
     }
 }
 
+
+<#
+GOLDEN SEM CONTRAPARTIDA NA REFERENCIA NAO PODE SUMIR EM SILENCIO.
+
+O comparador percorre o que a REFERENCIA tem. Um golden novo que a referencia
+ainda nao cobre simplesmente nao aparece -- nem como PASS, nem como FAIL, nem
+como N/A. A contagem final continua bonita e tres fixtures inteiros ficam fora
+sem que nada diga.
+
+Isso ja aconteceu: os fixtures `float16`, `floatmax` e `nobayer` entraram para
+cobrir ramos do leitor que nao tinham caso, o `compare-golden` passou de 52 para
+64 verificacoes, e este comparador continuou imprimindo o mesmo numero de antes.
+
+A checagem e mecanica de proposito -- o conjunto de goldens no disco menos o
+conjunto de fixtures que produziram linha. Uma lista escrita a mao aqui
+envelheceria exatamente como a coisa que ela deveria vigiar.
+#>
+$vistos = @{}
+foreach ($r in $rows) { if ($r.fixture) { $vistos[[string]$r.fixture] = $true } }
+foreach ($g in (Get-ChildItem -LiteralPath $gold -Filter '*-fixture.records.json' -ErrorAction SilentlyContinue)) {
+    $base = $g.Name -replace '-fixture\.records\.json$', ''
+    if ($vistos.ContainsKey($base)) { continue }
+    $rows += New-Row $base 'cadeia' '(todos)' '-' '-' 'N/A' `
+             'golden existe e a referencia nao tem contrapartida para ele - nenhuma linha deste fixture foi comparada'
+}
 # -Csv existe porque a tabela formatada trunca a coluna do veredito quando os
 # campos sao largos (um sha256 empurra tudo para fora da tela), e "quais
 # linhas reprovaram" e a pergunta que mais se faz deste script.

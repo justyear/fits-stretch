@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -642,6 +642,27 @@ public static class FitsFixture
     // The same midtones transfer the tool applies, used here to make the
     // non-linear fixture genuinely non-linear instead of a linear frame with a
     // false HISTORY card.
+
+    /* MULTIPLICA A CENA POR UMA CONSTANTE.
+     *
+     * Existe para os fixtures de ESCALA, e a razao e que dois dos quatro ramos
+     * do leitor nunca tiveram caso: `normalisePhysical` decide o divisor por
+     *
+     *     bitpix > 0   -> faixa do conteiner
+     *     mx <= 1.5    -> ja esta em [0,1]
+     *     mx <= 70000  -> divide por 65535
+     *     senao        -> divide pelo MAIOR PIXEL DO QUADRO
+     *
+     * e os treze fixtures caiam todos nos dois primeiros. Escalar a MESMA cena
+     * para dentro de cada faixa e o jeito barato de exercitar os outros dois
+     * sem inventar um segundo gerador: os fixtures ficam sendo a mesma imagem
+     * em escalas fisicas diferentes, entao a diferenca entre os goldens deles e
+     * o ramo, e nada mais.
+     */
+    public static void Scale(float[] img, double k)
+    {
+        for (int i = 0; i < img.Length; i++) img[i] = (float)(img[i] * k);
+    }
     public static void Mtf(float[] img, double m)
     {
         for (int i = 0; i < img.Length; i++)
@@ -1077,6 +1098,123 @@ if ($Only -eq 'all' -or $Only -eq 'nonlinear') {
                ([FitsFixture]::FloatBytes($img, $W, $H, $planes, $false))
 }
 
+
+# ---------------------------------------------------- escala: float16/floatmax
+#
+# OS DOIS RAMOS DO LEITOR QUE NUNCA TIVERAM CASO.
+#
+# `normalisePhysical` escolhe o divisor em quatro ramos, e medido nos treze
+# goldens anteriores: doze caiam em `unit` (divisor 1) e um em `int`. Os ramos
+# `float16` (divide por 65535) e `floatmax` (divide pelo MAIOR PIXEL DO QUADRO)
+# nunca foram exercitados por teste nenhum -- dois dos quatro caminhos do
+# leitor, e um deles e o que uma revisao cruzada apontou como o mais serio.
+#
+# OS DOIS SAO A MESMA CENA. Mesma semente, mesma geometria, mesmo ruido: so a
+# escala fisica muda. Entao a diferenca entre os dois goldens e o RAMO, e nada
+# mais -- que e o que faz deles um par controlado em vez de dois fixtures
+# quaisquer.
+#
+#   float16    x 65535     -> maximo ~30.900, cai em (1,5 , 70000]
+#   floatmax   x 250000    -> maximo ~118.000, passa de 70000
+#
+# E o `floatmax` tem uma propriedade que o torna o fixture certo para o defeito
+# apontado: o maximo dele e o pico de UMA ESTRELA. O divisor do quadro inteiro
+# sai de um punhado de pixels, que e exatamente a fragilidade em questao.
+if ($Only -eq 'all' -or $Only -eq 'escala') {
+    $W = 900; $H = 600; $planes = 3
+
+    # O MESMO GUARDA QUE OS OUTROS BLOCOS JA TINHAM, e que escrever os cartoes
+    # a mao contornou: um cartao FITS tem 80 caracteres EXATOS, e `PadRight(80)`
+    # preenche mas nao corta. Uma nota de 92 caracteres virou um cartao de 92,
+    # desalinhou o bloco de 2880 e o arquivo saiu com o cabecalho prometendo
+    # mais pixels do que ele tinha -- o leitor recusou, corretamente, com
+    # "This file looks incomplete".
+    function HistE([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    function EscalaCards([string]$obj, [string]$nota) {
+        return @(
+            (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+            (New-Card 'BITPIX'   -32  'IEEE single precision')
+            (New-Card 'NAXIS'    3)
+            (New-Card 'NAXIS1'   $W)
+            (New-Card 'NAXIS2'   $H)
+            (New-Card 'NAXIS3'   $planes)
+            (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+            (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+            (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+            (New-Card 'OBJECT'   $obj '' -AsString)
+            (New-Card 'EXPTIME'  '600.' 'seconds')
+            (HistE 'SCALE same scene as the other scale fixture: only the')
+            (HistE 'SCALE physical scale differs, so the difference between')
+            (HistE 'SCALE their goldens is the normalisation branch and')
+            (HistE 'SCALE nothing else.')
+            (HistE ('SCALE ' + $nota))
+            (HistE 'SCALE No DATAMIN/DATAMAX and no BUNIT on purpose: this is')
+            (HistE 'SCALE the case where the header declares no scale at all')
+            (HistE 'SCALE and the reader has to decide on its own.')
+        )
+    }
+
+    Write-Host "fixture-float16.fit   ($W x $H x $planes, float32, escala de 16 bits)"
+    $img16 = [FitsFixture]::Scene($W, $H, $planes, 20260913, 0.012, 0.0006, 0.30)
+    [FitsFixture]::Scale($img16, 65535.0)
+    Write-Fits (Join-Path $outDir 'fixture-float16.fit') `
+               (EscalaCards 'Scale probe 16bit' 'multiplied by 65535: lands in the 1.5 to 70000 branch.') `
+               ([FitsFixture]::FloatBytes($img16, $W, $H, $planes, $false))
+
+    Write-Host "fixture-floatmax.fit  ($W x $H x $planes, float32, acima de 70000)"
+    $imgMx = [FitsFixture]::Scene($W, $H, $planes, 20260913, 0.012, 0.0006, 0.30)
+    [FitsFixture]::Scale($imgMx, 250000.0)
+    Write-Fits (Join-Path $outDir 'fixture-floatmax.fit') `
+               (EscalaCards 'Scale probe max' 'multiplied by 250000: past 70000, divisor is the top pixel.') `
+               ([FitsFixture]::FloatBytes($imgMx, $W, $H, $planes, $false))
+}
+
+# ------------------------------------------------------ mosaico sem BAYERPAT
+#
+# O RAMO DO CFA INFERIDO, que tambem nunca teve caso.
+#
+# Quando o arquivo e mosaico e NAO traz BAYERPAT, o padrao sai do teste de
+# trelica: a diagonal dos verdes e MEDIDA, e a atribuicao de vermelho/azul e
+# SUPOSTA -- as duas posicoes restantes sao simetricas na trelica e a geometria
+# nao as separa. O log declara isso e declara a consequencia (se a suposicao
+# estiver errada, R e B saem trocados, a imagem continua plausivel, e a
+# calibracao de cor logo abaixo mede as mesmas estrelas trocadas).
+#
+# Essa frase estava escrita e NENHUM fixture a imprimia: o `seestar` traz
+# BAYERPAT no header e os outros nao sao mosaico.
+#
+# OS PIXELS SAO OS MESMOS DO `seestar`, byte a byte. So o header difere, e so
+# num cartao. Um par onde a UNICA variavel e a presenca do BAYERPAT e o que
+# torna a comparacao dos dois goldens uma medicao do ramo, e nao de duas cenas.
+if ($Only -eq 'all' -or $Only -eq 'nobayer') {
+    $W = 1920; $H = 1080
+    Write-Host "fixture-nobayer.fit   ($W x $H, int16, MOSAICO SEM BAYERPAT)"
+    $cards = @(
+        (New-Card 'SIMPLE'   'T'   'conforms to FITS standard')
+        (New-Card 'BITPIX'   16    'unsigned 16-bit via BZERO')
+        (New-Card 'NAXIS'    2)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'BZERO'    32768 'offset for unsigned data')
+        (New-Card 'BSCALE'   1)
+        (New-Card 'ROWORDER' 'BOTTOM-UP' 'first row is image bottom' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'CFA probe, no BAYERPAT' '' -AsString)
+        (New-Card 'EXPTIME'  '10.' 'seconds')
+        ('HISTORY NOBAYER same pixels as fixture-seestar.fit, byte for byte.'.PadRight(80))
+        ('HISTORY NOBAYER The ONLY difference is that BAYERPAT is absent, so'.PadRight(80))
+        ('HISTORY NOBAYER the pattern has to come from the lattice test and'.PadRight(80))
+        ('HISTORY NOBAYER the red/blue assignment is assumed, not read.'.PadRight(80))
+        ('HISTORY NOBAYER The true layout is GRBG -- external truth, from'.PadRight(80))
+        ('HISTORY NOBAYER neither implementation.'.PadRight(80))
+    )
+    Write-Fits (Join-Path $outDir 'fixture-nobayer.fit') $cards ([FitsFixture]::Build($W, $H))
+}
 # ------------------------------------------------------------------- edge
 if ($Only -eq 'all' -or $Only -eq 'edge') {
     # O único fixture pequeno o bastante para a margem PADRÃO alcançar a grade.

@@ -1,0 +1,207 @@
+{
+  "file": "fixture-nobayer.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": 16,
+    "NAXIS": 2,
+    "NAXIS1": 1920,
+    "NAXIS2": 1080,
+    "BZERO": 32768,
+    "BSCALE": 1,
+    "ROWORDER": "BOTTOM-UP",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "CFA probe, no BAYERPAT",
+    "EXPTIME": 10,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": 16,
+    "kind": "16-bit unsigned integer (BZERO 32768)",
+    "bzero": 32768,
+    "bscale": 1,
+    "width": 1920,
+    "height": 1080,
+    "planes": 1,
+    "rawMin": 511,
+    "rawMax": 20650,
+    "nonFinite": 0,
+    "normMin": 0.007797360189211872,
+    "normMax": 0.3150988021667811,
+    "scaleBasis": "container range [0, 65535]",
+    "scaleMode": "int",
+    "scaleLo": 0,
+    "scaleHi": 65535,
+    "scaleDiv": 65535
+  },
+  "rowOrder": {
+    "keyword": "BOTTOM-UP",
+    "flipApplied": true
+  },
+  "cfa": {
+    "evenDims": true,
+    "isMosaic": true,
+    "headerDeclared": false,
+    "trustedHeader": false,
+    "decidedBy": "lattice statistics (no usable BAYERPAT)",
+    "ratioH": 3.231042731569182,
+    "ratioV": 2.7281793299438326,
+    "threshold": 1.15,
+    "latticeMedians": {
+      "r0c0": 0.010744810744810745,
+      "r0c1": 0.01221001221001221,
+      "r1c0": 0.009768009768009768,
+      "r1c1": 0.010744810744810745
+    },
+    "latticeContrast": 0.11111111111111112,
+    "greenAxis": "main",
+    "stackedHistory": false
+  },
+  "pattern": {
+    "pattern": "GRBG",
+    "source": "inferred",
+    "corrected": false,
+    "notes": [
+      "no BAYERPAT keyword; Seestar layout assumed on the measured green axis"
+    ]
+  },
+  "linearity": {
+    "globalMedian": 0.010996668446885889,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.01104753185320821,
+      "madn": 0.00021191804909860147,
+      "q1": 0.010910200656137941,
+      "q3": 0.011200122072175174,
+      "shadows": 0.010499555352968084,
+      "midtones": 0.004943122489555172,
+      "target": 0.085,
+      "pixelsBlack": 37,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.010986495765621425,
+      "madn": 0.00021345283162689215,
+      "q1": 0.010833905546654459,
+      "q3": 0.011123826962691692,
+      "shadows": 0.010499555352968084,
+      "midtones": 0.004943122489555172,
+      "target": 0.085,
+      "pixelsBlack": 37,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.010376134889753566,
+      "madn": 0.00019806151048285954,
+      "q1": 0.010238803692683299,
+      "q3": 0.010513466086823835,
+      "shadows": 0.010499555352968084,
+      "midtones": 0.004943122489555172,
+      "target": 0.085,
+      "pixelsBlack": 37,
+      "pixelsWhite": 0,
+      "totalPixels": 2073600,
+      "statSamples": 2073600,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.01095597772182803,
+      "luminanceMADN": 0.0001630079888785522,
+      "shadows": 0.010499555352968084,
+      "midtones": 0.004943122489555172,
+      "target": 0.085,
+      "luminanceSpan": 0.0006408789196612526,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 37,
+      "clipHigh": 0,
+      "highlightCut": 0.014496070801861601
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 0.9890550954525965,
+        "bOverG": 0.9593474329809272
+      },
+      "ratiosAfter": {
+        "rOverG": 0.9946885142712095,
+        "bOverG": 0.9613680342451265
+      },
+      "maxRatioDrift": 1.7763568394002505e-15,
+      "driftSamples": 2073545,
+      "highlightPixels": 20758,
+      "pixelsRescaled": 1940
+    }
+  },
+  "view": {
+    "width": 1920,
+    "height": 1080,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 0,
+    "decode": 31,
+    "roworder": 1,
+    "cfa": 23,
+    "debayer": 73,
+    "preview": 26,
+    "stats": 77,
+    "background": 311,
+    "colour": 457,
+    "transfer": 637,
+    "saturation": 390,
+    "crop": 104,
+    "quantise": 105,
+    "downscale": 1,
+    "total": 1812
+  },
+  "historyCards": [
+    "NOBAYER same pixels as fixture-seestar.fit, byte for byte.",
+    "NOBAYER The ONLY difference is that BAYERPAT is absent, so",
+    "NOBAYER the pattern has to come from the lattice test and",
+    "NOBAYER the red/blue assignment is assumed, not read.",
+    "NOBAYER The true layout is GRBG -- external truth, from",
+    "NOBAYER neither implementation."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                   16 / unsigned 16-bit via BZERO",
+    "NAXIS   =                    2",
+    "NAXIS1  =                 1920",
+    "NAXIS2  =                 1080",
+    "BZERO   =                32768 / offset for unsigned data",
+    "BSCALE  =                    1",
+    "ROWORDER= 'BOTTOM-UP'          / first row is image bottom",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'CFA probe, no BAYERPAT'",
+    "EXPTIME =                  10. / seconds",
+    "HISTORY NOBAYER same pixels as fixture-seestar.fit, byte for byte.",
+    "HISTORY NOBAYER The ONLY difference is that BAYERPAT is absent, so",
+    "HISTORY NOBAYER the pattern has to come from the lattice test and",
+    "HISTORY NOBAYER the red/blue assignment is assumed, not read.",
+    "HISTORY NOBAYER The true layout is GRBG -- external truth, from",
+    "HISTORY NOBAYER neither implementation.",
+    "END"
+  ]
+}

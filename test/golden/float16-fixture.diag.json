@@ -1,0 +1,181 @@
+{
+  "file": "fixture-float16.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Scale probe 16bit",
+    "EXPTIME": 600,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 686.6682739257812,
+    "rawMax": 65535,
+    "nonFinite": 0,
+    "normMin": 0.010477886227600233,
+    "normMax": 1,
+    "scaleBasis": "float on a 16-bit scale (max 65535.0)",
+    "scaleMode": "float16",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 65535
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.015116604358993922,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.015411612115663387,
+      "madn": 0.0004961345043139561,
+      "q1": 0.015075913633936065,
+      "q3": 0.015747310597390707,
+      "shadows": 0.014118762459977155,
+      "midtones": 0.010679754806309663,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.015075913633936065,
+      "madn": 0.00048597200704667226,
+      "q1": 0.01475547417410544,
+      "q3": 0.015411612115663387,
+      "shadows": 0.014118762459977155,
+      "midtones": 0.010679754806309663,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.014663920042725261,
+      "madn": 0.00047310448146366827,
+      "q1": 0.014343480582894636,
+      "q3": 0.014984359502555887,
+      "shadows": 0.014118762459977155,
+      "midtones": 0.010679754806309663,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.015106431677729458,
+      "luminanceMADN": 0.0003527390063401079,
+      "shadows": 0.014118762459977155,
+      "midtones": 0.010679754806309663,
+      "target": 0.085,
+      "luminanceSpan": 0.0014648661020828565,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 0,
+      "clipHigh": 0,
+      "highlightCut": 0.14692912184328985
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0353404645615567,
+        "bOverG": 0.9780510341271783
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0312577496534752,
+        "bOverG": 0.9816352401271131
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 540000,
+      "highlightPixels": 5401,
+      "pixelsRescaled": 6705
+    }
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 0,
+    "decode": 31,
+    "preview": 2,
+    "stats": 29,
+    "background": 144,
+    "colour": 170,
+    "transfer": 214,
+    "saturation": 111,
+    "crop": 27,
+    "quantise": 31,
+    "downscale": 0,
+    "total": 610
+  },
+  "historyCards": [
+    "SCALE same scene as the other scale fixture: only the",
+    "SCALE physical scale differs, so the difference between",
+    "SCALE their goldens is the normalisation branch and",
+    "SCALE nothing else.",
+    "SCALE multiplied by 65535: lands in the 1.5 to 70000 branch.",
+    "SCALE No DATAMIN/DATAMAX and no BUNIT on purpose: this is",
+    "SCALE the case where the header declares no scale at all",
+    "SCALE and the reader has to decide on its own."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Scale probe 16bit'",
+    "EXPTIME =                 600. / seconds",
+    "HISTORY SCALE same scene as the other scale fixture: only the",
+    "HISTORY SCALE physical scale differs, so the difference between",
+    "HISTORY SCALE their goldens is the normalisation branch and",
+    "HISTORY SCALE nothing else.",
+    "HISTORY SCALE multiplied by 65535: lands in the 1.5 to 70000 branch.",
+    "HISTORY SCALE No DATAMIN/DATAMAX and no BUNIT on purpose: this is",
+    "HISTORY SCALE the case where the header declares no scale at all",
+    "HISTORY SCALE and the reader has to decide on its own.",
+    "END"
+  ]
+}

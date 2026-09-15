@@ -2050,15 +2050,18 @@ E a ponta solta que ela deixou, também fechada:
   0,50 **antes** de rotular, então mover o limiar de sinal move a ocupação junto
   e a curva cobre as duas fronteiras. Não há termo faltando.
 
-**8. Duas dívidas nomeadas da revisão cruzada, as duas de fixture:**
+**8. ~~Duas dívidas nomeadas da revisão cruzada~~ — AS DUAS FECHADAS.** Entraram
+`fixture-float16` e `fixture-floatmax` (os dois ramos do leitor que não tinham
+caso) e `fixture-nobayer` (o mosaico sem `BAYERPAT`, que faz a frase do R/B
+suposto ser impressa). `compare-golden` foi de 52 para 64 verificações.
 
-- **O ramo do CFA inferido não tem fixture.** A frase da consequência do R/B
-  está no `log.js` e a suíte nunca a imprime — o `seestar` tem `BAYERPAT` e os
-  outros doze não são mosaico. Falta um mosaico **sem** `BAYERPAT`.
-- **Dois dos quatro ramos de normalização não têm fixture.** Medido nos treze
-  goldens: doze em `unit` (÷1), um em `int` (÷65535). Os ramos `float16` e
-  `floatmax` nunca foram exercitados, e o `floatmax` é o que a revisão apontou —
-  ver `investigacao-escala-float.md`.
+**9. `asinh-fixture` não tem contrapartida na referência.** Achado pela checagem
+de órfãos: o golden dele prova reprodutibilidade e a segunda implementação nunca
+o leu. Ele existe para que *"o asinh esteja verificado e não apenas escrito"*, e
+hoje ele está escrito e verificado só contra si mesmo. Fecha quando a referência
+modelar o operador asinh. Os outros três órfãos (`float16`, `floatmax`,
+`nobayer`) são novos e esperados — entraram nesta rodada e a referência ainda não
+os viu.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -3000,3 +3003,80 @@ log, não a primeira.
 > CFA inferido: o `seestar` tem `BAYERPAT` no header, e os outros doze não são
 > mosaico. A frase está escrita e a suíte nunca a imprime — dívida nomeada, pela
 > regra de sempre, e o fixture que falta é um mosaico **sem** `BAYERPAT`.
+
+## Um golden que nunca foi comparado, e ninguém sabia
+
+Vinte linhas de checagem mecânica, escritas para não deixar os três fixtures
+novos sumirem em silêncio, acharam um quarto que já estava sumido.
+
+O `compare-reference` percorre **o que a referência tem**. Um golden que a
+referência não cobre não aparece como PASS, não aparece como FAIL, **não aparece
+de jeito nenhum** — e a contagem final continua bonita. Os fixtures novos
+entraram, o `compare-golden` foi de 52 para 64 verificações, e o
+`compare-reference` continuou imprimindo o mesmo número de sempre.
+
+A checagem é o conjunto de goldens no disco menos o conjunto de fixtures que
+produziram linha. Resultado:
+
+```
+orfao: asinh        <- este ja estava la
+orfao: float16
+orfao: floatmax
+orfao: nobayer
+```
+
+**O `asinh-fixture` nunca foi comparado contra a referência.** Ele existe para
+fixar o operador alternativo — *"para que o asinh esteja verificado e não apenas
+escrito"*, diz o comentário que o criou — e do lado da referência ele nunca teve
+contrapartida. O golden dele prova reprodutibilidade e nada mais; a segunda
+implementação nunca olhou para ele.
+
+**É a mesma classe da quinta cota no eixo errado, um andar acima:** lá uma linha
+nunca reprovava, aqui um fixture inteiro nunca era lido. E o sintoma foi o mesmo:
+**ausência de sintoma.** Um FAIL tem dono; uma linha que não existe não tem.
+
+**A regra:** um inventário do que a suíte cobre tem que ser **calculado dos dois
+lados e subtraído**, nunca escrito à mão. Uma lista escrita à mão envelheceria
+exatamente como a coisa que ela deveria vigiar.
+
+## Dois dos quatro ramos do leitor, e a frase sem fixture: os três fechados
+
+Entraram `fixture-float16`, `fixture-floatmax` e `fixture-nobayer`.
+
+**Os dois primeiros são a mesma cena em escalas físicas diferentes** — mesma
+semente, mesma geometria, mesmo ruído, ×65535 e ×250000. Então a diferença entre
+os goldens deles é **o ramo de normalização e nada mais**, que é o que os torna
+um par controlado em vez de dois fixtures quaisquer.
+
+E o par respondeu uma pergunta de graça:
+
+```
+shadows    0,0141187625  nos dois
+midtones   0,0106797548  nos dois
+clipLow    0             nos dois
+PNG        difere em 14 bytes de compressao
+```
+
+**Dividir por 65535 ou dividir pelo maior pixel dá a mesma imagem**, quando o
+maior pixel é honesto. A escolha do divisor, por si, não faz mal — o que faz mal
+é o divisor **mudar** entre dois arquivos do mesmo alvo, e é isso que a estrela
+quente provoca.
+
+**O terceiro é o mosaico sem `BAYERPAT`**, e ele é o par controlado do
+`seestar`: **os mesmos pixels, byte a byte**, com um cartão a menos. Os goldens
+saíram com PNG e records **idênticos** aos do `seestar` — o padrão inferido pela
+treliça bateu com o que o header do outro declara — e só o log difere, na linha
+que agora imprime a consequência do R/B suposto.
+
+> **Um par controlado é mais barato que dois fixtures e diz mais.** Quando a
+> única variável entre dois goldens é a que está sob teste, a diferença entre
+> eles *é* a medição. Aqui foram dois pares de graça: `float16`/`floatmax`
+> isolando o ramo, `nobayer`/`seestar` isolando a presença do keyword.
+
+**E o gerador tinha o guarda que eu contornei.** Escrever os cartões `HISTORY` à
+mão em vez de usar o `Hists` local produziu um cartão de 92 caracteres —
+`PadRight(80)` preenche e **não corta**. O bloco de 2880 desalinhou e o arquivo
+saiu com o cabeçalho prometendo mais pixels do que tinha. O leitor recusou,
+corretamente, com *"This file looks incomplete"* — o caminho de erro amigável
+funcionando num arquivo que eu mesmo quebrei. **A função auxiliar existia, com o
+`throw`, em todos os outros blocos.**

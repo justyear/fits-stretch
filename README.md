@@ -266,7 +266,7 @@ automated:
 | command | the question it answers |
 |---|---|
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? |
-| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (701 comparisons across thirteen test frames, 0 failures; the twenty-five that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
+| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (705 comparisons across sixteen test frames, 0 failures; the twenty-nine that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\negative-controls-reference.ps1` | can the *reference* comparison still fail? Every quota it carries is a number, so this sets the stored value to exactly 0.5x and 3x that quota and demands a pass then a failure. A line that survives both is a quota that cannot fail, and it is reported under that name (399 of the 447 lines that carry a quota, and it found one on its first run — about itself) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
