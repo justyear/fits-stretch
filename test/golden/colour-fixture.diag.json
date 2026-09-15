@@ -134,17 +134,17 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 74,
-    "preview": 47,
-    "stats": 94,
-    "background": 361,
-    "colour": 549,
-    "transfer": 776,
-    "saturation": 545,
-    "crop": 171,
-    "quantise": 93,
+    "decode": 66,
+    "preview": 45,
+    "stats": 89,
+    "background": 347,
+    "colour": 525,
+    "transfer": 731,
+    "saturation": 511,
+    "crop": 166,
+    "quantise": 89,
     "downscale": 0,
-    "total": 1963
+    "total": 1861
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",

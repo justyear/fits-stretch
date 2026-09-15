@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **270.939 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **274.548 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2050,6 +2050,16 @@ E a ponta solta que ela deixou, também fechada:
   0,50 **antes** de rotular, então mover o limiar de sinal move a ocupação junto
   e a curva cobre as duas fronteiras. Não há termo faltando.
 
+**8. Duas dívidas nomeadas da revisão cruzada, as duas de fixture:**
+
+- **O ramo do CFA inferido não tem fixture.** A frase da consequência do R/B
+  está no `log.js` e a suíte nunca a imprime — o `seestar` tem `BAYERPAT` e os
+  outros doze não são mosaico. Falta um mosaico **sem** `BAYERPAT`.
+- **Dois dos quatro ramos de normalização não têm fixture.** Medido nos treze
+  goldens: doze em `unit` (÷1), um em `int` (÷65535). Os ramos `float16` e
+  `floatmax` nunca foram exercitados, e o `floatmax` é o que a revisão apontou —
+  ver `investigacao-escala-float.md`.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -2901,3 +2911,92 @@ passavam.
 > alvo. Mas **um instrumento que erra a própria contagem por dois não merece
 > crédito nos outros números**, e o conserto é filtrar pelo veredito: só passa
 > linha que tem um.
+
+## Duas frases descrevendo a mesma operação, uma certa e uma errada
+
+Revisão cruzada achou isto, e é a pior forma do defeito num produto cujo
+argumento é o log.
+
+O bloco do **esticamento** dizia, sobre o estouro acima de 1,0:
+
+> *"clipping one channel changes the colour of the pixel, dividing takes it to
+> white and keeps it."*
+
+**Não leva a branco.** Dividir os três pelo maior preserva as razões:
+
+```
+(1,2  0,6  0,3) / 1,2  =  (1,0  0,5  0,25)
+```
+
+continua colorido, e com a mesma cor — o pixel fica mais **escuro**, não mais
+branco. E "mais escuro preservando a cor" é precisamente a propriedade que
+justifica escolher a divisão em vez do clip: a frase errada descartava o
+argumento certo.
+
+O bloco da **saturação**, escrito depois para a **mesma operação**, já estava
+certo: *"all three channels were moved together rather than the offending one
+being clipped on its own"*.
+
+**Duas frases descrevendo a mesma operação, uma certa e uma errada, é pior que
+uma frase errada sozinha.** A certa faz a outra parecer conferida — quem lê as
+duas vê consistência de intenção e não confere a aritmética. A redação agora é a
+mesma nos dois blocos, e isso não é estilo: **é o que faz uma divergência entre
+elas voltar a ser visível.**
+
+## A hipótese astrofísica que não estava declarada
+
+A maior omissão científica do projeto, e ela não era um erro de conta.
+
+*"A cor veio das estrelas que você fotografou"* descreve **de onde o número
+saiu**. Não descreve o que ele **pressupõe**: que a população estelar
+selecionada tem, na média, cor neutra. Isso é hipótese sobre o céu, não sobre o
+código, e ela pode falhar — campo dominado por gigantes vermelhas, população
+azul jovem, extinção forte.
+
+O log declarava todas as suposições **de método** (sem catálogo, sem
+astrometria, corte por brilho e não detecção de estrela) e nenhuma suposição
+**de astrofísica**. A diferença é sutil e importa: as primeiras são sobre o que
+a ferramenta faz, e a segunda é sobre o que o universo precisa ser para o
+resultado valer.
+
+A frase que entrou:
+
+> *"This assumes the stars in your frame average to a neutral colour reference.
+> A field dominated by unusually red or blue stars can bias the result, and
+> nothing here can detect that from the frame alone."*
+
+**A segunda metade é o que separa hipótese declarada de desculpa.** Um
+aglomerado vermelho e um balanço de branco errado produzem a mesma razão
+estelar; nada nos pixels os separa. Quem separaria é catálogo, e catálogo
+exigiria rede — que este produto não tem, por decisão. Dizer *"pode enviesar"*
+sem dizer *"e eu não consigo perceber"* deixaria o leitor achando que a
+ferramenta avisaria.
+
+## Declarar a suposição não é declarar a consequência
+
+O log dizia que o padrão CFA foi **inferido** e não lido do header. Dizia de
+onde veio o número. Não dizia o que acontece se ele estiver errado — e o que
+acontece é o pior formato de defeito que existe:
+
+1. **R/B trocado produz imagem plausível.** Sem artefato, sem borda, sem nada
+   que salte aos olhos.
+2. **A calibração de cor logo abaixo mede as MESMAS estrelas trocadas** e ajusta
+   os ganhos para elas, então ela **mascara parcialmente** o erro.
+3. Resultado bonito, suíte passando, decisão inicial errada.
+
+**Uma etapa a jusante que compensa uma suposição errada a montante é a definição
+de defeito silencioso.** E a geometria explica por que a suposição é inevitável:
+o teste de treliça mede a **diagonal dos verdes** — isso sai dos pixels e é
+medição. Qual das outras duas posições é vermelha e qual é azul **não sai da
+geometria**: as duas são simétricas. A escolha é sobre o equipamento, não sobre
+o quadro.
+
+**A regra geral:** declarar a suposição responde *"de onde veio?"*. Falta
+responder *"e se estiver errada?"* — e quando a resposta é *"o resultado ainda
+parece certo porque outra etapa compensa"*, essa é a frase que precisa estar no
+log, não a primeira.
+
+> **E a frase entrou sem fixture.** Nenhum dos treze fixtures exercita o ramo do
+> CFA inferido: o `seestar` tem `BAYERPAT` no header, e os outros doze não são
+> mosaico. A frase está escrita e a suíte nunca a imprime — dívida nomeada, pela
+> regra de sempre, e o fixture que falta é um mosaico **sem** `BAYERPAT`.

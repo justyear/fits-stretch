@@ -134,17 +134,17 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 65,
-    "preview": 46,
-    "stats": 94,
-    "background": 404,
-    "colour": 410,
-    "transfer": 611,
-    "saturation": 553,
-    "crop": 167,
-    "quantise": 99,
+    "decode": 64,
+    "preview": 45,
+    "stats": 89,
+    "background": 370,
+    "colour": 403,
+    "transfer": 595,
+    "saturation": 523,
+    "crop": 157,
+    "quantise": 93,
     "downscale": 0,
-    "total": 1845
+    "total": 1745
   },
   "historyCards": [
     "SAT synthetic frame for the selective saturation step.",

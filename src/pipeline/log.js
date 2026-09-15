@@ -96,6 +96,35 @@ function buildLog(ctx){
     }
     L.push('• ' + head + '. Measured lattice contrast ' + fx(cfa.contrast * 100, 1) +
            '%, neighbour ratio ' + fx(cfa.ratioH, 2) + ' H / ' + fx(cfa.ratioV, 2) + ' V.');
+    /* A CONSEQUENCIA DA SUPOSICAO, e nao so a suposicao.
+     *
+     * O teste de trelica mede a DIAGONAL DOS VERDES -- isso sai da geometria
+     * dos pixels e e medicao. Qual das outras duas posicoes e vermelha e qual e
+     * azul NAO sai da geometria: as duas sao simetricas na trelica. A escolha e
+     * uma suposicao sobre o equipamento.
+     *
+     * Declarar "inferido, nao lido do header" diz de onde veio o numero. Nao
+     * diz o que acontece se ele estiver errado, e o que acontece e o pior
+     * formato possivel de defeito:
+     *
+     *   1. R/B trocado produz imagem PLAUSIVEL -- nao ha artefato, nao ha
+     *      borda, nao ha nada que salte aos olhos;
+     *   2. a calibracao de cor logo abaixo mede as MESMAS estrelas trocadas e
+     *      ajusta os ganhos para elas, entao ela MASCARA PARCIALMENTE o erro;
+     *   3. o resultado sai bonito, a suite passa, e a decisao inicial continua
+     *      errada.
+     *
+     * Uma etapa a jusante que compensa uma suposicao errada a montante e a
+     * definicao de defeito silencioso. Quem le o log tem que poder saber disso
+     * sem reconstruir a cadeia de cabeca.
+     */
+    if (ctx.pattern.source !== 'header'){
+      L.push('    R/B could not be determined from pixel geometry: the green diagonal was ' +
+             'measured, the red/blue assignment was assumed. If this file came from a ' +
+             'different CFA layout, red and blue are interchanged — and the image will ' +
+             'still look plausible, because the colour calibration below measures the same ' +
+             'swapped stars.');
+    }
     L.push('• Debayered with bilinear interpolation to full-resolution RGB.');
   }
 
@@ -211,6 +240,23 @@ function buildLog(ctx){
              'photographed. Star colour is the reference because sky has no colour of ' +
              'its own to measure against. No catalogue was consulted, no astrometry was ' +
              'solved, and nothing left this machine.');
+      /* A HIPOTESE ASTROFISICA DO METODO, DECLARADA.
+       *
+       * "A cor vem das suas estrelas" descreve de onde o numero saiu e nao o
+       * que ele PRESSUPOE: que a populacao estelar selecionada tem, na media,
+       * cor neutra. Isso e hipotese sobre o ceu, nao sobre o codigo, e ela pode
+       * falhar -- campo dominado por gigantes vermelhas, populacao azul jovem,
+       * extincao forte.
+       *
+       * A segunda metade da frase e a que faz dela hipotese declarada em vez de
+       * desculpa: dizer que a ferramenta NAO consegue detectar isso do quadro
+       * sozinha. Um aglomerado vermelho e um balanco de branco errado produzem
+       * a mesma razao estelar, e nada nos pixels os separa. Quem separa e
+       * catalogo, e catalogo exigiria rede -- que este produto nao tem.
+       */
+      L.push('    This assumes the stars in your frame average to a neutral colour ' +
+             'reference. A field dominated by unusually red or blue stars can bias the ' +
+             'result, and nothing here can detect that from the frame alone.');
     }
     for (var cn = 0; cn < cc.notes.length; cn++) L.push('    ' + cc.notes[cn]);
   } else if (cc && !cc.applied){
@@ -265,10 +311,27 @@ function buildLog(ctx){
              'In the highlights, R/G ' + fx(cf.ratiosBefore.rOverG, 4) + ' → ' + fx(cf.ratiosAfter.rOverG, 4) +
              ' and B/G ' + fx(cf.ratiosBefore.bOverG, 4) + ' → ' + fx(cf.ratiosAfter.bOverG, 4) + '.');
       if (cf.pixelsRescaled){
+        /* A FRASE ANTERIOR AQUI ESTAVA ERRADA, e o bloco da saturacao -- escrito
+         * depois, para a MESMA operacao -- ja estava certo.
+         *
+         * Ela dizia "dividing takes it to white and keeps it". Nao leva a
+         * branco: dividir os tres pelo maior preserva as razoes exatamente.
+         *
+         *     (1,2  0,6  0,3) / 1,2  =  (1,0  0,5  0,25)
+         *
+         * continua colorido, e com a mesma cor. O pixel fica mais escuro, nao
+         * mais branco -- que e precisamente a propriedade que a operacao tem e
+         * que justifica escolhe-la em vez do clip.
+         *
+         * Duas frases descrevendo a mesma operacao, uma certa e uma errada, e
+         * pior que uma frase errada sozinha: a certa faz a outra parecer
+         * conferida. A redacao agora e a mesma nos dois blocos.
+         */
         L.push('    ' + grp(cf.pixelsRescaled) + ' pixels came out above 1.0 in one channel. ' +
-               'All three were divided by their own maximum rather than the bright channel ' +
-               'being clipped on its own: clipping one channel changes the colour of the ' +
-               'pixel, dividing takes it to white and keeps it.');
+               'All three channels were moved together — divided by their own maximum — ' +
+               'rather than the offending one being clipped on its own: clipping one channel ' +
+               'changes the colour of the pixel, and dividing all three by one number leaves ' +
+               'the ratio between them exactly where it was.');
       }
     }
     // TWO DIFFERENT COUNTS, AND THEY HAVE TO SAY SO.
