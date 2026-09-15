@@ -129,6 +129,15 @@ $ALVOS = @(
     @{ e = 'decode'; c = 'decode.rawMax';  arquivo = 'diag'; p = 'decoded.rawMax';  int = $false }
     @{ e = 'decode'; c = 'decode.normMin'; arquivo = 'diag'; p = 'decoded.normMin'; int = $false }
     @{ e = 'decode'; c = 'decode.normMax'; arquivo = 'diag'; p = 'decoded.normMax'; int = $false }
+
+    # --- linearidade (tambem no diag) --------------------------------------
+    #
+    # Entrou quando a comparacao saiu de baixo de um `continue` e passou a rodar
+    # de verdade. Esta varredura anunciou a falta sozinha, na mesma rodada:
+    # "2 campo(s) com cota e SEM entrada na tabela" -- que e o comportamento
+    # pelo qual ela existe, e a razao de ela nomear o que fica de fora em vez de
+    # so contar o que cobre.
+    @{ e = 'linearidade'; c = 'globalMedian'; arquivo = 'diag'; p = 'linearity.globalMedian'; int = $false }
 )
 
 # ---------------------------------------------------------------------------

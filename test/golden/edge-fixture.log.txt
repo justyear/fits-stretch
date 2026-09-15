@@ -6,7 +6,7 @@ Processing log — fixture-edge.fit
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.01041 to 1.00000.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
-• Data is linear: median 0.01568, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
+• Data is linear: median 0.01568, under the 0.05 this rule compares against. Nothing in the header declares a stretch, so the median decided this on its own — a 219.0% rise in the frame’s overall level would reverse it. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
 • Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 64 of them (6 brighter than the background, 38 on the frame edge were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01696, G 0.01541, B 0.01420), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.

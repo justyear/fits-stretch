@@ -1994,18 +1994,22 @@ fronteira; esta classe mede **se a fronteira deveria existir naquele eixo**. Sã
 perguntas diferentes e a segunda é mais barata do que parece — a perturbação já
 está escrita.
 
-## Classe: a comparação que fica abaixo de um `continue`
+## Classe: a verificação pulada em silêncio que deixa uma frase de cobertura
 
-**Sexta instância da família "o instrumento parece cobrir e não cobre", e a
-primeira em que o campo não foi esquecido: ele foi escrito, com o valor do outro
-lado disponível, e nunca é alcançado.**
+**CONSERTADA nesta rodada, e a classe é nova — não é uma variante das três
+perguntas ausentes.** Aquelas eram sobre **o que a suíte não pergunta**. Esta é
+sobre **o que ela diz que pergunta e não pergunta**, e por isso é pior: uma
+ausência não afirma nada, esta afirmava.
 
-`compare-reference.ps1` compara `linearity.globalMedian` e `linearity.nonLinear`
-— duas linhas, escritas, corretas. Elas ficam **abaixo** do `continue` que pula
-todo fixture cujo pipeline roda um passo que a `reference.py` não modela, e hoje
-isso é **todo fixture**. Medido: **0 linhas de 709** têm escopo `linearidade`.
+**O caso.** `compare-reference.ps1` tinha duas linhas — `linearity.globalMedian`
+e `linearity.nonLinear` — escritas, corretas, e posicionadas **abaixo** do
+`continue` que pula todo fixture com um passo que a `reference.py` não modela.
+Hoje isso é todo fixture. Medido: **0 de 709** comparações tinham escopo
+`linearidade`. O campo que escolhe o ramo da cadeia inteira nunca foi conferido
+contra a outra implementação, e o dado do outro lado existia —
+`referencia-cadeia.json` traz `esticamento.nonLinear` desde sempre.
 
-O agravante é o que fica no lugar:
+E o que ficava no lugar:
 
 ```
 N/A   reference.py nao modela background, colour-cal, saturation
@@ -2013,21 +2017,139 @@ N/A   reference.py nao modela background, colour-cal, saturation
 ```
 
 **A linha que substitui a comparação afirma cobertura.** O bloco `cadeia` cobre
-os números por canal, que é do que a frase fala — e não cobre a decisão de ramo,
-que é o que foi pulado junto. Ninguém leu a frase perguntando *"cobre o quê,
-exatamente?"*, porque uma linha N/A com explicação parece um fim de assunto.
+os números por canal — é do que a frase fala — e não cobre a decisão de ramo, que
+foi pulada junto. Ninguém leu a frase perguntando *"cobre o quê, exatamente?"*,
+porque uma N/A com explicação parece fim de assunto.
 
-**E o dado existe:** `referencia-cadeia.json` traz `esticamento.nonLinear` para
-os doze fixtures dela.
+> **Quando um `continue` pular um bloco, a pergunta não é "o que deixou de ser
+> comparado" — é "o que estava ESCRITO ABAIXO dele".** As duas respostas são
+> diferentes, e a segunda é a que ninguém dá.
 
-> **A regra:** quando um `continue` pular um bloco, a pergunta não é *"o que
-> deixou de ser comparado"* — é **"o que estava escrito abaixo dele"**. As duas
-> respostas são diferentes, e a segunda é a que ninguém dá.
+**O conserto não é mover as duas linhas.** Mover conserta hoje. O que impede a
+repetição é a guarda, porque o defeito não foi alguém esquecer o campo: foi o
+campo ficar debaixo de um desvio que ninguém leu até o fim.
 
-**O sintoma, se um dia divergir:** não é uma linha booleana dizendo *"o ramo
-diverge"*. São dezenas de FAILs numéricos do bloco `stretch` — que é exatamente o
-que o comentário seis linhas acima do `continue` chama de *"descrever o sintoma
-em vez do fato"*. **O comparador nomeia a doença e a tem.**
+```
+suite   linearidade   (guarda)   20 / 20   PASS
+        todo fixture com golden tem a decisao de ramo dita:
+        comparada, ou N/A com o motivo
+```
+
+**N/A conta como linha, de propósito.** O que a guarda exige é que a resposta
+seja **dita por fixture**, não que seja sempre uma comparação. *"Não dá para
+comparar, e por isto"* é uma resposta; nada não é.
+
+**Controle negativo da própria guarda**, porque um registro que não reprova é
+ficção: com as linhas renomeadas para um escopo diferente, ela reprova nomeando
+os nove fixtures que perdem a linha, e a rodada sai com `exit 1`.
+
+### A segunda instância apareceu na mesma rodada, sozinha
+
+O `compare-golden.ps1` enumera por uma **lista escrita à mão** (`$Names`). O
+`ceuclaro-fixture` entrou na suíte, foi capturado, foi promovido — e o
+comparador continuou imprimindo **80 checks**, os mesmos de antes, sem uma
+palavra. Quatro artefatos de um fixture inteiro fora, e o número final continuou
+bonito.
+
+Mesma guarda, mesma forma: golden no disco que não está em `$Names` reprova. E
+ela só vale quando `-Names` **não** foi passada — com a lista curta pedida de
+propósito, a lista curta é o pedido e não o esquecimento.
+
+> **Duas instâncias em uma rodada, achadas por caminhos diferentes:** a primeira
+> por uma varredura que contava linhas por escopo, a segunda por um número que
+> não mudou quando devia. **A segunda é a mais assustadora**, porque nada a
+> procurou — ela só apareceu porque o número estava na tela ao lado de um
+> fixture novo.
+
+### E a varredura de controles negativos fechou o círculo sem ajuda
+
+Assim que as duas linhas passaram a rodar de verdade, a varredura anunciou:
+
+```
+2 campo(s) com cota e SEM entrada na tabela:
+   linearidade|globalMedian  x2
+```
+
+Um campo com cota e fora da tabela de perturbação — exatamente o que ela existe
+para dizer. Entrou na tabela, e na passada seguinte ela pegou **um segundo
+defeito meu**: as duas pontas emitiam `linearidade|globalMedian` com a mesma
+chave e sentidos diferentes (uma comparação com cota, uma N/A sem), e a
+varredura reportou *"a cota delas se desloca com a própria varredura"*. Era
+colisão de chave, não interferência. A linha do bloco da cadeia virou
+`globalMedian (ponto de medicao)`.
+
+**Hoje: 401 campos sob varredura, 0 divergentes.**
+
+## O degrau 5 passou a se anunciar, e ganhou o fixture que faltava
+
+**IMPLEMENTADO.** A medição da §7 disse que a regra troca de veredito sob ganho e
+sob pedestal; o log apresentava esse veredito com a mesma voz de uma medição. Não
+é empate honesto, e agora não é apresentado como se fosse.
+
+Quando **nada no header declara esticamento**, a linha diz as duas coisas:
+
+> *Data is linear: median 0.04938, under the 0.05 this rule compares against.
+> **Nothing in the header declares a stretch, so the median decided this on its
+> own — a 1.25% rise in the frame's overall level would reverse it.** Full
+> autostretch applied.*
+
+**A distância é a conta feita, não os dois lados para alguém subtrair** — é a
+aplicação do item de produto registrado em *"Prosa apresenta dois valores;
+distância é uma conta"*, que estava anotado e não implementado.
+
+E a forma da distância é **derivada, não escolhida**: `limiar / mediana`, ou seja
+*quanto o nível do quadro teria que mudar para inverter o veredito*. **Não entrou
+nenhum número novo** — nem limiar, nem piso de "perto". Era a tentação óbvia
+(reusar os 5% do `compare-margens` para decidir quando avisar) e teria sido um
+segundo número mágico para alguém ajustar depois.
+
+As quatro saídas, com a conta em três delas:
+
+```
+bigobject      linear,   sem declaracao    "a 1.25% rise ... would reverse it"
+gradient       linear,   sem declaracao    "a 198.3% rise ... would reverse it"
+ceuclaro       NAO-LIN., sem declaracao    "a 37.9% drop ... would reverse it"
+declaraestica  linear,   COM declaracao    "would have to rise 98.0% to reach the 0.02"
+nonlinear      NAO-LIN., COM declaracao    sem a frase: quem decidiu nao foi so a mediana
+```
+
+**O mesmo quadro, duas leituras opostas, e as duas na tela:** o `gradient` precisa
+de 198% e o `bigobject` de 1,25%. Antes os dois liam *"Data is linear: median
+0.016…"* e *"median 0.049…"*, com a mesma cara.
+
+### O fixture que a mudança exigiu: `ceuclaro`
+
+A regra tem quatro saídas de texto e a suíte cobria três. A que faltava é a única
+em que **a mediana decide sozinha CONTRA o arquivo**:
+
+| | declaração | veredito | tinha fixture |
+|---|---|---|---|
+| `nonlinear` | sim | NÃO-LINEAR | sim |
+| `declaraestica` | sim | LINEAR | ganhou na rodada passada |
+| dezessete outros | não | LINEAR | sim |
+| **NÃO-LINEAR sem declaração** | **não** | **NÃO-LINEAR** | **nenhum** |
+
+`fixture-ceuclaro.fit`: 900×600×3, empilhamento linear de céu de cidade, mediana
+**0,0805**, header comum e **mudo sobre esticamento**. A ferramenta conclui que o
+quadro já foi esticado e aplica o esticamento reduzido a dado linear — o
+comportamento errado, agora com golden.
+
+**Não é caso de laboratório.** A mediana de um quadro linear é o nível do céu, e
+0,05 numa escala de 16 bits são **3.277 ADU**. Este fixture põe o céu em 5.280
+ADU. A curva da §7.2 mediu que somar **41 ADU** ao `bigobject` já inverte o
+veredito dele.
+
+**Com folga, e não na beirada, de propósito:** o caso apertado já existe — o
+`bigobject` a 1,23% do limiar, registrado no `compare-margens`. Um segundo
+fixture na fronteira seria uma segunda dívida de margem em vez de cobertura de
+ramo. Este fica ~60% acima, e o inventário de margens continua com **dois** casos
+dentro de 5%, não três.
+
+**E a frase nova já pagou a primeira conta:** o `compare-frases` reprovou na
+primeira rodada. A variante **curta** da frase — a que sai quando a mediana é
+zero e não há distância para dividir — não tem caso e entrou como dívida
+declarada. Oito dívidas de frase agora, não sete.
+
 
 ## O mesmo nome, dois pontos de medição
 
@@ -2065,7 +2187,7 @@ A etapa da meia escala foi removida — não desligada — depois da primeira ro
 em dado real: ver *"A classe mais cara da sessão"* acima, e a §2 do
 `modulo-5a-spec.md`, que ficou no lugar dela. Saíram `half-scale.js`, o segundo
 botão, o bloco do log, os campos do record, as curvas da referência, o bloco do
-comparador e a entrada do registry. Hoje a suíte está em **709 comparações,
+comparador e a entrada do registry. Hoje a suíte está em **750 comparações,
 0 FAIL**.
 
 O recorte ficou, com a margem consertada (fração do objeto, não do quadro) e uma
@@ -2165,21 +2287,25 @@ reprodutibilidade e nada mais.
 
 **Destrava:** a única verificação independente do operador alternativo. Fecha
 quando a referência modelar o asinh — e junto disso sai a frase do *asinh
-inalcançável*, que é a maior das sete dívidas do item 5.
+inalcançável*, que é a maior das oito dívidas do item 5.
 
-### 5. Sete frases do log sem caso
+### 5. Oito frases do log sem caso
 
-`compare-frases`: 143 frases, 135 com caso. Cada uma das sete é **um ramo cujo
-texto ninguém leu** — e foi exatamente assim que a frase falsa do
+`compare-frases`: 148 frases, 139 com caso (94%). Cada uma das oito é **um ramo
+cujo texto ninguém leu** — e foi exatamente assim que a frase falsa do
 `fixture-declaraestica` sobreviveu.
 
 ```
 NaN na entrada  ·  quadro MONO de lado impar  ·  quadro 2D com HISTORY de stack
 o asinh que nao alcanca o alvo (3 literais)  ·  a variante do alvo nao-linear
+a frase do degrau 5 SEM distancia, para mediana zero
 ```
 
 **Destrava:** revisão do texto que esses ramos emitem. A mais barata agora é o
-quadro mono de lado ímpar — uma variante de header, sem cena nova.
+quadro mono de lado ímpar — uma variante de header, sem cena nova. A oitava
+entrou nesta rodada junto com a frase do degrau 5, e fecha com um quadro quase
+todo em zero e header mudo: a cena é barata e o caso é real, porque um float mal
+escalado cai nele (medido: `declaraestica` × 1,501 lê mediana zero e sai preto).
 
 ### 6. O fixture de HALO
 
@@ -3009,16 +3135,16 @@ nunca compartilham a raiz do nome. `$ALVOS` / `$sobVarredura`, não `$ALVOS` /
 `$alvos`. E quando um laço vem vazio sem erro, a primeira hipótese é o nome, não
 a lógica.
 
-## A varredura de controles negativos, fechada: 399 de 447
+## A varredura de controles negativos, fechada: 401 de 449
 
-A tabela cresceu de 7 campos para 43, e a cobertura de 53 linhas para **399**.
+A tabela cresceu de 7 campos para 44, e a cobertura de 53 linhas para **401**.
 
 ```
-709 linhas no comparador
-447 carregam cota
-399 sob varredura      0 divergentes, em 3 passadas
+750 linhas no comparador
+449 carregam cota
+401 sob varredura      0 divergentes, em 3 passadas
  48 fora              isolamento de formula
- 50 das 399 testadas so por fora (cota zero, ou menor que 2 num campo inteiro)
+ 50 das 401 testadas so por fora (cota zero, ou menor que 2 num campo inteiro)
 ```
 
 **As 48 que ficam de fora, e o motivo é de construção, não dívida:** as linhas

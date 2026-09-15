@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer', 'ceuclaro')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -1868,5 +1868,68 @@ if ($Only -eq 'all' -or $Only -eq 'crop') {
                ([FitsFixture]::FloatBytes($img3, $W, $H, $planes, $false))
 }
 
+
+# ------------------------------------------------ o ceu claro e o header mudo
+#
+# O RAMO QUE DECIDE SOZINHO, E QUE NAO TINHA CASO.
+#
+# A regra linear/nao-linear tem tres saidas de texto e a suite cobria duas:
+#
+#   nao-linear COM declaracao      fixture-nonlinear      tinha
+#   linear COM declaracao          fixture-declaraestica  ganhou na rodada passada
+#   linear SEM declaracao          dezessete fixtures     tinha
+#   NAO-LINEAR SEM DECLARACAO      nenhum                 <- este
+#
+# O quarto e o unico em que a mediana decide sozinha CONTRA o arquivo: nada no
+# header fala de esticamento, e a ferramenta conclui que o quadro ja foi
+# esticado -- e aplica o esticamento reduzido a um empilhamento linear.
+#
+# NAO E CASO DE LABORATORIO. A mediana de um quadro linear e o nivel do ceu, e
+# 0,05 numa escala de 16 bits sao 3.277 ADU. Este fixture poe o ceu em ~0,080
+# (5.200 ADU), que e um ceu de cidade com alguns minutos de exposicao. Medido na
+# curva da investigacao: somar 41 ADU ao `bigobject` ja inverte o veredito dele.
+#
+# POR QUE COM FOLGA, E NAO NA BEIRADA: o caso apertado ja existe -- o
+# `bigobject` esta a 1,25% do limiar e o `compare-margens` o registra. Um
+# segundo fixture na fronteira seria uma segunda divida de margem em vez de
+# cobertura de ramo. Este fica a ~60% acima, longe o bastante para que o que ele
+# testa seja o RAMO e nao a fronteira.
+#
+# O HEADER E DELIBERADAMENTE COMUM: PROGRAM, OBJECT, ROWORDER e um HISTORY que
+# descreve um empilhamento -- nenhuma das sete palavras do `STRETCH_HISTORY`. E
+# o arquivo que o degrau 5 recebe quando o degrau 4 nao tem o que ler.
+if ($Only -eq 'all' -or $Only -eq 'ceuclaro') {
+    $W = 900; $H = 600; $planes = 3
+
+    function HistC([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    Write-Host "fixture-ceuclaro.fit  ($W x $H x $planes, ceu alto: mediana ~0,080, header MUDO sobre esticamento)"
+    $imgC = [FitsFixture]::Scene($W, $H, $planes, 20260916, 0.0641, 0.0006, 0.30)
+    $cardsC = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Bright sky, linear' '' -AsString)
+        (HistC 'mean stacking with winsorized sigma clipping, 30 frames')
+        (HistC 'SKY the sky sits near 0.080 of full scale -- a city sky, and')
+        (HistC 'SKY the frame is LINEAR: no tonal operation was applied.')
+        (HistC 'SKY Nothing above names a stretch, so the rule has only the')
+        (HistC 'SKY median to go on, and the median says NON-LINEAR. That')
+        (HistC 'SKY verdict is WRONG about this file, and the log has to say')
+        (HistC 'SKY that it decided with nothing but the median.')
+        (HistC 'SKY External truth, from neither implementation.')
+    )
+    Write-Fits (Join-Path $outDir 'fixture-ceuclaro.fit') $cardsC `
+               ([FitsFixture]::FloatBytes($imgC, $W, $H, $planes, $false))
+}
 Write-Host ''
 Get-ChildItem $outDir -File | ForEach-Object { "  {0,12:N0}  {1}" -f $_.Length, $_.Name }

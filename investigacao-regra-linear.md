@@ -1,7 +1,8 @@
 # Investigação: a regra linear / não-linear
 
-**Status: a pergunta central FECHADA pela curva da §7 — a mediana não decide.
-O que resta depende do corpus de headers reais (item 1). NADA implementado.**
+**Status: a pergunta central FECHADA pela curva da §7 — a mediana não decide. O
+que a medição exigia do log está IMPLEMENTADO (§10). O conserto da regra em si —
+o 0,05 e o 0,02 — espera o corpus de headers reais (item 1).**
 
 **Origem:** a inversão de prioridade da `spec-escala-decisao.md` §6.3. A escala
 **erra alto** — branco ou preto, e se anuncia. Esta regra **erra baixo**: medido,
@@ -545,3 +546,50 @@ seis linhas acima do `continue` que causa isto.
 `cadeia`, que roda para todo fixture, e declarar o ponto de medição de cada lado
 como divergência conhecida com a banda medida. Uma linha booleana que reprova
 antes das outras.
+
+### 9.1 FEITO — e o conserto é a guarda, não o remendo
+
+A comparação subiu para **antes de todo `continue`**, dos dois lados: o laço do
+Módulo 0 compara `globalMedian` e `nonLinear` contra a `justyear-referencia.json`
+(0,40 e 0,28 bins de 4 — passa), e o laço da cadeia compara `nonLinear` contra
+`esticamento.nonLinear` para os doze. O `seestar` sai **N/A com o valor
+impresso** e o motivo dito, porque a referência mede o mosaico.
+
+**A mediana continua não sendo comparada entre as duas pontas, e agora isso é uma
+linha** — `globalMedian (ponto de medicao)`, N/A, com a banda de −8,72% a +7,37%
+escrita nela. Comparar os dois números seria comparar duas coisas diferentes e
+chamar a diferença de divergência.
+
+O que impede a repetição não é a mudança de lugar:
+
+```
+suite   linearidade   (guarda)   20 / 20   PASS
+```
+
+Todo fixture com golden tem que sair com uma linha de `linearidade` — comparada,
+ou N/A com o motivo. Controle negativo da guarda: renomeando o escopo, ela
+reprova nomeando os nove fixtures que perdem a linha.
+
+**750 comparações, 0 FAIL. 401 campos sob varredura de controle negativo.**
+
+---
+
+## 10. O que a §8.4 exigia, implementado
+
+A correção que a medição impôs — *"o degrau 5 não é um empate honesto"* — está no
+log. Quando nada no header declara esticamento:
+
+> *… **Nothing in the header declares a stretch, so the median decided this on
+> its own — a 1.25% rise in the frame's overall level would reverse it.***
+
+A distância é `limiar / mediana`, **derivada e não escolhida**: nenhum número novo
+entrou, nem limiar nem piso de "perto". E ela é a conta feita, não os dois lados
+para o leitor subtrair.
+
+E a quarta saída da regra ganhou fixture: `fixture-ceuclaro.fit`, empilhamento
+linear de céu de cidade, mediana **0,0805**, header mudo. É o caso em que a
+mediana decide sozinha **contra** o arquivo, e era o único dos quatro sem ninguém
+que lesse a frase.
+
+**O que NÃO mudou, e era o pedido:** o `0,05` e o `0,02` estão onde estavam. O
+conserto espera o corpus.

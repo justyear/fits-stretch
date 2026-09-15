@@ -503,6 +503,45 @@ foreach ($fixture in $MAP.Keys) {
     $rows += Compare-Value $fixture 'decode' 'decode.normMin' $d.normMin $rd.normMin 'unit' 0 0
     $rows += Compare-Value $fixture 'decode' 'decode.normMax' $d.normMax $rd.normMax 'unit' 0 0
 
+    <#
+    LINEARIDADE VEM ANTES DE QUALQUER `continue`, E ESTA E A RAZAO.
+
+    Estas linhas ja existiram, escritas e corretas, LA EMBAIXO -- depois dos
+    dois `continue` deste laco. Elas nunca rodaram. Medido: 0 de 709
+    comparacoes tinham escopo `linearidade`, e o campo que decide o ramo
+    linear/nao-linear da cadeia inteira nunca foi conferido contra a outra
+    implementacao.
+
+    O agravante nao e o `continue`: e o que ficava no lugar. A linha N/A que
+    substituia o bloco dizia "coberto pelo bloco 'cadeia' abaixo", e o bloco
+    'cadeia' cobre os numeros POR CANAL -- nao a decisao de ramo, que foi pulada
+    junto. Uma verificacao pulada em silencio que deixa no lugar uma frase de
+    cobertura e pior que a ausencia: a ausencia nao afirma nada.
+
+    Entao a regra que sai daqui vale para o arquivo inteiro:
+
+      quando um `continue` pular um bloco, a pergunta nao e "o que deixou de ser
+      comparado" -- e "o que estava ESCRITO ABAIXO dele".
+
+    A guarda no fim do arquivo transforma isso em verificacao: todo fixture que
+    entra no comparador tem que sair com uma linha de `linearidade`.
+    #>
+    if ($MOSAIC_ONLY -contains $fixture) {
+        # N/A com o valor deste lado impresso: a linha existe, o numero aparece,
+        # e o que falta esta dito. Nao e comparavel porque a referencia mede o
+        # mosaico CFA e este lado mede o quadro ja demosaicado.
+        $rows += New-Row $fixture 'linearidade' 'globalMedian' `
+                 ('{0:G9}' -f [double]$diag.linearity.globalMedian) '-' 'N/A' `
+                 'a referencia mede o mosaico CFA e este lado o quadro demosaicado - medianas de imagens diferentes'
+        $rows += New-Row $fixture 'linearidade' 'nonLinear' `
+                 ($diag.linearity.verdict -like 'NON-LINEAR*') '-' 'N/A' `
+                 'mesma razao: o veredito sai de medianas de imagens diferentes'
+    } else {
+        $rows += Compare-Value $fixture 'linearidade' 'globalMedian' $diag.linearity.globalMedian $rf.globalMedian 'unit' 0 0
+        $mineNonLinear = ($diag.linearity.verdict -like 'NON-LINEAR*')
+        $rows += Compare-Value $fixture 'linearidade' 'nonLinear' $mineNonLinear ("$($rf.nonLinear)" -eq 'True') 'exact' 0 0
+    }
+
     if ($MOSAIC_ONLY -contains $fixture) {
         $rows += New-Row $fixture 'canais' '(todos)' '-' '-' 'N/A' `
                  'referencia mede o mosaico CFA, antes do debayer - imagens diferentes'
@@ -524,20 +563,19 @@ foreach ($fixture in $MAP.Keys) {
     # two no longer describing the same thing. Filling KNOWN with sixty entries
     # would turn a debt register into wallpaper - see section 7 of
     # modulo-0-spec.md, "KNOWN nao e uma saida de emergencia".
+    #
+    # A FRASE DIZ EXATAMENTE O QUE ESTA COBERTO, e isso e o conserto: a versao
+    # anterior dizia "coberto pelo bloco 'cadeia' abaixo" sem dizer o que, e a
+    # decisao de ramo -- que ficava embaixo deste `continue` -- nao estava.
     $unmodelled = @()
     foreach ($rec in $records) {
         if ($rec.applied -and ($REFERENCE_MODELS -notcontains $rec.id)) { $unmodelled += $rec.id }
     }
     if ($unmodelled.Count -gt 0) {
         $rows += New-Row $fixture 'canais' '(todos)' '-' '-' 'N/A' `
-                 ("reference.py nao modela " + ($unmodelled -join ', ') + " - coberto pelo bloco 'cadeia' abaixo")
+                 ("reference.py nao modela " + ($unmodelled -join ', ') + " - os numeros POR CANAL estao no bloco 'cadeia' abaixo; a linearidade ja foi comparada acima")
         continue
     }
-
-    # --- linearity ------------------------------------------------------
-    $rows += Compare-Value $fixture 'linearidade' 'globalMedian' $diag.linearity.globalMedian $rf.globalMedian 'unit' 0 0
-    $mineNonLinear = ($diag.linearity.verdict -like 'NON-LINEAR*')
-    $rows += Compare-Value $fixture 'linearidade' 'nonLinear' $mineNonLinear ("$($rf.nonLinear)" -eq 'True') 'exact' 0 0
 
     # --- per channel ----------------------------------------------------
     # By id, not by position. What the reference has numbers for is the
@@ -765,6 +803,58 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
         $name = "$fx-fixture"
         $rf2  = $cr.fixtures.$fx
 
+        <#
+        A DECISAO DE RAMO, PARA OS DOZE -- E ELA VEM ANTES DE TODO `continue`.
+
+        `referencia-cadeia.json` traz `esticamento.nonLinear` para cada fixture
+        dela desde sempre. Nenhuma linha lia. O laco do Modulo 0 acima compara
+        os tres que a `justyear-referencia.json` cobre; estes doze nao tinham
+        nada -- e a decisao de ramo e a chave da cadeia inteira: ela escolhe
+        entre ponto preto por sigma e por percentil, e entre mover a mediana e
+        mante-la onde esta.
+
+        A MEDIANA NAO E COMPARADA AQUI, E A LINHA ABAIXO EXISTE PARA DIZER ISSO.
+        As duas pontas medem grandezas diferentes com o mesmo nome:
+
+          run.js      no quadro DECODIFICADO, antes da extracao de fundo
+          chain2.py   em pl2, DEPOIS de fundo e de calibracao de cor
+
+        Medido nos 19 fixtures: os dois pontos ficam entre -8,72% e +7,37% um do
+        outro, com o pior caso no `bigobject` -- que e o que esta a 1,25% do
+        limiar, sete vezes a propria margem. Comparar os dois numeros seria
+        comparar duas coisas diferentes e chamar a diferenca de divergencia.
+
+        O BOOLEANO, esse, e comparavel: cada lado decide com a sua grandeza, e a
+        pergunta e se chegam ao mesmo ramo. Hoje chegam. Se um dia nao chegarem,
+        esta linha diz isso em uma palavra -- e sem ela o sintoma seriam dezenas
+        de FAILs numericos do bloco `stretch`, que e o que o comentario do
+        proprio comparador chama de descrever o sintoma em vez do fato.
+        #>
+        $naDeclLin = @()
+        if ($cr.cobertura -and $cr.cobertura.porCanalAindaNA) { $naDeclLin = @($cr.cobertura.porCanalAindaNA) }
+
+        $diagPath2 = Join-Path $gold "$name.diag.json"
+        if (-not (Test-Path -LiteralPath $diagPath2)) {
+            $rows += New-Row $name 'linearidade' 'nonLinear' '-' '-' 'NO GOLDEN' 'sem diag.json - capture-golden.js primeiro'
+        } else {
+            $diag2 = Get-Content -LiteralPath $diagPath2 -Raw | ConvertFrom-Json
+            $meuNL = ($diag2.linearity.verdict -like 'NON-LINEAR*')
+
+            if ($naDeclLin -contains $fx) {
+                $rows += New-Row $name 'linearidade' 'nonLinear' $meuNL '-' 'N/A' $cr.cobertura.motivo
+            } elseif ($null -eq $rf2.esticamento -or $null -eq $rf2.esticamento.nonLinear) {
+                $rows += New-Row $name 'linearidade' 'nonLinear' $meuNL '-' 'N/A' `
+                         'a referencia da cadeia nao declara esticamento.nonLinear para este fixture'
+            } else {
+                $rows += Compare-Value $name 'linearidade' 'nonLinear' $meuNL ("$($rf2.esticamento.nonLinear)" -eq 'True') 'exact' 0 0
+            }
+
+            $rows += New-Row $name 'linearidade' 'globalMedian (ponto de medicao)' `
+                     ('{0:G9}' -f [double]$diag2.linearity.globalMedian) '-' 'N/A' `
+                     'pontos de medicao diferentes: aqui antes da extracao de fundo, na referencia depois de fundo e cor (-8,72% a +7,37% nos 19 fixtures)'
+        }
+
+
         # N/A escrito, nao falha. A referencia nao faz debayer, entao para um
         # mosaico ela mede o padrao Bayer e nao o quadro demosaicado: a razao de
         # MADN da 4,51 e isso nao e discordancia, sao grandezas diferentes. A
@@ -807,7 +897,6 @@ if (-not (Test-Path -LiteralPath $CHAIN_REF)) {
             $rows += Compare-Value $name 'cadeia' 'fundo.geradas' $bgRec.samples.generated $rf2.fundo.geradas 'exact' 0 0
         }
         $rows += Compare-Value $name 'cadeia' 'fundo.aceitas' $bgRec.samples.accepted $rf2.fundo.aceitas 'exact' 0 0
-
         # A REFERENCIA DECLARA O QUE NAO COBRE, e este bloco obedece a declaracao
         # dela em vez de manter a lista aqui. Sem debayer, para um mosaico ela
         # mede o padrao Bayer e nao o quadro demosaicado -- grandezas diferentes,
@@ -1829,6 +1918,61 @@ foreach ($g in (Get-ChildItem -LiteralPath $gold -Filter '*-fixture.records.json
     if ($vistos.ContainsKey($base)) { continue }
     $rows += New-Row $base 'cadeia' '(todos)' '-' '-' 'N/A' `
              'golden existe e a referencia nao tem contrapartida para ele - nenhuma linha deste fixture foi comparada'
+    # E a linearidade DITA POR FIXTURE, nao implicada pela linha acima. A guarda
+    # logo abaixo exige uma linha por fixture justamente para que "nenhuma das
+    # duas referencias cobre este" seja uma afirmacao e nao um vazio.
+    $dg = Join-Path $gold "$base-fixture.diag.json"
+    $meu = if (Test-Path -LiteralPath $dg) {
+               ((Get-Content -LiteralPath $dg -Raw | ConvertFrom-Json).linearity.verdict -like 'NON-LINEAR*')
+           } else { '-' }
+    $rows += New-Row $base 'linearidade' 'nonLinear' $meu '-' 'N/A' `
+             'nem justyear-referencia.json nem referencia-cadeia.json cobrem este fixture'
+}
+
+<#
+GUARDA: TODO FIXTURE QUE ENTRA NO COMPARADOR SAI COM UMA LINHA DE LINEARIDADE.
+
+A CLASSE: uma verificacao pulada em silencio que deixa no lugar uma frase de
+cobertura.
+
+O caso que originou isto foram duas linhas -- `linearity.globalMedian` e
+`linearity.nonLinear` -- escritas, corretas, e posicionadas ABAIXO do `continue`
+que pula todo fixture com um passo que a `reference.py` nao modela. Medido: 0 de
+709 comparacoes tinham escopo `linearidade`. O campo que escolhe o ramo da cadeia
+inteira nunca foi conferido contra a outra implementacao, e o dado do outro lado
+existia -- `referencia-cadeia.json` traz `esticamento.nonLinear` desde sempre.
+
+O que torna isto pior que uma ausencia: a linha N/A que ficava no lugar AFIRMAVA
+COBERTURA -- "coberto pelo bloco 'cadeia' abaixo". Ausencia nao afirma nada; esta
+afirmava, e a afirmacao era sobre outra coisa (os numeros por canal), entao quem
+lesse parava de procurar.
+
+  As tres perguntas ausentes das rodadas anteriores eram sobre o que a suite NAO
+  PERGUNTA. Esta e sobre o que ela DIZ que pergunta e nao pergunta.
+
+E por isso o conserto nao e mover as duas linhas: e esta guarda. Mover conserta
+hoje; a guarda reprova no dia em que um `continue` novo passar na frente delas de
+novo -- que e a unica coisa que impede a repeticao, porque o defeito nao foi
+alguem esquecer o campo, foi o campo ficar debaixo de um desvio que ninguem leu
+ate o fim.
+
+N/A CONTA COMO LINHA, e de proposito: o que a guarda exige e que a resposta seja
+DITA por fixture, nao que ela seja sempre uma comparacao. "Nao da para comparar,
+e por isto" e uma resposta; nada e que nao e.
+#>
+$fixturesComGolden = @(Get-ChildItem -LiteralPath $gold -Filter '*-fixture.diag.json' -ErrorAction SilentlyContinue |
+                       ForEach-Object { $_.Name -replace '-fixture\.diag\.json$', '' })
+$comLinearidade = @($rows | Where-Object { $_.escopo -eq 'linearidade' } |
+                    ForEach-Object { [string]$_.fixture } | Select-Object -Unique)
+$semLinearidade = @($fixturesComGolden | Where-Object { $comLinearidade -notcontains $_ })
+
+if ($semLinearidade.Count -gt 0) {
+    $rows += New-Row 'suite' 'linearidade' '(guarda)' $semLinearidade.Count 0 'FAIL' `
+             ('fixtures sem linha de linearidade: ' + ($semLinearidade -join ', ') +
+              ' - alguma verificacao esta abaixo de um continue outra vez')
+} else {
+    $rows += New-Row 'suite' 'linearidade' '(guarda)' $fixturesComGolden.Count $fixturesComGolden.Count 'PASS' `
+             'todo fixture com golden tem a decisao de ramo dita: comparada, ou N/A com o motivo'
 }
 
 <#

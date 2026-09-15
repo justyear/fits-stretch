@@ -6,7 +6,7 @@ Processing log — fixture-mudo.fit
 
 • Read the FITS: 32-bit IEEE float, one image plane, no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up. Pixel values were already on a 0–1 scale, and the data spans 0.01263 to 0.99350.
 • No colour filter array detected: the 2×2 lattice test found no mosaic (neighbour ratio 0.57 H / 0.57 V, where a mosaic reads above 1.15). Treated as monochrome, no debayer applied.
-• Data is linear: median 0.01653, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
+• Data is linear: median 0.01653, under the 0.05 this rule compares against. Nothing in the header declares a stretch, so the median decided this on its own — a 202.6% rise in the frame’s overall level would reverse it. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
 • Background extraction: measured the sky in 96 boxes of 25 pixels on a 12 × 8 grid and used 84 of them (12 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (0.01645), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.

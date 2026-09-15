@@ -7,7 +7,7 @@ Processing log — fixture-seestar.fit
 • Read the FITS: 16-bit unsigned integer (BZERO 32768), one image plane, rows stored bottom-up and flipped back the right way up. Pixel values rescaled onto 0–1 from the 0 to 65535 range they were stored in, where the data spans 0.00780 to 0.31510.
 • Colour filter array: BAYERPAT = GRBG read from the header, and its green sites already match the main diagonal the pixels show. Measured lattice contrast 11.1%, neighbour ratio 3.23 H / 2.73 V.
 • Debayered with bilinear interpolation to full-resolution RGB.
-• Data is linear: median 0.01100, no stretch recorded in the header. Full autostretch applied.
+• Data is linear: median 0.01100, under the 0.05 this rule compares against. Nothing in the header declares a stretch, so the median decided this on its own — a 354.7% rise in the frame’s overall level would reverse it. Full autostretch applied.
 • Background extraction: measured the sky in 84 boxes of 25 pixels on a 12 × 7 grid and used 73 of them (11 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01223, G 0.01092, B 0.00981), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.

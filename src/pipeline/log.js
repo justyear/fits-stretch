@@ -160,13 +160,59 @@ function buildLog(ctx){
       'it holds given that choice rather than on its own.'
     : '';
 
+  /* --- QUANDO A MEDIANA DECIDE SOZINHA ----------------------------
+   *
+   * Tres das quatro saidas desta regra usam o header: ele declara esticamento e
+   * a decisao leva isso em conta. A quarta e a regra decidindo NA AUSENCIA de
+   * qualquer declaracao, so pela mediana -- e isso nao e um empate honesto.
+   *
+   * MEDIDO (`investigacao-regra-linear.md` secoes 7 e 8): a classe
+   * linear/nao-linear e invariante a ganho e a pedestal -- os dois preservam o
+   * que aconteceu com o arquivo, seja la o que for. A regra NAO e. No
+   * `bigobject`, 1,25% de exposicao a mais -- ou 41 ADU de pedestal, menos que o
+   * offset de bias da maioria das cameras -- invertem o veredito e levam a saida
+   * de 21 para 11 num eixo de 255. A entrada anda 0,0102%; a saida anda 47,6%.
+   *
+   * Entao a frase diz as duas coisas que o leitor precisa para nao confiar
+   * demais: que NINGUEM DECLAROU, e A QUE DISTANCIA a decisao ficou.
+   *
+   * A distancia vai na forma que a regra de produto pede -- ver NOTAS, "Prosa
+   * apresenta dois valores; distancia e uma conta": a conta feita, nao os dois
+   * lados para alguem subtrair. E a conta e `limiar/mediana`, ou seja QUANTO O
+   * NIVEL DO QUADRO TERIA QUE MUDAR para inverter o veredito. Derivada, nao
+   * escolhida: nao ha limiar novo aqui e nao ha um segundo numero magico.
+   *
+   * A mesma conta entra nas outras frases, porque uma distancia so em metade das
+   * linhas e uma inconsistencia que envelhece -- e porque nenhuma delas tinha a
+   * conta feita.
+   */
+  function reverter(mediana, limiar){
+    var m = Number(mediana);
+    if (!(m > 0) || !isFinite(m)) return null;
+    var r = limiar / m;
+    if (!isFinite(r)) return null;
+    return { pct: Math.abs(r - 1) * 100, sobe: (r > 1) };
+  }
+  function pctDist(dd){ return fx(dd.pct, dd.pct < 10 ? 2 : 1) + '%'; }
+  function decidiuSozinha(mediana, limiar){
+    var dd = reverter(mediana, limiar);
+    if (!dd) return ' Nothing in the header declares a stretch, so the median decided this on its own.';
+    return ' Nothing in the header declares a stretch, so the median decided this on its own — a ' +
+           pctDist(dd) + (dd.sobe ? ' rise' : ' drop') +
+           ' in the frame’s overall level would reverse it.';
+  }
+
   // --- linearity --------------------------------------------------
   if (st.nonLinear){
+    var limiarNL = (st.historyHits.length && st.globalMedian < NONLINEAR_MEDIAN)
+                 ? NONLINEAR_MEDIAN_WITH_HISTORY : NONLINEAR_MEDIAN;
     var reasons = [];
     if (st.historyHits.length) reasons.push('the header records ' + st.historyHits.join(' and '));
-    reasons.push('the measured median sits at ' + fx(st.globalMedian, 4));
-    L.push('• Data is already non-linear: ' + reasons.join(', ') +
-           '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
+    reasons.push('the measured median sits at ' + fx(st.globalMedian, 4) +
+                 ', over the ' + fx(limiarNL, 2) + ' this rule compares against');
+    L.push('• Data is already non-linear: ' + reasons.join(', ') + '.' +
+           (st.historyHits.length ? '' : decidiuSozinha(st.globalMedian, NONLINEAR_MEDIAN)) +
+           ' Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
            '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.' + contingente);
   } else if (st.historyHits.length){
     /* O HEADER DIZ QUE ESTICOU E A REGRA DECIDIU CONTRA ELE.
@@ -184,15 +230,19 @@ function buildLog(ctx){
      * ganhou -- essa e a unica linha do log em que uma afirmacao do header e
      * sobreposta por uma medicao.
      */
+    var ddH = reverter(st.globalMedian, NONLINEAR_MEDIAN_WITH_HISTORY);
     L.push('• The header records ' + st.historyHits.join(' and ') +
            ', but the pixels do not support it: the median sits at ' + fx(st.globalMedian, 5) +
-           ', under the ' + fx(NONLINEAR_MEDIAN_WITH_HISTORY, 2) + ' this rule needs before it takes the ' +
+           (ddH ? ' and would have to rise ' + pctDist(ddH) + ' to reach' : ', under') +
+           ' the ' + fx(NONLINEAR_MEDIAN_WITH_HISTORY, 2) + ' this rule needs before it takes the ' +
            'header at its word. Treated as linear, and the full autostretch was applied — ' +
            'the file says one thing and its own values say another, and this line is which ' +
            'one was believed.' + contingente);
   } else {
     L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
-           ', no stretch recorded in the header. Full autostretch applied.' + contingente);
+           ', under the ' + fx(NONLINEAR_MEDIAN, 2) + ' this rule compares against.' +
+           decidiuSozinha(st.globalMedian, NONLINEAR_MEDIAN) +
+           ' Full autostretch applied.' + contingente);
   }
 
   // --- background -------------------------------------------------

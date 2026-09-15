@@ -8,7 +8,7 @@ Processing log — fixture-nobayer.fit
 • Colour filter array found by the 2×2 lattice test, but the file carries no BAYERPAT keyword. Pattern inferred as GRBG (Seestar S30/S50 layout) from the measured green positions — inferred, not read from the header. Measured lattice contrast 11.1%, neighbour ratio 3.23 H / 2.73 V.
     R/B could not be determined from pixel geometry: the green diagonal was measured, the red/blue assignment was assumed. If this file came from a different CFA layout, red and blue are interchanged — and the image will still look plausible, because the colour calibration below measures the same swapped stars.
 • Debayered with bilinear interpolation to full-resolution RGB.
-• Data is linear: median 0.01100, no stretch recorded in the header. Full autostretch applied.
+• Data is linear: median 0.01100, under the 0.05 this rule compares against. Nothing in the header declares a stretch, so the median decided this on its own — a 354.7% rise in the frame’s overall level would reverse it. Full autostretch applied.
 • Background extraction: measured the sky in 84 boxes of 25 pixels on a 12 × 7 grid and used 73 of them (11 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01223, G 0.01092, B 0.00981), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.

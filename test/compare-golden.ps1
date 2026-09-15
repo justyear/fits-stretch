@@ -94,7 +94,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture', 'ceuclaro-fixture'),
     [switch]   $Detail
 )
 
@@ -545,6 +545,35 @@ if ($nanFail -eq 0) {
 } else {
     $fail += $nanFail
 }
+<#
+GOLDEN NO DISCO QUE NAO ESTA EM $Names NAO PODE SUMIR EM SILENCIO.
+
+A lista `$Names` e escrita a mao, e uma lista escrita a mao envelhece. O
+`ceuclaro-fixture` entrou na suite, foi capturado, foi promovido -- e este
+comparador continuou imprimindo 80 checks, os mesmos de antes, sem uma palavra.
+Quatro artefatos de um fixture inteiro ficaram fora e o numero final continuou
+bonito.
+
+E o mesmo defeito que o `compare-reference` ja vigia do lado dele (golden sem
+contrapartida na referencia) e a mesma familia da comparacao que ficava abaixo
+de um `continue`: a suite dizia 80 e ninguem perguntava 80 de quantos.
+
+So vale quando `$Names` NAO foi passada: com `-Names x` a lista curta e o
+pedido, nao o esquecimento.
+#>
+if (-not $PSBoundParameters.ContainsKey('Names')) {
+    $noDisco = @(Get-ChildItem -LiteralPath $gold -Filter '*-fixture.log.txt' -ErrorAction SilentlyContinue |
+                 ForEach-Object { $_.Name -replace '\.log\.txt$', '' })
+    $foraDaLista = @($noDisco | Where-Object { $Names -notcontains $_ })
+    if ($foraDaLista.Count -gt 0) {
+        Write-Host ''
+        Write-Host ("GOLDEN FORA DA LISTA -- {0} fixture(s) com golden no disco e sem linha em `$Names:" -f $foraDaLista.Count)
+        $foraDaLista | ForEach-Object { Write-Host ('  ' + $_) }
+        Write-Host 'Acrescente o nome, ou apague o golden. Um golden que nao e comparado nao e golden.'
+        $fail += $foraDaLista.Count
+    }
+}
+
 $exact = @($rows | Where-Object { $_.result -eq 'PASS'  }).Count
 $tolp  = @($rows | Where-Object { $_.result -eq 'PASS~' }).Count
 Write-Host ''

@@ -142,7 +142,17 @@ window.__GOLDEN = [
   // O ramo `pattern.corrected`: BAYERPAT no header que NAO bate com a diagonal
   // verde medida. Mesmos pixels do seestar, um cartao diferente -- e a imagem
   // sai com R e B trocados, que e o comportamento certo para um header errado.
-  ['bayerespelhado-fixture', '/f/test/fixtures/fixture-bayerespelhado.fit']
+  ['bayerespelhado-fixture', '/f/test/fixtures/fixture-bayerespelhado.fit'],
+  // A QUARTA saida da regra linear, e a unica que nao tinha caso: NAO-LINEAR
+  // SEM DECLARACAO. Um empilhamento linear de ceu de cidade -- mediana ~0,080,
+  // nada no header falando de esticamento -- em que a mediana decide sozinha,
+  // decide CONTRA o arquivo, e a ferramenta aplica o esticamento reduzido a um
+  // quadro linear.
+  //
+  // O golden existe para que a frase que anuncia isso tenha quem a imprima. As
+  // outras tres saidas da regra ja tinham fixture; esta e a que carrega o aviso
+  // medido (1,25% de exposicao, 47,6% de brilho) e era a unica sem leitor.
+  ['ceuclaro-fixture', '/f/test/fixtures/fixture-ceuclaro.fit']
 ];
 
 /* ------------------------------------------------------------------ *

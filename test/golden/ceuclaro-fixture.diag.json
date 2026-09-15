@@ -1,0 +1,180 @@
+{
+  "file": "fixture-ceuclaro.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Bright sky, linear",
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 0.058558255434036255,
+    "rawMax": 1,
+    "nonFinite": 0,
+    "normMin": 0.058558255434036255,
+    "normMax": 1,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.08053711757076372,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "NON-LINEAR — reduced stretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.07875181200885023,
+      "madn": 0.0004786284558266229,
+      "q1": 0.0784313725490196,
+      "q3": 0.07907225146868085,
+      "shadows": 0.07920958266575112,
+      "midtones": 0.008521113425487569,
+      "target": 0.07989623865110246,
+      "pixelsBlack": 261,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.08009460593575952,
+      "madn": 0.00048681810510714795,
+      "q1": 0.07975890745403219,
+      "q3": 0.08041504539559015,
+      "shadows": 0.07920958266575112,
+      "midtones": 0.008521113425487569,
+      "target": 0.07989623865110246,
+      "pixelsBlack": 261,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.08165102616922255,
+      "madn": 0.0004958155346657001,
+      "q1": 0.08131532768749523,
+      "q3": 0.08198672465094987,
+      "shadows": 0.07920958266575112,
+      "midtones": 0.008521113425487569,
+      "target": 0.07989623865110246,
+      "pixelsBlack": 261,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.07989623865110246,
+      "luminanceMADN": 0.0003525349900391228,
+      "shadows": 0.07920958266575112,
+      "midtones": 0.008521113425487569,
+      "target": 0.07989623865110246,
+      "luminanceSpan": 0.0014190890363928038,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 261,
+      "clipHigh": 0,
+      "highlightCut": 0.21167315175097276
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0185419391410149,
+        "bOverG": 0.9977864966987272
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0190305696144166,
+        "bOverG": 0.9966642646687537
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 539676,
+      "highlightPixels": 5402,
+      "pixelsRescaled": 5986
+    }
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 9,
+    "preview": 2,
+    "stats": 26,
+    "background": 131,
+    "colour": 166,
+    "transfer": 220,
+    "saturation": 100,
+    "crop": 26,
+    "quantise": 28,
+    "downscale": 1,
+    "total": 576
+  },
+  "historyCards": [
+    "mean stacking with winsorized sigma clipping, 30 frames",
+    "SKY the sky sits near 0.080 of full scale -- a city sky, and",
+    "SKY the frame is LINEAR: no tonal operation was applied.",
+    "SKY Nothing above names a stretch, so the rule has only the",
+    "SKY median to go on, and the median says NON-LINEAR. That",
+    "SKY verdict is WRONG about this file, and the log has to say",
+    "SKY that it decided with nothing but the median.",
+    "SKY External truth, from neither implementation."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Bright sky, linear'",
+    "HISTORY mean stacking with winsorized sigma clipping, 30 frames",
+    "HISTORY SKY the sky sits near 0.080 of full scale -- a city sky, and",
+    "HISTORY SKY the frame is LINEAR: no tonal operation was applied.",
+    "HISTORY SKY Nothing above names a stretch, so the rule has only the",
+    "HISTORY SKY median to go on, and the median says NON-LINEAR. That",
+    "HISTORY SKY verdict is WRONG about this file, and the log has to say",
+    "HISTORY SKY that it decided with nothing but the median.",
+    "HISTORY SKY External truth, from neither implementation.",
+    "END"
+  ]
+}

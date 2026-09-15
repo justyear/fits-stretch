@@ -90,6 +90,19 @@ $DECLARADAS = @(
     @{ chave = 'this browser cannot allocate a canvas at full size'
        classe = 'IMPOSSIVEL'
        porque = 'depende de o navegador FALHAR em alocar o canvas. Nao ha como provocar isso de forma reprodutivel numa captura, e um golden que dependesse de pressao de memoria seria pior que a frase sem caso' }
+
+    # A variante CURTA da frase do degrau 5 -- a que sai sem a distancia.
+    # Ela existe porque a distancia e `limiar/mediana` e mediana ZERO nao tem
+    # distancia: dividir daria infinito e a frase sairia com 'n/a' no meio.
+    #
+    # NAO E HIPOTETICO, e foi medido nesta rodada: com o `declaraestica`
+    # multiplicado por 1,501 o `normalisePhysical` troca para /65535, a mediana
+    # LIDA vira exatamente zero e a imagem sai 100% preta. O mesmo acontece com
+    # um quadro que ja chega quase todo em zero. O que falta e o caso SEM
+    # declaracao no header -- o daquela medicao tinha duas.
+    @{ chave = 'the median decided this on its own.'
+       classe = 'DIVIDA'
+       porque = 'a variante sem distancia, para mediana zero (ou nao-finita), que nao tem como ser dividida. Fecha com um fixture de quadro praticamente todo em zero e header mudo sobre esticamento -- a cena e barata, e o caso e real: um float mal escalado cai nele' }
 )
 
 # ---------------------------------------------------------------------------

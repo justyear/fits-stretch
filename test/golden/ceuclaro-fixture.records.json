@@ -1,0 +1,1998 @@
+[
+  {
+    "id": "background",
+    "name": "Background extraction",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "samplesPerRow": 12,
+      "boxSize": 25,
+      "tolerance": 1,
+      "edgeMargin": 0.02,
+      "smoothing": 0.1,
+      "correction": "subtract",
+      "pedestal": "model-median"
+    },
+    "notes": [
+      "Placed 96 samples on a 12 x 8 grid, 25 px boxes, 86 accepted and 10 rejected.",
+      "Rejected: 10 brighter than the background estimate, 0 on the edge margin, 0 clipped, 0 non-finite.",
+      "Every rejected sample is still in the record, with the reason it was rejected.",
+      "Thin-plate spline through the 86 accepted samples, smoothing 0.1, per channel and unlinked.",
+      "Evaluated on every 8th pixel and interpolated between; measured against direct evaluation at 1000 pixels, worst case 0.00044 of one 8-bit level.",
+      "Corrected by subtraction, returning each channel its own model median as the pedestal (R 0.08749, G 0.07955, B 0.07319). The background LEVEL is preserved and only the variation is removed, so the ratio between channels is unchanged and no colour grading happened.",
+      "0 pixels came out below zero, which is expected: noise that sat under the model stays under it, and nothing is clamped until the 8-bit step."
+    ],
+    "samples": {
+      "generated": 96,
+      "accepted": 86,
+      "rejected": {
+        "bright": 10,
+        "edge": 0,
+        "clipped": 0,
+        "nan": 0
+      },
+      "forced": 0,
+      "moved": 0,
+      "boxSizeEffective": 25,
+      "minimum": 8,
+      "grid": {
+        "cols": 12,
+        "rows": 8,
+        "marginPx": 12,
+        "spacingX": 75,
+        "spacingY": 75
+      },
+      "points": [
+        {
+          "x": 38,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07218630611896515,
+            0.06565787643194199,
+            0.060398973524570465
+          ]
+        },
+        {
+          "x": 113,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07407528162002563,
+            0.0673738494515419,
+            0.0619349330663681
+          ]
+        },
+        {
+          "x": 188,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07572950422763824,
+            0.06884904950857162,
+            0.06335503607988358
+          ]
+        },
+        {
+          "x": 263,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07751107960939407,
+            0.07045047730207443,
+            0.06483051925897598
+          ]
+        },
+        {
+          "x": 338,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07924454659223557,
+            0.07204612344503403,
+            0.06630566716194153
+          ]
+        },
+        {
+          "x": 413,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08100063353776932,
+            0.07368379086256027,
+            0.06779612600803375
+          ]
+        },
+        {
+          "x": 488,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0828818529844284,
+            0.07537133991718292,
+            0.06935656070709229
+          ]
+        },
+        {
+          "x": 563,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08463901281356812,
+            0.07696037739515305,
+            0.07080134749412537
+          ]
+        },
+        {
+          "x": 638,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08628848195075989,
+            0.07847500592470169,
+            0.07220693677663803
+          ]
+        },
+        {
+          "x": 713,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0882500633597374,
+            0.08027675747871399,
+            0.07387033849954605
+          ]
+        },
+        {
+          "x": 788,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08983214944601059,
+            0.08170725405216217,
+            0.0751555860042572
+          ]
+        },
+        {
+          "x": 863,
+          "y": 38,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09161093086004257,
+            0.08330623060464859,
+            0.07665030658245087
+          ]
+        },
+        {
+          "x": 38,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0738343894481659,
+            0.06708752363920212,
+            0.06174821779131889
+          ]
+        },
+        {
+          "x": 113,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07556812465190887,
+            0.06869816035032272,
+            0.06320445984601974
+          ]
+        },
+        {
+          "x": 188,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0774087980389595,
+            0.07041286677122116,
+            0.06472979485988617
+          ]
+        },
+        {
+          "x": 263,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07908227294683456,
+            0.07192086428403854,
+            0.06613975763320923
+          ]
+        },
+        {
+          "x": 338,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08083369582891464,
+            0.07348328828811646,
+            0.06764505058526993
+          ]
+        },
+        {
+          "x": 413,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08264794945716858,
+            0.07507628947496414,
+            0.06909140199422836
+          ]
+        },
+        {
+          "x": 488,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08432219177484512,
+            0.07671582698822021,
+            0.07056379318237305
+          ]
+        },
+        {
+          "x": 563,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08611644059419632,
+            0.07828882336616516,
+            0.0720093697309494
+          ]
+        },
+        {
+          "x": 638,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08793648332357407,
+            0.07994098216295242,
+            0.07353457063436508
+          ]
+        },
+        {
+          "x": 713,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08963035047054291,
+            0.08148348331451416,
+            0.07502954453229904
+          ]
+        },
+        {
+          "x": 788,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09174132347106934,
+            0.08348594605922699,
+            0.0768887847661972
+          ]
+        },
+        {
+          "x": 863,
+          "y": 113,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09316667169332504,
+            0.08473105728626251,
+            0.07794792950153351
+          ]
+        },
+        {
+          "x": 38,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07538694143295288,
+            0.06849157810211182,
+            0.0630178153514862
+          ]
+        },
+        {
+          "x": 113,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0771726742386818,
+            0.07008388638496399,
+            0.06450536102056503
+          ]
+        },
+        {
+          "x": 188,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07890893518924713,
+            0.07177182286977768,
+            0.06598209589719772
+          ]
+        },
+        {
+          "x": 263,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08065377920866013,
+            0.07337012887001038,
+            0.06745565682649612
+          ]
+        },
+        {
+          "x": 338,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.082618348300457,
+            0.07504640519618988,
+            0.06908857077360153
+          ]
+        },
+        {
+          "x": 413,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08417663723230362,
+            0.07651021331548691,
+            0.07043510675430298
+          ]
+        },
+        {
+          "x": 488,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08595231920480728,
+            0.07811698317527771,
+            0.07184635102748871
+          ]
+        },
+        {
+          "x": 563,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08774761855602264,
+            0.07972828298807144,
+            0.07337512820959091
+          ]
+        },
+        {
+          "x": 638,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08948249369859695,
+            0.08138791471719742,
+            0.07483125478029251
+          ]
+        },
+        {
+          "x": 713,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09122656285762787,
+            0.08293264359235764,
+            0.07633887231349945
+          ]
+        },
+        {
+          "x": 788,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0931970626115799,
+            0.0847710520029068,
+            0.07799472659826279
+          ]
+        },
+        {
+          "x": 863,
+          "y": 188,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09477459639310837,
+            0.08612995594739914,
+            0.07926002889871597
+          ]
+        },
+        {
+          "x": 38,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07697677612304688,
+            0.0699625238776207,
+            0.06435925513505936
+          ]
+        },
+        {
+          "x": 113,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07872962951660156,
+            0.071547731757164,
+            0.06587966531515121
+          ]
+        },
+        {
+          "x": 188,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08050695061683655,
+            0.07314875721931458,
+            0.06730920076370239
+          ]
+        },
+        {
+          "x": 263,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08234903961420059,
+            0.07486620545387268,
+            0.0688418373465538
+          ]
+        },
+        {
+          "x": 338,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08403770625591278,
+            0.07640509307384491,
+            0.07025077939033508
+          ]
+        },
+        {
+          "x": 413,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0857788473367691,
+            0.07801806926727295,
+            0.07177051156759262
+          ]
+        },
+        {
+          "x": 488,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08776841312646866,
+            0.079842209815979,
+            0.0734390839934349
+          ]
+        },
+        {
+          "x": 563,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08932210505008698,
+            0.08117438107728958,
+            0.07475396990776062
+          ]
+        },
+        {
+          "x": 638,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09151825308799744,
+            0.08326520025730133,
+            0.07660867273807526
+          ]
+        },
+        {
+          "x": 713,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09281688928604126,
+            0.08445129543542862,
+            0.07767446339130402
+          ]
+        },
+        {
+          "x": 788,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09457916021347046,
+            0.08601220697164536,
+            0.07912833988666534
+          ]
+        },
+        {
+          "x": 863,
+          "y": 263,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09635937958955765,
+            0.08758865296840668,
+            0.08058144152164459
+          ]
+        },
+        {
+          "x": 38,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.07861844450235367,
+            0.07147052139043808,
+            0.06574344635009766
+          ]
+        },
+        {
+          "x": 113,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08027666062116623,
+            0.07298368960618973,
+            0.06719663739204407
+          ]
+        },
+        {
+          "x": 188,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0820675790309906,
+            0.07455863058567047,
+            0.0686417743563652
+          ]
+        },
+        {
+          "x": 263,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08426938951015472,
+            0.07666163891553879,
+            0.07062295079231262
+          ]
+        },
+        {
+          "x": 338,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08567889034748077,
+            0.07791408151388168,
+            0.07167091965675354
+          ]
+        },
+        {
+          "x": 413,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08765358477830887,
+            0.07975225150585175,
+            0.07340242713689804
+          ]
+        },
+        {
+          "x": 488,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08913877606391907,
+            0.08104441314935684,
+            0.07451965659856796
+          ]
+        },
+        {
+          "x": 563,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09087389707565308,
+            0.08264471590518951,
+            0.0759781077504158
+          ]
+        },
+        {
+          "x": 638,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09265866875648499,
+            0.08422834426164627,
+            0.07747764885425568
+          ]
+        },
+        {
+          "x": 713,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09443783760070801,
+            0.0858483761548996,
+            0.07895819842815399
+          ]
+        },
+        {
+          "x": 788,
+          "y": 338,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09622436761856079,
+            0.08744189143180847,
+            0.08048392832279205
+          ]
+        },
+        {
+          "x": 863,
+          "y": 338,
+          "state": "rejected-bright",
+          "reason": "R median 0.09809 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09808742254972458,
+            0.08915388584136963,
+            0.08204232901334763
+          ]
+        },
+        {
+          "x": 38,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0804724395275116,
+            0.07321273535490036,
+            0.06736816465854645
+          ]
+        },
+        {
+          "x": 113,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08190671354532242,
+            0.07446848601102829,
+            0.06849045306444168
+          ]
+        },
+        {
+          "x": 188,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08368799090385437,
+            0.07606062293052673,
+            0.07001490890979767
+          ]
+        },
+        {
+          "x": 263,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0853806734085083,
+            0.07765451818704605,
+            0.07146813720464706
+          ]
+        },
+        {
+          "x": 338,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08714969456195831,
+            0.07927550375461578,
+            0.07291523367166519
+          ]
+        },
+        {
+          "x": 413,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08894819021224976,
+            0.08086204528808594,
+            0.0743851438164711
+          ]
+        },
+        {
+          "x": 488,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09068019688129425,
+            0.08250996470451355,
+            0.07586298137903214
+          ]
+        },
+        {
+          "x": 563,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09256381541490555,
+            0.08413812518119812,
+            0.07740487158298492
+          ]
+        },
+        {
+          "x": 638,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09424198418855667,
+            0.08565004914999008,
+            0.0788268968462944
+          ]
+        },
+        {
+          "x": 713,
+          "y": 413,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09602892398834229,
+            0.08728670328855515,
+            0.08029317110776901
+          ]
+        },
+        {
+          "x": 788,
+          "y": 413,
+          "state": "rejected-bright",
+          "reason": "R median 0.09776 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09775600582361221,
+            0.08892542123794556,
+            0.08178660273551941
+          ]
+        },
+        {
+          "x": 863,
+          "y": 413,
+          "state": "rejected-bright",
+          "reason": "R median 0.09969 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09968548268079758,
+            0.0906183272600174,
+            0.08340223878622055
+          ]
+        },
+        {
+          "x": 38,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08194880932569504,
+            0.0745600238442421,
+            0.06860238313674927
+          ]
+        },
+        {
+          "x": 113,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08347949385643005,
+            0.07587768882513046,
+            0.06983206421136856
+          ]
+        },
+        {
+          "x": 188,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08526495844125748,
+            0.0774899497628212,
+            0.07128743827342987
+          ]
+        },
+        {
+          "x": 263,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08738928288221359,
+            0.07942372560501099,
+            0.07308204472064972
+          ]
+        },
+        {
+          "x": 338,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08888734132051468,
+            0.08078054338693619,
+            0.07433988898992538
+          ]
+        },
+        {
+          "x": 413,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09054064750671387,
+            0.08234907686710358,
+            0.07572155445814133
+          ]
+        },
+        {
+          "x": 488,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09230818599462509,
+            0.08393760025501251,
+            0.07724782079458237
+          ]
+        },
+        {
+          "x": 563,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09425649046897888,
+            0.08563948422670364,
+            0.0788348987698555
+          ]
+        },
+        {
+          "x": 638,
+          "y": 488,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09580327570438385,
+            0.0871095061302185,
+            0.08014442026615143
+          ]
+        },
+        {
+          "x": 713,
+          "y": 488,
+          "state": "rejected-bright",
+          "reason": "R median 0.09758 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09758016467094421,
+            0.08876166492700577,
+            0.08164522796869278
+          ]
+        },
+        {
+          "x": 788,
+          "y": 488,
+          "state": "rejected-bright",
+          "reason": "R median 0.09935 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09934888780117035,
+            0.09031964838504791,
+            0.08306008577346802
+          ]
+        },
+        {
+          "x": 863,
+          "y": 488,
+          "state": "rejected-bright",
+          "reason": "R median 0.10104 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.10104034096002579,
+            0.09194893389940262,
+            0.08452824503183365
+          ]
+        },
+        {
+          "x": 38,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08344271779060364,
+            0.07589519768953323,
+            0.06984920054674149
+          ]
+        },
+        {
+          "x": 113,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08508586883544922,
+            0.07737243175506592,
+            0.07117761671543121
+          ]
+        },
+        {
+          "x": 188,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0868704617023468,
+            0.07896523177623749,
+            0.07259814441204071
+          ]
+        },
+        {
+          "x": 263,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.08873575180768967,
+            0.08064964413642883,
+            0.07425476610660553
+          ]
+        },
+        {
+          "x": 338,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09046351164579391,
+            0.08221609890460968,
+            0.07565346360206604
+          ]
+        },
+        {
+          "x": 413,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09215358644723892,
+            0.08374805748462677,
+            0.07707133889198303
+          ]
+        },
+        {
+          "x": 488,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.09408241510391235,
+            0.08553771674633026,
+            0.07873808592557907
+          ]
+        },
+        {
+          "x": 563,
+          "y": 563,
+          "state": "accepted",
+          "reason": null,
+          "median": [
+            0.0956791341304779,
+            0.0869879424571991,
+            0.07999265938997269
+          ]
+        },
+        {
+          "x": 638,
+          "y": 563,
+          "state": "rejected-bright",
+          "reason": "R median 0.09741 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09741058200597763,
+            0.08854658156633377,
+            0.08145969361066818
+          ]
+        },
+        {
+          "x": 713,
+          "y": 563,
+          "state": "rejected-bright",
+          "reason": "R median 0.09914 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.09913651645183563,
+            0.09016484767198563,
+            0.0829673483967781
+          ]
+        },
+        {
+          "x": 788,
+          "y": 563,
+          "state": "rejected-bright",
+          "reason": "R median 0.10135 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.10135168582201004,
+            0.09212617576122284,
+            0.0848100557923317
+          ]
+        },
+        {
+          "x": 863,
+          "y": 563,
+          "state": "rejected-bright",
+          "reason": "R median 0.10292 is above the background estimate 0.08800 + 1 x MADN 0.00840 = 0.09640",
+          "median": [
+            0.10291589796543121,
+            0.0936007872223854,
+            0.08612748235464096
+          ]
+        }
+      ]
+    },
+    "surface": {
+      "method": "thin-plate-spline",
+      "lambda": 0.012567827823663672,
+      "kernelScale": 0.12567827823663671,
+      "gridDivisor": 8,
+      "gridSize": [
+        114,
+        76
+      ],
+      "maxInterpErrorLevels": 0.00043956586397005115,
+      "interpProbes": 1000,
+      "interpLimitLevels": 0.5,
+      "correction": "subtract",
+      "perChannel": [
+        {
+          "modelMin": 0.07052162032416981,
+          "modelMax": 0.10421405221292145,
+          "modelMedian": 0.08748892252768997,
+          "pedestal": 0.08748892252768997
+        },
+        {
+          "modelMin": 0.06414834446332947,
+          "modelMax": 0.09467520944586857,
+          "modelMedian": 0.07954816765117124,
+          "pedestal": 0.07954816765117124
+        },
+        {
+          "modelMin": 0.0590087754184708,
+          "modelMax": 0.08709091498854946,
+          "modelMedian": 0.07318644591239717,
+          "pedestal": 0.07318644591239717
+        }
+      ]
+    },
+    "correction": [
+      {
+        "pedestal": 0.08748892252768997,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.07954816765117124,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      },
+      {
+        "pedestal": 0.07318644591239717,
+        "negatives": 0,
+        "guarded": 0,
+        "negativePct": 0
+      }
+    ],
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "suggested": null,
+    "reason": null,
+    "frameSize": null,
+    "outputSize": null,
+    "skyMedian": null,
+    "skyMadn": null,
+    "signalPixels": null,
+    "extendedPixels": null,
+    "components": null,
+    "componentsAboveMin": null,
+    "componentList": null,
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.08799877927824827,
+          "madn": 0.008401979504678319,
+          "mad": 0.005667057537217267,
+          "span": 0.03396658274204624,
+          "q1": 0.08233768215457389,
+          "q3": 0.09365987640192264,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07110704203860532,
+          "p999": 0.6557869840543221,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.08000305180437933,
+          "madn": 0.007654739251623037,
+          "mad": 0.005163050891422527,
+          "span": 0.030991073472190447,
+          "q1": 0.07484550240329595,
+          "q3": 0.08517586022735943,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.06463721675440605,
+          "p999": 0.6188296330205234,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.07360952162966354,
+          "madn": 0.0070490138183557805,
+          "mad": 0.004754494683903805,
+          "span": 0.028564888990615683,
+          "q1": 0.06886396581979096,
+          "q3": 0.07838559548332952,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.059449149309529256,
+          "p999": 0.5979705500877394,
+          "totalPixels": 540000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.08751049057755397,
+          "madn": 0.00048681810510713765,
+          "mad": 0.0003283543134406702,
+          "span": 0.0019684138246738314,
+          "q1": 0.08717479209582665,
+          "q3": 0.0878309300373846,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.08673228046082246,
+          "p999": 0.6542000457770657,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.07956054016937514,
+          "madn": 0.0004869071680608711,
+          "mad": 0.00032841438557997514,
+          "span": 0.0019684138246738314,
+          "q1": 0.07924010070954451,
+          "q3": 0.07989623865110246,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07876707103074693,
+          "p999": 0.6169527733272298,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.07319752803845274,
+          "madn": 0.00048628372738473687,
+          "mad": 0.00032799388060484073,
+          "span": 0.0019684138246738314,
+          "q1": 0.07287708857862212,
+          "q3": 0.07353322652018006,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07240405889982453,
+          "p999": 0.5968719005111772,
+          "totalPixels": 540000
+        }
+      ]
+    }
+  },
+  {
+    "id": "colour-cal",
+    "name": "Colour calibration",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "backgroundNeutralise": true,
+      "starSigma": 12,
+      "starMax": 0.85,
+      "minStarPixels": 2000,
+      "extendedWindow": 25,
+      "extendedFrac": 0.5,
+      "reference": "green"
+    },
+    "notes": [
+      "Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": {
+      "applied": true,
+      "skipReason": null,
+      "beforeMedians": [
+        0.08751216158270836,
+        0.07956869155168533,
+        0.07320817932486534
+      ],
+      "target": 0.08009634415308635,
+      "offsets": [
+        0.00741581742962201,
+        -0.0005276526014010158,
+        -0.006888164828221008
+      ]
+    },
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "suggested": null,
+    "reason": null,
+    "frameSize": null,
+    "outputSize": null,
+    "skyMedian": null,
+    "skyMadn": null,
+    "signalPixels": null,
+    "extendedPixels": null,
+    "components": null,
+    "componentsAboveMin": null,
+    "componentList": null,
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": {
+      "applied": true,
+      "skipReason": null,
+      "pixels": 28082,
+      "pctFrame": 5.20037037037037,
+      "selected": 32056,
+      "rejected": {
+        "saturated": 89,
+        "extended": 3974
+      },
+      "thresholdLow": 0.0830307872325182,
+      "thresholdHigh": 0.85,
+      "luminanceMedian": 0.08006361499428749,
+      "luminanceMADN": 0.00024726435318589207,
+      "pedestals": [
+        0.08009634415308635,
+        0.08009634415308635,
+        0.08009634415308635
+      ],
+      "medians": [
+        0.09770907461643219,
+        0.09741626307368279,
+        0.09708409383893013
+      ],
+      "abovePedestal": [
+        0.01761273046334584,
+        0.017319918920596436,
+        0.01698774968584378
+      ],
+      "ratios": {
+        "rOverG": 1.0169060573604187,
+        "bOverG": 0.9808215479370607
+      },
+      "pedestalProbe": 0.1,
+      "gainSensitivity": 0.01710964774308468,
+      "gainSensitivityChannel": "blue"
+    },
+    "gains": [
+      0.9833750057460551,
+      1,
+      1.0195534571026472
+    ],
+    "reference": "green",
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.08751049057755397,
+          "madn": 0.00048681810510713765,
+          "mad": 0.0003283543134406702,
+          "span": 0.0019684138246738314,
+          "q1": 0.08717479209582665,
+          "q3": 0.0878309300373846,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.08673228046082246,
+          "p999": 0.6542000457770657,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.07956054016937514,
+          "madn": 0.0004869071680608711,
+          "mad": 0.00032841438557997514,
+          "span": 0.0019684138246738314,
+          "q1": 0.07924010070954451,
+          "q3": 0.07989623865110246,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07876707103074693,
+          "p999": 0.6169527733272298,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.07319752803845274,
+          "madn": 0.00048628372738473687,
+          "mad": 0.00032799388060484073,
+          "span": 0.0019684138246738314,
+          "q1": 0.07287708857862212,
+          "q3": 0.07353322652018006,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07240405889982453,
+          "p999": 0.5968719005111772,
+          "totalPixels": 540000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.07875181200885023,
+          "madn": 0.0004786284558266229,
+          "mad": 0.0003228304706776089,
+          "span": 0.0019226367589837423,
+          "q1": 0.0784313725490196,
+          "q3": 0.07907225146868085,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07798886091401541,
+          "p999": 0.6360418097199969,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.08009460593575952,
+          "madn": 0.00048681810510714795,
+          "mad": 0.00032835431344067716,
+          "span": 0.001968413824673873,
+          "q1": 0.07975890745403219,
+          "q3": 0.08041504539559015,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0793011367971313,
+          "p999": 0.6174715800717174,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.08165102616922255,
+          "madn": 0.0004958155346657001,
+          "mad": 0.0003344229965369622,
+          "span": 0.0020141908903639205,
+          "q1": 0.08131532768749523,
+          "q3": 0.08198672465094987,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.08084229800869765,
+          "p999": 0.6155642023346304,
+          "totalPixels": 540000
+        }
+      ]
+    }
+  },
+  {
+    "id": "stretch-mtf",
+    "name": "Autostretch",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "linked": true,
+      "operator": "mtf",
+      "applyVia": "luminance",
+      "shadowSigma": -2.8,
+      "target": 0.085,
+      "blackPct": 0.0005,
+      "nonLinear": true,
+      "stretch": null
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": {
+      "luminanceMedian": 0.07989623865110246,
+      "luminanceMADN": 0.0003525349900391228,
+      "shadows": 0.07920958266575112,
+      "midtones": 0.008521113425487569,
+      "target": 0.07989623865110246,
+      "luminanceSpan": 0.0014190890363928038,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 261,
+      "clipHigh": 0,
+      "highlightCut": 0.21167315175097276
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0185419391410149,
+        "bOverG": 0.9977864966987272
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0190305696144166,
+        "bOverG": 0.9966642646687537
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 539676,
+      "highlightPixels": 5402,
+      "pixelsRescaled": 5986
+    },
+    "mask": null,
+    "suggested": null,
+    "reason": null,
+    "frameSize": null,
+    "outputSize": null,
+    "skyMedian": null,
+    "skyMadn": null,
+    "signalPixels": null,
+    "extendedPixels": null,
+    "components": null,
+    "componentsAboveMin": null,
+    "componentList": null,
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.07875181200885023,
+          "madn": 0.0004786284558266229,
+          "mad": 0.0003228304706776089,
+          "span": 0.0019226367589837423,
+          "q1": 0.0784313725490196,
+          "q3": 0.07907225146868085,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.07798886091401541,
+          "p999": 0.6360418097199969,
+          "totalPixels": 540000,
+          "shadows": 0.07920958266575112,
+          "midtones": 0.008521113425487569,
+          "target": 0.07989623865110246,
+          "scale": 1.0860234654646692,
+          "outLow": 261,
+          "outHigh": 0
+        },
+        {
+          "median": 0.08009460593575952,
+          "madn": 0.00048681810510714795,
+          "mad": 0.00032835431344067716,
+          "span": 0.001968413824673873,
+          "q1": 0.07975890745403219,
+          "q3": 0.08041504539559015,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0793011367971313,
+          "p999": 0.6174715800717174,
+          "totalPixels": 540000,
+          "shadows": 0.07920958266575112,
+          "midtones": 0.008521113425487569,
+          "target": 0.07989623865110246,
+          "scale": 1.0860234654646692,
+          "outLow": 261,
+          "outHigh": 0
+        },
+        {
+          "median": 0.08165102616922255,
+          "madn": 0.0004958155346657001,
+          "mad": 0.0003344229965369622,
+          "span": 0.0020141908903639205,
+          "q1": 0.08131532768749523,
+          "q3": 0.08198672465094987,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.08084229800869765,
+          "p999": 0.6155642023346304,
+          "totalPixels": 540000,
+          "shadows": 0.07920958266575112,
+          "midtones": 0.008521113425487569,
+          "target": 0.07989623865110246,
+          "scale": 1.0860234654646692,
+          "outLow": 261,
+          "outHigh": 0
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.0801861600671397,
+          "madn": 0.036764347416809826,
+          "mad": 0.02479721261082546,
+          "span": 0.1489127946898604,
+          "q1": 0.05467307545586328,
+          "q3": 0.10431067368581674,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.003646906233310445,
+          "p999": 1,
+          "totalPixels": 540000,
+          "clipLow": 261,
+          "clipHigh": 0,
+          "clipPct": 0.04833333333333333
+        },
+        {
+          "median": 0.08160524910353247,
+          "madn": 0.03785714053857781,
+          "mad": 0.02553429147347755,
+          "span": 0.15335317006179905,
+          "q1": 0.0554207675288014,
+          "q3": 0.10653849088273441,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0037079423208972303,
+          "p999": 0.9742885481040665,
+          "totalPixels": 540000,
+          "clipLow": 261,
+          "clipHigh": 0,
+          "clipPct": 0.04833333333333333
+        },
+        {
+          "median": 0.0831464103150988,
+          "madn": 0.03809609644344471,
+          "mad": 0.02569546502323264,
+          "span": 0.1544060425726711,
+          "q1": 0.05668726634622721,
+          "q3": 0.10815594720378424,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0038300144960708017,
+          "p999": 1,
+          "totalPixels": 540000,
+          "clipLow": 261,
+          "clipHigh": 0,
+          "clipPct": 0.04833333333333333
+        }
+      ]
+    }
+  },
+  {
+    "id": "saturation",
+    "name": "Selective saturation",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "amount": 1.45,
+      "snrLow": 3,
+      "snrHigh": 25,
+      "highlightKnee": 0.8,
+      "highlightFloor": 0.35
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": {
+      "background": 0.08142214084077211,
+      "noiseSigma": 0.03763552912614264,
+      "luminanceSpan": 0.15248340581368736,
+      "pixelsBelowSnrLow": 499485,
+      "pctBelowSnrLow": 92.49722222222222,
+      "pixelsAtFullAmount": 0,
+      "pctAtFullAmount": 0,
+      "pixelsAtFullMask": 0,
+      "pctAtFullMask": 0,
+      "meanK": 1.0136318181845159,
+      "maxK": 1.3291764619939284
+    },
+    "suggested": null,
+    "reason": null,
+    "frameSize": null,
+    "outputSize": null,
+    "skyMedian": null,
+    "skyMadn": null,
+    "signalPixels": null,
+    "extendedPixels": null,
+    "components": null,
+    "componentsAboveMin": null,
+    "componentList": null,
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": {
+      "maxHueDrift": 3.595734821004726e-14,
+      "driftSamples": 539739,
+      "limit": 0.000001,
+      "withinLimit": true,
+      "unit": "turns of the hue circle",
+      "note": "preserved by construction; this measures the implementation, not the design"
+    },
+    "chromaNoise": {
+      "sigmaBefore": 0.0008339493754974114,
+      "sigmaAfter": 0.0008339493757130691,
+      "growthPct": 2.5859804525725175e-8,
+      "pixels": 499485,
+      "limitPct": 2,
+      "note": "measured on the pixels the mask leaves at k = 1; with the mask wired correctly this cannot grow, so it verifies the mask is on, not that the mask is right"
+    },
+    "saturationByLuminance": [
+      {
+        "range": [
+          0,
+          0.1
+        ],
+        "pixels": 371522,
+        "pctFrame": 68.80037037037037,
+        "before": 0.03573034978856351,
+        "after": 0.03573034978856351
+      },
+      {
+        "range": [
+          0.1,
+          0.2
+        ],
+        "pixels": 128515,
+        "pctFrame": 23.799074074074074,
+        "before": 0.03462180119435378,
+        "after": 0.03462202102356579
+      },
+      {
+        "range": [
+          0.2,
+          0.35
+        ],
+        "pixels": 9494,
+        "pctFrame": 1.7581481481481482,
+        "before": 0.03489191109417583,
+        "after": 0.03624820399712509
+      },
+      {
+        "range": [
+          0.35,
+          0.55
+        ],
+        "pixels": 7749,
+        "pctFrame": 1.435,
+        "before": 0.034602984777189906,
+        "after": 0.03912769984213437
+      },
+      {
+        "range": [
+          0.55,
+          0.8
+        ],
+        "pixels": 9107,
+        "pctFrame": 1.6864814814814815,
+        "before": 0.05412597574526106,
+        "after": 0.06773531210721348
+      },
+      {
+        "range": [
+          0.8,
+          1.01
+        ],
+        "pixels": 13613,
+        "pctFrame": 2.520925925925926,
+        "before": 0.1125646212117967,
+        "after": 0.1390763457258141
+      }
+    ],
+    "overflow": {
+      "pixelsRescaled": 6628,
+      "pixelsLifted": 0
+    },
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": {
+      "perChannel": [
+        {
+          "median": 0.0801861600671397,
+          "madn": 0.036764347416809826,
+          "mad": 0.02479721261082546,
+          "span": 0.1489127946898604,
+          "q1": 0.05467307545586328,
+          "q3": 0.10431067368581674,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.003646906233310445,
+          "p999": 1,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.08160524910353247,
+          "madn": 0.03785714053857781,
+          "mad": 0.02553429147347755,
+          "span": 0.15335317006179905,
+          "q1": 0.0554207675288014,
+          "q3": 0.10653849088273441,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0037079423208972303,
+          "p999": 0.9742885481040665,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.0831464103150988,
+          "madn": 0.03809609644344471,
+          "mad": 0.02569546502323264,
+          "span": 0.1544060425726711,
+          "q1": 0.05668726634622721,
+          "q3": 0.10815594720378424,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0038300144960708017,
+          "p999": 1,
+          "totalPixels": 540000
+        }
+      ]
+    },
+    "after": {
+      "perChannel": [
+        {
+          "median": 0.0801861600671397,
+          "madn": 0.036764347416809826,
+          "mad": 0.02479721261082546,
+          "span": 0.1489127946898604,
+          "q1": 0.05467307545586328,
+          "q3": 0.10431067368581674,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.003646906233310445,
+          "p999": 1,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.08160524910353247,
+          "madn": 0.03785714053857781,
+          "mad": 0.02553429147347755,
+          "span": 0.15335317006179905,
+          "q1": 0.0554207675288014,
+          "q3": 0.10653849088273441,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0037079423208972303,
+          "p999": 0.9716639963378347,
+          "totalPixels": 540000
+        },
+        {
+          "median": 0.0831464103150988,
+          "madn": 0.03809609644344471,
+          "mad": 0.02569546502323264,
+          "span": 0.1544060425726711,
+          "q1": 0.05668726634622721,
+          "q3": 0.10815594720378424,
+          "sampled": 540000,
+          "stride": 1,
+          "nan": 0,
+          "p001": 0.0038300144960708017,
+          "p999": 1,
+          "totalPixels": 540000
+        }
+      ]
+    }
+  },
+  {
+    "id": "crop",
+    "name": "Suggested crop",
+    "applied": false,
+    "params": {
+      "sigma": 2.5,
+      "window": 25,
+      "density": 0.5,
+      "margin": 0.05,
+      "minFrame": 0.2,
+      "connectivity": 4
+    },
+    "notes": [],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": null,
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "suggested": false,
+    "reason": "the largest extended object covers 0.1% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at",
+    "frameSize": [
+      900,
+      600
+    ],
+    "outputSize": null,
+    "skyMedian": 0.08142214084077211,
+    "skyMadn": 0.03763552912614264,
+    "signalPixels": 42467,
+    "extendedPixels": 9483,
+    "components": 56,
+    "componentsAboveMin": 0,
+    "componentList": [],
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": null,
+    "after": null
+  },
+  {
+    "id": "quantise",
+    "name": "Quantise to 8-bit",
+    "applied": true,
+    "skipReason": null,
+    "params": {
+      "dither": true,
+      "ditherSeed": 20260906,
+      "ditherAmplitudeLevels": 0.5
+    },
+    "notes": [
+      "Dithered by plus or minus 0.5 of one level before rounding, from a fixed seed (20260906), so the result is reproducible from the same file.",
+      "0 values below black and 0 above white were clamped here, out of 1620000."
+    ],
+    "samples": null,
+    "surface": null,
+    "correction": null,
+    "clamped": {
+      "low": 0,
+      "high": 0,
+      "nonFinite": 0,
+      "samples": 1620000,
+      "lowPct": 0,
+      "highPct": 0
+    },
+    "neutralise": null,
+    "linked": null,
+    "colourFidelity": null,
+    "mask": null,
+    "suggested": null,
+    "reason": null,
+    "frameSize": null,
+    "outputSize": null,
+    "skyMedian": null,
+    "skyMadn": null,
+    "signalPixels": null,
+    "extendedPixels": null,
+    "components": null,
+    "componentsAboveMin": null,
+    "componentList": null,
+    "rect": null,
+    "objectRect": null,
+    "coverageBefore": null,
+    "coverageAfter": null,
+    "coverageGuard": null,
+    "hueFidelity": null,
+    "chromaNoise": null,
+    "saturationByLuminance": null,
+    "overflow": null,
+    "stars": null,
+    "gains": null,
+    "reference": null,
+    "before": null,
+    "after": null
+  }
+]
