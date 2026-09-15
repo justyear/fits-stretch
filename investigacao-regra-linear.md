@@ -1,6 +1,7 @@
 # Investigação: a regra linear / não-linear
 
-**Status: investigação, aberta. Medir antes de propor — a mesma forma da escala.**
+**Status: a pergunta central FECHADA pela curva da §7 — a mediana não decide.
+O que resta depende do corpus de headers reais (item 1). NADA implementado.**
 
 **Origem:** a inversão de prioridade da `spec-escala-decisao.md` §6.3. A escala
 **erra alto** — branco ou preto, e se anuncia. Esta regra **erra baixo**: medido,
@@ -213,9 +214,10 @@ Esse arquivo responde as duas perguntas de uma vez: **se** o Siril declara, e
 
 2. **UM arquivo do Siril já esticado**, §3.2 — e ele decide, não confirma.
 
-3. **A curva desta regra**, como a da escala: `k` em passos finos em volta do
-   ponto em que cada fixture cruza 0,05, medindo a saída. O `bigobject` já dá o
-   caso apertado de graça, a 1,3%.
+3. ~~**A curva desta regra**, como a da escala.~~ **FEITA — §7.** 111 rodadas em
+   quatro fixtures, com ganho e com pedestal. Ela derrubou a regra: ver §8. O
+   `bigobject` deu o caso apertado de graça e o degrau caiu entre `k=1,0124` e
+   `k=1,0126`, com a saída indo de 21 para 11.
 
 4. **O que o `0,02` está fazendo — e agora com o caso à vista.** Ele existe para
    *"o header diz esticado mas a mediana está baixa"*, que é **precisamente a
@@ -242,7 +244,7 @@ Esse arquivo responde as duas perguntas de uma vez: **se** o Siril declara, e
 
 ---
 
-## 6. O que já dá para dizer
+## 6. O que já dava para dizer, antes da curva
 
 **A regra de hoje não está errada — está sem autoridade.** Ela acerta os dezoito
 fixtures e o arquivo real. O que ela não tem é uma razão para o `0,05` que não
@@ -253,3 +255,293 @@ lembrete de que "funciona" e "tem margem" são coisas diferentes.
 o arquivo, ele **registra**. A pergunta desta investigação não é se a declaração
 é melhor que a mediana — é **quantos arquivos trazem a declaração**, que é a
 mesma pergunta que trava a decisão da escala, sobre a mesma população.
+
+> **A curva da §7 foi mais longe do que isto.** *"Sem autoridade"* era generoso:
+> a §8 mede que a regra **não é invariante** a duas transformações que preservam
+> a classe, e uma regra assim não está sem autoridade — está medindo outra coisa.
+> A pergunta *"quantos arquivos trazem a declaração"* continua de pé, e passou a
+> ser a única.
+
+---
+
+## 7. A CURVA, medida — e ela responde mais do que a pergunta
+
+**111 rodadas da cadeia inteira**, em quatro fixtures, pelo `__loadFromURL` do
+build com ganchos. Duas perturbações, e a escolha das duas é o argumento inteiro:
+
+```
+ganho     v -> k*v       tempo de exposicao, ganho do sensor
+pedestal  v -> v + d     offset de bias, poluicao luminosa, ceu mais claro
+```
+
+**Controle do instrumento, antes de qualquer número:** o caminho de perturbação
+com `k=1, d=0` devolve o arquivo **byte a byte** — 0 bytes diferentes em
+5.763.600 amostras — e o veredito bate com o golden. Um instrumento que muda a
+resposta na identidade não é instrumento.
+
+### 7.1 O degrau, visto de perto
+
+`bigobject`, ganho, passo 0,0002 em `k`:
+
+```
+k         mediana      veredito     saida (mediana)   saida (media)
+1,0000    0,0493833    LINEAR             21             22,01
+   ...                 LINEAR             21   em 13 pontos
+1,0124    0,0499987    LINEAR             21             22,02
+1,0126    0,0500038    NAO-LINEAR         11             11,75
+   ...                 NAO-LINEAR         11   em 16 pontos
+1,0200    0,0503751    NAO-LINEAR         11             11,83
+```
+
+**A saída é plana dos dois lados e troca de uma vez.** Isso não é decoração: é o
+controle que atribui o salto ao ramo e não ao ganho. Entre `k=1,0000` e
+`k=1,0124` o ganho cresce 1,24% e a saída não se move **um nível de 255**.
+
+O mecanismo, do mesmo par de rodadas:
+
+```
+              mediana      shadows     midtones    saida
+k=1,0124     0,0499987    0,034598     0,107434      21
+k=1,0126     0,0500038    0,035584     0,176471      11
+```
+
+**A entrada andou 5,1e-06. O `midtones` andou 64%.**
+
+| | |
+|---|---|
+| variação da entrada | **+0,0102%** |
+| variação da saída | **−47,6%** |
+| amplificação no penhasco | **≈ 4.700×** |
+
+E os 5,1e-06 são **exatamente o quantum do instrumento**: a mediana sai de um
+histograma de 65.536 bins (passo 1,526e-05) e a regra usa a **média de três
+canais**, então o menor passo possível é 1,526e-05 / 3 = 5,086e-06. A escada
+está na varredura, degrau por degrau. **A posição do penhasco é definida até o
+último bin e não além dele.**
+
+### 7.2 O pedestal: 41 ADU
+
+Mesma cena, mesmo processamento, só o céu mais claro:
+
+```
+d          mediana      veredito      saida    d em ADU de 16 bits
+0,00060    0,0499835    LINEAR          21          39,3
+0,00061    0,0499936    LINEAR          21          40,0
+0,00062    0,0500038    NAO-LINEAR      11          40,6
+0,00070    0,0500852    NAO-LINEAR      11          45,9
+```
+
+**Somar 41 ADU a cada pixel inverte o veredito e escurece a saída pela metade.**
+Quarenta e um ADU é menos que o offset de bias da maioria das câmeras.
+
+E a inclinação medida fecha o que isso significa:
+
+```
+d(mediana)/d(pedestal) = 1,000     (dentro de um quantum, em 13 pontos)
+d(mediana)/d(ganho)    = mediana   (dentro de um quantum, em 31 pontos)
+```
+
+> **A entrada da regra é uma função afim do nível do céu e do ganho da câmera.**
+> Ela mede o céu e o sensor. Não mede o que foi feito com o arquivo.
+
+### 7.3 O outro lado: o arquivo que declara e é esticado assim mesmo
+
+`nonlinear`, ganho **para baixo**. As três linhas de `HISTORY` — `Autostretch`,
+`Histogram Transf.`, `Midtones transfer` — estão presentes em **todas** as
+rodadas:
+
+```
+k          mediana      hits   veredito       saida
+0,0811     0,0199995      3    LINEAR           22
+0,0812     0,0200300      3    NAO-LINEAR        4
+```
+
+**Salvar o mesmo arquivo esticado a 8,1% do nível faz a ferramenta esticá-lo de
+novo, por cima, com o header dizendo três vezes que não devia.** A saída sai
+5,5× mais clara que o tratamento honesto — e este é o erro na direção que a
+ferramenta diz que não comete.
+
+### 7.4 E num fixture o limiar é INALCANÇÁVEL
+
+`declaraestica` precisa de `k = 1,98` para chegar ao limiar de 0,02. O penhasco
+da escala chega em `k = 1,50`:
+
+```
+k=1,499   mediana 0,015152   LINEAR   saida  21
+k=1,501   mediana 0          LINEAR   saida   0     <- 100% preto
+```
+
+Em `k=1,501` o `normalisePhysical` troca para `/65535`, a mediana lida vira
+**zero** e a imagem inteira sai preta. **O limiar desta regra nunca é atingido
+nesse arquivo: o outro penhasco destrói a imagem antes.**
+
+### 7.5 A ordem dos dois penhascos depende do conteúdo — de novo
+
+| | `k` da regra | `k` da escala | quem chega primeiro |
+|---|---|---|---|
+| `nonlinear` | **0,0811** | 1,50 | regra (para baixo, longe da escala) |
+| `bigobject` | **1,0125** | 3,68 | **regra** |
+| `declaraestica` | 1,9799 | **1,50** | escala |
+| `gradient` / `asinh` | **2,9834** | 3,18 | **regra** |
+| `colour` | 3,0595 | **1,50** | escala |
+| `edge`, `rice`, `saturation`, `mudo` | 3,19–3,28 | **1,50–1,63** | escala |
+| `twoobjects` | **3,6707** | 3,71 | **regra** |
+| `oneobject` / `cropped` | 3,9815 | **3,70** | escala |
+| `seestar`, `nobayer`, `bayerespelhado` | 4,5468 | — | inteiro, sem penhasco |
+| `flatsky` | **4,5489** | 63,9 | **regra** |
+
+Seis contra sete, e **a ordem muda com a imagem**. É o mesmo achado da §0.4 da
+investigação da escala, agora do outro lado: não existe um "fator seguro" único
+para declarar a ninguém.
+
+*(A coluna da escala só vale para os fixtures no ramo `/1`. Os que já entram por
+`/65535` ou `/max` têm outra fronteira e estão marcados com um traço.)*
+
+### 7.6 Segundo degrau medido, para não ser peculiaridade de um fixture
+
+`gradient`, em volta de 2,98:
+
+```
+2,982   0,0499936   LINEAR        21     (21 em 4 pontos abaixo)
+2,983   0,0500089   NAO-LINEAR    12     (12 em 5 pontos acima)
+```
+
+−43% de saída para **+0,03%** de ganho. Mesma forma, outro conteúdo, outro ponto
+do eixo.
+
+---
+
+## 8. A RESPOSTA: a mediana não decide — e a prova não depende de quem escreveu os fixtures
+
+### 8.1 O argumento, e ele é de invariância
+
+Um arquivo linear é, por definição, **afim no fluxo**: valor = ganho × fótons +
+offset. Então:
+
+> **Ganho e pedestal preservam a classe.** Um quadro linear multiplicado por `k`
+> continua linear; somado de `d` continua linear. Um quadro esticado
+> multiplicado por `k` continua esticado — a curva de tom que já foi aplicada não
+> se desaplica.
+
+E foi medido que **a regra não é invariante a nenhum dos dois**, em quatro
+instâncias, com controle plano dos dois lados de cada uma.
+
+> Nenhum limiar sobre a mediana pode ser invariante a ganho e a offset, porque a
+> mediana não é. **O defeito não é o número 0,05: é o eixo.**
+
+**E é por isso que esta medição vale, sendo os fixtures meus.** Ela nunca
+pergunta *"em que classe este arquivo está"* — pergunta se a resposta da regra é
+estável sob uma transformação que **não pode** mudar a classe, seja ela qual for.
+Uma medição que não precisa saber a verdade não pode ser confirmada pela mão que
+escreveu a população. É a primeira desta investigação com essa propriedade.
+
+### 8.2 O que a suíte NÃO prova, e é importante dizer
+
+A tentação era escrever *"os dois arquivos que declaram esticamento ocupam as
+duas pontas da ordenação pela mediana"* — o que é verdade e é quase nada:
+
+- `nonlinear` é o **único** arquivo da suíte com pixels esticados, e o gerador
+  que escreveu os pixels e o que escreveu o `HISTORY` **sou eu**;
+- `declaraestica` **não é um arquivo esticado**: é um arquivo linear com um
+  header que declara esticamento, construído de propósito para a contradição.
+
+Então a suíte tem **um** membro da classe "esticado", de origem conhecida.
+Qualquer argumento de separabilidade sobre essa população pergunta à minha
+própria decisão se ela foi tomada. **O argumento da §8.1 não precisa dela.**
+
+### 8.3 O que o 0,02 vale, medido
+
+Sem declaração o limiar é 0,05; com declaração, 0,02. **A autoridade inteira do
+header vale um fator 2,5 num eixo em que a população linear observada já varia
+42×** — de 0,001177 (o arquivo real do Siril, linear) a 0,049383 (`bigobject`).
+
+E em `declaraestica` esse fator **não pode nem ser exercido**: o penhasco da
+escala chega antes (§7.4).
+
+> O `0,02` não é a regra ouvindo o header. É a regra **descontando** o header e
+> continuando a decidir sozinha.
+
+### 8.4 A estrutura que sobra é a proposta, com uma correção
+
+A da `spec-escala-decisao.md`, e ela carrega:
+
+```
+4. PROGRAM/CREATOR + HISTORY    o escritor declarou o que fez   <- decide
+5. mediana >= 0,05              a ferramenta escolhe            <- so no mudo
+```
+
+O degrau 4 tem o primeiro dado **MEDIDO**: o Siril 1.4.4 grava
+`Histogram Transf.` com os parâmetros quando estica de verdade — dois arquivos,
+dois alvos, mesma sessão. E a declaração é a única grandeza que **não se moveu em
+nenhuma das 111 rodadas**: `hits` ficou em 0, 2 ou 3 conforme o arquivo, qualquer
+que fosse `k` ou `d`. Invariância medida, não argumentada.
+
+**A correção que a medição impõe, e ela não estava na proposta:** o degrau 5 não
+é um empate honesto. Ele erra **47,6% de brilho** numa perturbação de 1,25%, e em
+alguns arquivos é inalcançável. Quando ele decidir, **o log tem que dizer que
+decidiu por ausência de declaração e a que distância do limiar ficou** — a mesma
+disciplina de contingência que a escala já ganhou.
+
+### 8.5 A porta que esta medição NÃO fecha
+
+A §2.2 da investigação da escala fechou *"nenhuma estatística resolve"* por um
+argumento definicional: dois arquivos com os mesmos valores têm que receber o
+mesmo ramo. **Aqui esse argumento não se aplica do mesmo jeito**, e seria fácil
+esticá-lo sem perceber.
+
+O que a §8.1 fecha é a mediana e **qualquer limiar sobre ela**. Uma estatística
+*afim-invariante* — assimetria, forma do histograma, `(mediana − moda)/MAD` — não
+é derrubada por ela, e um quadro linear e um esticado **têm** formas diferentes.
+
+Contra isso há um argumento no limite: um esticamento suave o bastante (uma MTF
+com `m` perto de 0,5) é quase afim na faixa ocupada, e produz um arquivo esticado
+por convenção e afim-próximo do original. Mas **argumento no limite não é
+medição**, e medir isto precisa de população esticada real — **o item 1**.
+
+> A porta da estatística de forma fica **aberta e nomeada**. Ela não muda a
+> ordem: o corpus destrava as duas de qualquer jeito.
+
+---
+
+## 9. E um achado de instrumento, na regra que esta investigação mede
+
+**`linearity.globalMedian` e `linearity.nonLinear` são comparados por 0 das 709
+comparações.** As duas linhas existem no `compare-reference.ps1` e ficam
+**abaixo** do `continue` que pula todo fixture com um passo que a `reference.py`
+não modela — e hoje isso é todo fixture.
+
+Não é um campo esquecido: é um campo **escrito, com o valor do outro lado
+disponível**. A `referencia-cadeia.json` traz `esticamento.nonLinear` para os doze
+fixtures dela. Ninguém lê.
+
+E as duas pontas medem **grandezas diferentes com o mesmo nome** — isto é leitura
+do código das duas, não medição da segunda ponta, que não roda nesta máquina:
+
+| | onde a mediana é medida |
+|---|---|
+| JS (`run.js`) | no quadro **decodificado**, antes da extração de fundo |
+| `chain2.py` | em `pl2`, **depois** de fundo e calibração de cor |
+
+O lado JS está medido: `linearity.globalMedian` é **byte a byte** igual à mediana
+do `before` do passo `background` nos 19 fixtures. E a distância entre os dois
+pontos de medição, medida nos mesmos 19, vai de **−8,72% a +7,37%** — com o pior
+caso no `bigobject`, que é justamente o que está a 1,25% do limiar. **Sete vezes
+a própria margem.**
+
+A banda de discordância, rodada a rodada:
+
+```
+bigobject, k de 1,0126 a 1,11    JS diz NAO-LINEAR; no ponto de medicao da
+                                 outra ponta a grandeza ainda esta abaixo
+                                 9,7% de exposicao com um ramo cada
+```
+
+Nenhum fixture cai nessa banda hoje, então nada reprova. **E se caísse, o que
+apareceria seriam FAILs numéricos do bloco `stretch`** — que é exatamente o que o
+comentário do próprio comparador chama de *"descrever o sintoma em vez do fato"*,
+seis linhas acima do `continue` que causa isto.
+
+**Proposta, não implementada:** comparar `esticamento.nonLinear` no bloco
+`cadeia`, que roda para todo fixture, e declarar o ponto de medição de cada lado
+como divergência conhecida com a banda medida. Uma linha booleana que reprova
+antes das outras.

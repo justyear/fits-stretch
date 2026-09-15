@@ -1962,6 +1962,100 @@ entregue em silêncio, transfere a investigação para quem vai confiar nele.
 coberto; aqui o destinatário acharia. As duas se consertam com a mesma frase —
 **diga qual valor entrou e o que ele fez.**
 
+## Classe: a medição que não precisa saber a verdade
+
+**O problema que esta sessão já pagou três vezes:** *"a população confirma quem a
+escreveu"*. Os fixtures são meus; o `HISTORY` do `fixture-nonlinear` que "prova"
+que um programa declara esticamento **fui eu que escrevi**; contar `PROGRAM` nos
+fixtures é perguntar à minha própria decisão se ela foi tomada. Toda vez que uma
+medição depende de saber **em que classe o arquivo está**, ela volta para a mão
+que escreveu a classe.
+
+A curva da regra linear (`investigacao-regra-linear.md` §8.1) escapou disso, e o
+mecanismo vale como classe:
+
+> **Não pergunte em que classe o arquivo está. Pergunte se a resposta muda sob
+> uma transformação que não pode mudar a classe.**
+
+Um arquivo linear é afim no fluxo, então ganho e pedestal preservam a classe —
+qualquer que ela seja, e sem que eu precise saber qual é. A regra trocou de
+veredito sob os dois. **Isso falsifica a regra sem nunca afirmar nada sobre o
+arquivo**, e por isso não pode ser confirmado por quem gerou a população.
+
+**Como reconhecer que uma medição tem essa propriedade:** ela compara o
+instrumento **consigo mesmo** em dois pontos ligados por uma simetria conhecida,
+em vez de comparar o instrumento com um rótulo. Se a conclusão sobrevive à frase
+*"e se todos os meus fixtures estiverem rotulados errado?"*, ela tem a
+propriedade. Se não sobrevive, é a população respondendo a quem a escreveu.
+
+**Onde mais isto se aplica, e não foi usado ainda:** qualquer limiar absoluto
+sobre dado linear. O inventário do `compare-margens` mede **distância** até a
+fronteira; esta classe mede **se a fronteira deveria existir naquele eixo**. São
+perguntas diferentes e a segunda é mais barata do que parece — a perturbação já
+está escrita.
+
+## Classe: a comparação que fica abaixo de um `continue`
+
+**Sexta instância da família "o instrumento parece cobrir e não cobre", e a
+primeira em que o campo não foi esquecido: ele foi escrito, com o valor do outro
+lado disponível, e nunca é alcançado.**
+
+`compare-reference.ps1` compara `linearity.globalMedian` e `linearity.nonLinear`
+— duas linhas, escritas, corretas. Elas ficam **abaixo** do `continue` que pula
+todo fixture cujo pipeline roda um passo que a `reference.py` não modela, e hoje
+isso é **todo fixture**. Medido: **0 linhas de 709** têm escopo `linearidade`.
+
+O agravante é o que fica no lugar:
+
+```
+N/A   reference.py nao modela background, colour-cal, saturation
+      - coberto pelo bloco 'cadeia' abaixo
+```
+
+**A linha que substitui a comparação afirma cobertura.** O bloco `cadeia` cobre
+os números por canal, que é do que a frase fala — e não cobre a decisão de ramo,
+que é o que foi pulado junto. Ninguém leu a frase perguntando *"cobre o quê,
+exatamente?"*, porque uma linha N/A com explicação parece um fim de assunto.
+
+**E o dado existe:** `referencia-cadeia.json` traz `esticamento.nonLinear` para
+os doze fixtures dela.
+
+> **A regra:** quando um `continue` pular um bloco, a pergunta não é *"o que
+> deixou de ser comparado"* — é **"o que estava escrito abaixo dele"**. As duas
+> respostas são diferentes, e a segunda é a que ninguém dá.
+
+**O sintoma, se um dia divergir:** não é uma linha booleana dizendo *"o ramo
+diverge"*. São dezenas de FAILs numéricos do bloco `stretch` — que é exatamente o
+que o comentário seis linhas acima do `continue` chama de *"descrever o sintoma
+em vez do fato"*. **O comparador nomeia a doença e a tem.**
+
+## O mesmo nome, dois pontos de medição
+
+**A grandeza que decide o ramo linear/não-linear não é a mesma grandeza nas duas
+implementações**, e o nome é igual dos dois lados.
+
+| | onde a mediana é medida |
+|---|---|
+| `run.js` | no quadro **decodificado**, antes da extração de fundo |
+| `chain2.py` | em `pl2`, **depois** de fundo e calibração de cor |
+
+O lado JS está **medido**: `linearity.globalMedian` é idêntico à mediana do
+`before` do passo `background` nos 19 fixtures. O lado Python é **leitura do
+código no repositório** — ele não roda nesta máquina, e isso está marcado assim
+na investigação.
+
+A distância entre os dois pontos, medida nos mesmos 19 fixtures: **−8,72% a
++7,37%**. O pior caso é o `bigobject` — **o fixture que está a 1,25% do limiar**.
+Sete vezes a própria margem.
+
+**A banda em que as duas discordariam**, medida rodada a rodada: `bigobject` com
+ganho entre 1,0126 e 1,11 — **9,7% de exposição com um ramo de cada lado**.
+Nenhum fixture cai nela hoje.
+
+> Dois pontos de medição com o mesmo nome não são uma divergência conhecida: são
+> uma divergência **que ninguém sabe que tem**, porque o campo que a revelaria
+> está abaixo de um `continue`.
+
 ## Em aberto
 
 
@@ -1989,31 +2083,69 @@ o outro lado; e o ramo `pattern.corrected` do CFA. A `cropMaxCoverage` continua
 
 ### 1. O corpus de headers reais — n=3
 
-**Destrava três coisas de uma vez, e é o único item que faz isso:**
+**Destrava QUATRO coisas de uma vez, e é o único item que faz isso.** A quarta
+entrou quando a curva da §7 fechou a parte de dentro de casa do item 2: as duas
+investigações agora esperam o mesmo corpus, e nenhuma outra coisa.
 
 - a **§1 da spec da escala**, que decide entre declarar, recusar e tirar o ramo
   `/max`. Hoje sabe-se que o caso principal assina e o arquivo de script é mudo,
   e **não** que fração da população está de cada lado;
+- a **§1 da regra linear**, que é literalmente a mesma pergunta sobre a mesma
+  população: que fração declara o esticamento em palavras. A mediana já está
+  descartada como eixo (§8), então **não existe mais um plano B de dentro de
+  casa** — é o corpus ou nada;
 - as **cinco entradas SUPOSTO** do `STRETCH_HISTORY` — cada uma fecha com um
   arquivo do programa correspondente com a operação aplicada;
 - a entrada **`\bcurves?\b`**, que é a única não-técnica das sete e cujo risco
   está medido (janela de mediana 0,02–0,05, com o `bigobject` dentro dela).
 
+**E uma quinta, condicional:** se o corpus trouxer arquivos **esticados** de
+verdade, ele também mede a porta que a §8.5 deixou aberta — se alguma estatística
+**afim-invariante** separa as duas classes. Hoje a suíte tem um único arquivo
+esticado e fui eu que escrevi os pixels e o header.
+
 **Formato:** chaves de header, `HISTORY` completo, e mínimo / máximo / mediana.
 Sem `OBJECT`, `DATE-OBS`, `TELESCOP`, `INSTRUME`, nome ou caminho.
 
+**Arquivo público de observatório serve, e resolve a metade linear na hora** —
+NASA, ESO, telescópios abertos são escritos por software com convenção definida e
+são exatamente o caso "não-Seestar" que falta. **A metade esticada é a difícil:**
+arquivo publicado costuma ser dado de ciência, que é linear por definição. Para o
+degrau 4 valer, o corpus precisa de pelo menos um arquivo que **saiu de um
+programa de processamento com o esticamento aplicado e salvo**.
+
 **Não depende de mim**, e é o gargalo de tudo que está abaixo.
 
-### 2. A regra dos 0,05 — investigação aberta
+### 2. A regra dos 0,05 — a parte de dentro de casa FECHOU
 
-`investigacao-regra-linear.md`. **Vem antes da escala por decisão medida:** a
-escala erra alto (branco ou preto, e se anuncia), esta erra baixo — 38% mais
-escuro, com a escala perfeitamente declarada, e parece escolha estética.
+`investigacao-regra-linear.md` §7–§9. A curva fina foi medida: **111 rodadas**,
+ganho e pedestal, quatro fixtures. **A mediana não decide**, e a prova é de
+invariância, não de população:
 
-**Destrava o conserto da escala**, porque a hipótese é que a mesma tabela de
-escritores resolve as duas. Depende do item 1 para a parte que precisa de
-arquivos; a parte que não precisa — a curva fina em volta do 0,05, e o inventário
-de margens já feito — pode andar antes.
+```
+ganho e pedestal PRESERVAM a classe    a regra troca de veredito sob os dois
+bigobject  +1,25% de exposicao         saida 21 -> 11   (-47,6%)
+bigobject  +41 ADU de pedestal         saida 21 -> 11
+nonlinear  a 8,1% do nivel             saida  4 -> 22, com o header dizendo 3x que nao
+```
+
+**O defeito não é o número 0,05: é o eixo.** Nenhum limiar sobre a mediana pode
+ser invariante a ganho e a offset, porque a mediana não é.
+
+**O que isso muda na ordem:** este item **não destrava mais o conserto da
+escala** — ele para de esperar por si mesmo e passa a esperar pelo item 1, igual
+à escala. As duas ficam atrás do mesmo corpus, que é o que o item 1 já dizia.
+
+**O que sobrou aberto aqui, e é pouco:**
+
+- **a fração da população que declara** — item 1, e é a única pergunta de peso;
+- **a porta da estatística afim-invariante** (forma do histograma, assimetria),
+  que a §8.1 **não** fecha e a §8.5 nomeia. Também precisa do corpus, porque
+  medir forma com um único arquivo esticado que eu mesmo escrevi é zero
+  informação;
+- **a correção que a medição impôs à proposta:** o degrau 5 não é um empate
+  honesto. Quando ele decidir, o log tem que dizer que decidiu **por ausência de
+  declaração** e a que distância do limiar ficou — contingência, como a escala.
 
 ### 3. A moeda do `fixture-saturation`
 
