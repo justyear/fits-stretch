@@ -17,6 +17,20 @@ var STRETCH_HISTORY = [
   [/modasinh|autostretch/i,   'Autostretch']
 ];
 
+
+/* OS DOIS LIMIARES DA REGRA LINEAR, COM NOME.
+ *
+ * Estavam embutidos na expressao, e o log precisava do segundo para dizer ao
+ * leitor CONTRA O QUE a mediana foi comparada quando a regra decide contra o
+ * header. Um numero que o log cita tem que ter um lugar so.
+ *
+ * Os dois sao limiares ABSOLUTOS sobre dado linear, e por isso dependem da
+ * escala -- ver a nota de `scaleSource` em fits/normalise.js e a
+ * investigacao-regra-linear.md. O segundo nunca foi exercitado dos dois lados
+ * ate o `fixture-declaraestica` entrar.
+ */
+var NONLINEAR_MEDIAN = 0.05;
+var NONLINEAR_MEDIAN_WITH_HISTORY = 0.02;
 var PREVIEW_EDGE = 1024;
 
 // Everything open() decoded. Null until a file has been opened.
@@ -268,7 +282,8 @@ async function openFile(buffer, fileName, opts, post){
       if (rule[0].test(hdu.history[li])){ historyHits.push(rule[1]); break; }
     }
   }
-  var nonLinear = (globalMedian >= 0.05) || (historyHits.length > 0 && globalMedian >= 0.02);
+  var nonLinear = (globalMedian >= NONLINEAR_MEDIAN) ||
+                  (historyHits.length > 0 && globalMedian >= NONLINEAR_MEDIAN_WITH_HISTORY);
 
   // A tile-compressed file can be handed back as a plain FITS. What goes out is
   // the linear, pre-stretch, pre-debayer data — the thing the .fz actually
@@ -747,7 +762,7 @@ function buildDiag(channels, view, timings, params, STRETCH_DIAG){
     pattern: S.patternInfo || 'no debayer',
     linearity: {
       globalMedian: S.globalMedian, historyHits: S.historyHits,
-      rule: 'nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)',
+      rule: 'nonLinear = median >= ' + NONLINEAR_MEDIAN + ' OR (history stretch AND median >= ' + NONLINEAR_MEDIAN_WITH_HISTORY + ')',
       verdict: params.nonLinear ? 'NON-LINEAR — reduced stretch' : 'LINEAR — full autostretch'
     },
     channels: channels.map(function(s, idx){

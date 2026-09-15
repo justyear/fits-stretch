@@ -26,6 +26,7 @@
 !test/fixtures/fixture-nobayer.fit
 !test/fixtures/fixture-mudo.fit
 !test/fixtures/fixture-duasdecl.fit
+!test/fixtures/fixture-declaraestica.fit
 
 # Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
 !.claude/notfits.fit

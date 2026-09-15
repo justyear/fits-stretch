@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **278.513 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **280.640 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2102,6 +2102,30 @@ Fecha com **um** arquivo: qualquer quadro com o autostretch do Siril aplicado,
 reportando só as linhas de `HISTORY` e a mediana. Ver
 `investigacao-regra-linear.md` §3.1 e §3.2.
 
+**12. A moeda do `fixture-saturation`: proposta feita, NÃO executada.** Ele
+recusa o recorte a 2,8% do piso de 20% — um fixture da *saturação* sentado na
+fronteira de um passo que ele não testa, com o golden fixando **um lado de uma
+moeda**. Uma mexida no limiar de sinal vira a moeda, e o diff do golden vai
+parecer regressão quando for a fronteira sendo cruzada.
+
+**A proposta, e a direção importa mais que a decisão:** encolher o objeto do
+fixture para `boxFrac ≈ 0,10` — metade do piso. **Para baixo, não para cima.**
+Para cima ele viraria um segundo fixture que sugere, duplicando o `oneobject` e
+mudando o que o golden cobre; para baixo a cobertura fica **idêntica** (continua
+recusando, pelo mesmo motivo) e só a margem entra. É mudança de margem pura, sem
+mudança de cobertura.
+
+**Por que não está feito:** `fixture-saturation` é um dos que a referência Python
+cobre. Regenerá-lo invalida o `cadeia.sha256` e todos os números dele no
+`compare-reference` — a suíte fica vermelha até uma re-rodada do outro lado.
+**Vale fazer junto com a próxima mudança de fixture**, numa re-rodada só, em vez
+de gastar uma agora.
+
+**A regra que sai disto, e é mais geral que o caso:** um fixture deve ficar longe
+dos limiares dos passos que ele **não** testa. Perto do limiar do passo que ele
+testa, a proximidade pode ser deliberada e valiosa; perto do limiar de outro
+passo, ela é **posição não controlada**, e o golden ali fixa um acidente.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -3545,3 +3569,92 @@ isso agora está escrito em vez de suposto.
 
 **A distinção que o inventário instala:** *"escolhido bem"* e *"nunca
 exercitado"* produzem exatamente o mesmo verde, e até agora nada os separava.
+
+## Três vezes o mesmo padrão: uma crença confirmada pelo artefato que a codifica
+
+A forma, e ela agora tem três instâncias medidas nesta sessão:
+
+> **Uma crença sobre o mundo, verificada contra um artefato que eu escrevi a
+> partir da mesma crença.**
+
+| # | a crença | o artefato que a "confirmava" |
+|---|---|---|
+| 1 | *"`DATAMAX`/`BUNIT` são as chaves decisivas"* | — nada a confirmava; ela caiu no primeiro arquivo real, que não tem nenhuma das três |
+| 2 | *"os arquivos trazem assinatura de escritor"* | **13 de 14 fixtures trazem `PROGRAM`** — porque eu escrevi o gerador assim |
+| 3 | *"o Siril declara esticamento no `HISTORY`"* | **`STRETCH_HISTORY`**, sete padrões sem origem escrita, e o `HISTORY` do `fixture-nonlinear` — **que eu escrevi para casar com a crença** |
+
+A terceira é a mais fechada das três, porque o circuito é completo: **a crença
+virou código (o catálogo), a crença virou fixture (o `HISTORY` do
+`fixture-nonlinear`), e o fixture confirma o código.** Duas peças, um autor, zero
+contato com o mundo — e o verde é indistinguível do verde de uma coisa medida.
+
+**O sinal para reconhecer, e é o mesmo nos três:** pergunte *"que evidência
+existiria se isto fosse falso?"*. Nos três casos a resposta era *"um arquivo real,
+e não há nenhum na suíte"* — e nos três a suíte estava verde.
+
+**A defesa não é desconfiar mais; é anotar a procedência.** Uma tabela de
+comportamento de terceiro precisa dizer, por entrada, **de onde veio**: arquivo
+medido, documentação, ou suposição. As três instâncias custaram o que custaram
+porque nenhuma delas tinha essa linha — e escrever *"suposto, sem arquivo"* ao
+lado de uma entrada é barato e muda o que a próxima pessoa faz com ela.
+
+## Prosa apresenta dois valores; distância é uma conta
+
+A lição do `fixture-saturation`, e ela tem consequência de produto e não só de
+suíte.
+
+O log dizia, e diz desde sempre:
+
+> *"the largest extended object covers **19.4%** of the frame, under the **20%**
+> this step treats as a subject"*
+
+**Os dois números estavam lado a lado numa frase lida toda semana**, e a distância
+entre eles — 2,8% — nunca foi lida, porque **ninguém subtrai ao ler**.
+
+> **Prosa apresenta os dois valores. Distância é uma conta, e nenhuma leitura
+> casual faz a conta.**
+
+**ITEM DE PRODUTO, anotado e não implementado:** onde o log apresenta um valor e
+um limiar lado a lado, ele deveria apresentar **a distância**. Não é cosmético —
+é a diferença entre *"passou"* e *"passou por 2,8%"*, e a segunda é a informação
+que muda o que o leitor faz.
+
+As linhas que hoje têm essa forma:
+
+```
+recorte     "covers 19.4% of the frame, under the 20%"
+linear      "median 0.01010, under the 0.02 this rule needs"   <- ja diz o limiar
+cor         "Pixels between 0.02675 and 0.85"                  <- dois limiares
+```
+
+A segunda já cita o limiar porque foi escrita nesta rodada; as outras não. **Uma
+regra para as próximas: toda frase que compara contra um limiar imprime a
+distância, não só os dois lados.**
+
+## Um fixture novo derrubou uma frase falsa na primeira rodada
+
+O ramo `historyHits && mediana >= 0,02` nunca tinha sido exercitado do lado de
+baixo. `fixture-declaraestica` entrou para isso: `HISTORY` declarando autostretch
+com mediana em 0,0101.
+
+**O veredito saiu certo — LINEAR — e a frase saiu falsa:**
+
+> *"Data is linear: median 0.01010, **no stretch recorded in the header**."*
+
+O header registra `Autostretch` e `Midtones transfer`. **A frase era incondicional
+e nunca teve como ser contradita**: o único fixture com história de esticamento
+estava onze vezes acima do limiar, então caía sempre no outro ramo.
+
+E o que entrou no lugar não é só a correção — é **a decisão, dita**:
+
+> *"The header records Autostretch and Midtones transfer, but the pixels do not
+> support it: the median sits at 0.01010, under the 0.02 this rule needs before
+> it takes the header at its word. Treated as linear... the file says one thing
+> and its own values say another, and this line is which one was believed."*
+
+**É a única linha do log em que uma afirmação do header é sobreposta por uma
+medição**, e até agora ela não dizia que isso tinha acontecido.
+
+> **Um ramo sem fixture não é só um ramo não testado: é um ramo cujas frases
+> ninguém leu.** O código daquele caminho foi revisado; o texto que ele emite,
+> nunca — porque ninguém nunca o viu impresso.

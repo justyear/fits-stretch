@@ -135,16 +135,16 @@
   "timingsMs": {
     "header": 0,
     "decode": 21,
-    "preview": 1,
+    "preview": 2,
     "stats": 24,
-    "background": 164,
-    "colour": 227,
-    "transfer": 302,
-    "saturation": 132,
-    "crop": 31,
-    "quantise": 33,
+    "background": 126,
+    "colour": 176,
+    "transfer": 244,
+    "saturation": 119,
+    "crop": 29,
+    "quantise": 37,
     "downscale": 0,
-    "total": 727
+    "total": 650
   },
   "historyCards": [
     "additive+scaling normalized input, normalized output",

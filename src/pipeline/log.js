@@ -168,6 +168,28 @@ function buildLog(ctx){
     L.push('• Data is already non-linear: ' + reasons.join(', ') +
            '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
            '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.' + contingente);
+  } else if (st.historyHits.length){
+    /* O HEADER DIZ QUE ESTICOU E A REGRA DECIDIU CONTRA ELE.
+     *
+     * A frase que estava aqui era "no stretch recorded in the header", sem
+     * condicao -- e ela e FALSA neste caso, porque o header registra. Ela
+     * sobreviveu porque nenhum fixture conseguia contradize-la: o unico com
+     * historia de esticamento tinha mediana onze vezes acima do limiar, entao
+     * caia sempre no ramo de cima. O `fixture-declaraestica` existe para este
+     * lado, e a frase caiu na primeira rodada dele.
+     *
+     * E o que entra no lugar nao e so a correcao: e a DECISAO, dita. A
+     * ferramenta esta descartando o que o arquivo declara, com base numa
+     * medicao dos pixels. Quem le tem que saber que houve um desacordo e quem
+     * ganhou -- essa e a unica linha do log em que uma afirmacao do header e
+     * sobreposta por uma medicao.
+     */
+    L.push('• The header records ' + st.historyHits.join(' and ') +
+           ', but the pixels do not support it: the median sits at ' + fx(st.globalMedian, 5) +
+           ', under the ' + fx(NONLINEAR_MEDIAN_WITH_HISTORY, 2) + ' this rule needs before it takes the ' +
+           'header at its word. Treated as linear, and the full autostretch was applied — ' +
+           'the file says one thing and its own values say another, and this line is which ' +
+           'one was believed.' + contingente);
   } else {
     L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
            ', no stretch recorded in the header. Full autostretch applied.' + contingente);

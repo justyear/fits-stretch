@@ -77,6 +77,46 @@ está medido dentro de casa.
 
 ---
 
+## 2.2 O ramo dos 0,02 agora tem o outro lado — e ele derrubou uma frase
+
+`fixture-declaraestica` entrou para o caso que a regra existe para resolver e
+nunca tinha visto: **`HISTORY` declarando autostretch com a mediana em 0,0101**,
+metade do limiar de 0,02.
+
+O veredito saiu **certo** — LINEAR, os dois termos da regra falham. **A frase
+saiu falsa:**
+
+> *"Data is linear: median 0.01010, **no stretch recorded in the header**."*
+
+O header registra `Autostretch` e `Midtones transfer`. A frase era incondicional
+e **nunca teve como ser contradita**: o único outro fixture com história de
+esticamento está a onze vezes do limiar, então sempre caiu no ramo de cima.
+
+O que entrou no lugar diz **a decisão**, não só o estado:
+
+> *The header records Autostretch and Midtones transfer, but the pixels do not
+> support it: the median sits at 0.01010, under the 0.02 this rule needs before
+> it takes the header at its word. Treated as linear... the file says one thing
+> and its own values say another, and this line is which one was believed.*
+
+**É a única linha do log em que uma afirmação do header é sobreposta por uma
+medição**, e até agora ela não dizia que isso tinha acontecido.
+
+E o inventário de margens registrou a mudança sozinho: `linear.medianaComHistoria`
+saiu da lista de *"robusto por acidente"* — de *"o mais próximo está a 1.134%"*
+para **49,5%**, com população dos dois lados.
+
+> **Um ramo sem fixture não é só um ramo não testado: é um ramo cujas frases
+> ninguém leu.** O código daquele caminho passou por revisão; o texto que ele
+> emite, nunca — porque ninguém nunca o viu impresso.
+
+**E a pergunta da §4.4 fica mais afiada:** o `0,02` resolve a contradição
+*baixando o limiar*, e agora dá para ver o que isso significa em prosa. A
+ferramenta **descarta o que o arquivo declara** com base numa medição — que é
+exatamente a decisão que a §3 da spec da escala chama de **contradição entre as
+duas fontes**, e onde a resposta proposta lá é **recusar**. As duas regras tratam
+o mesmo desacordo de formas opostas, e isso é um item de decisão, não de detalhe.
+
 ## 3. A hipótese a testar
 
 > **Se o `HISTORY` responder, a regra dos 0,05 vira degrau 5 também — e o mesmo
@@ -166,9 +206,10 @@ Esse arquivo responde as duas perguntas de uma vez: **se** o Siril declara, e
    log desde sempre.
 
    **E respondeu uma pergunta desta investigação de graça:** o ramo
-   `historyHits && mediana >= 0,02` tem **um único fixture aplicável, a 1.134%
-   do limiar**. O `0,02` **nunca foi exercitado dos dois lados** — é robusto por
-   acidente, não por escolha.
+   `historyHits && mediana >= 0,02` tinha **um único fixture aplicável, a 1.134%
+   do limiar** — nunca exercitado dos dois lados, robusto por acidente e não por
+   escolha. **Fechado pelo `fixture-declaraestica`** (§2.2): a distância caiu
+   para 49,5% e o limiar tem população dos dois lados.
 
 2. **UM arquivo do Siril já esticado**, §3.2 — e ele decide, não confirma.
 
@@ -176,13 +217,18 @@ Esse arquivo responde as duas perguntas de uma vez: **se** o Siril declara, e
    ponto em que cada fixture cruza 0,05, medindo a saída. O `bigobject` já dá o
    caso apertado de graça, a 1,3%.
 
-4. **O que o `0,02` está fazendo.** Ele existe para o caso *"o header diz
-   esticado mas a mediana está baixa"* — que é **precisamente a contradição** da
-   §3 da spec da escala. Hoje ele **resolve a contradição baixando o limiar**, e
-   a pergunta é se isso é o certo ou se é recusa disfarçada de heurística.
+4. **O que o `0,02` está fazendo — e agora com o caso à vista.** Ele existe para
+   *"o header diz esticado mas a mediana está baixa"*, que é **precisamente a
+   contradição** da §3 da spec da escala. Hoje ele a resolve **baixando o
+   limiar**, ou seja: **descartando o que o arquivo declara, com base numa
+   medição.**
 
-   E agora com um dado a mais: **essa resolução nunca foi exercitada.** Uma
-   heurística que nunca rodou é indistinguível de uma que está errada.
+   A spec da escala chama exatamente esse desacordo de contradição entre as duas
+   fontes, e propõe **recusar**. **As duas regras tratam o mesmo desacordo de
+   formas opostas** — e isso é decisão, não detalhe.
+
+   O `fixture-declaraestica` põe o caso na mesa: hoje ele sai LINEAR, com o log
+   dizendo qual das duas fontes ganhou. A pergunta é se ganhar é o certo.
 
 ## 5. O que esta investigação NÃO faz
 

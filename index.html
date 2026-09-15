@@ -4444,6 +4444,28 @@ function buildLog(ctx){
     L.push('• Data is already non-linear: ' + reasons.join(', ') +
            '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
            '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.' + contingente);
+  } else if (st.historyHits.length){
+    /* O HEADER DIZ QUE ESTICOU E A REGRA DECIDIU CONTRA ELE.
+     *
+     * A frase que estava aqui era "no stretch recorded in the header", sem
+     * condicao -- e ela e FALSA neste caso, porque o header registra. Ela
+     * sobreviveu porque nenhum fixture conseguia contradize-la: o unico com
+     * historia de esticamento tinha mediana onze vezes acima do limiar, entao
+     * caia sempre no ramo de cima. O `fixture-declaraestica` existe para este
+     * lado, e a frase caiu na primeira rodada dele.
+     *
+     * E o que entra no lugar nao e so a correcao: e a DECISAO, dita. A
+     * ferramenta esta descartando o que o arquivo declara, com base numa
+     * medicao dos pixels. Quem le tem que saber que houve um desacordo e quem
+     * ganhou -- essa e a unica linha do log em que uma afirmacao do header e
+     * sobreposta por uma medicao.
+     */
+    L.push('• The header records ' + st.historyHits.join(' and ') +
+           ', but the pixels do not support it: the median sits at ' + fx(st.globalMedian, 5) +
+           ', under the ' + fx(NONLINEAR_MEDIAN_WITH_HISTORY, 2) + ' this rule needs before it takes the ' +
+           'header at its word. Treated as linear, and the full autostretch was applied — ' +
+           'the file says one thing and its own values say another, and this line is which ' +
+           'one was believed.' + contingente);
   } else {
     L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
            ', no stretch recorded in the header. Full autostretch applied.' + contingente);
@@ -4853,6 +4875,20 @@ var STRETCH_HISTORY = [
   [/modasinh|autostretch/i,   'Autostretch']
 ];
 
+
+/* OS DOIS LIMIARES DA REGRA LINEAR, COM NOME.
+ *
+ * Estavam embutidos na expressao, e o log precisava do segundo para dizer ao
+ * leitor CONTRA O QUE a mediana foi comparada quando a regra decide contra o
+ * header. Um numero que o log cita tem que ter um lugar so.
+ *
+ * Os dois sao limiares ABSOLUTOS sobre dado linear, e por isso dependem da
+ * escala -- ver a nota de `scaleSource` em fits/normalise.js e a
+ * investigacao-regra-linear.md. O segundo nunca foi exercitado dos dois lados
+ * ate o `fixture-declaraestica` entrar.
+ */
+var NONLINEAR_MEDIAN = 0.05;
+var NONLINEAR_MEDIAN_WITH_HISTORY = 0.02;
 var PREVIEW_EDGE = 1024;
 
 // Everything open() decoded. Null until a file has been opened.
@@ -5104,7 +5140,8 @@ async function openFile(buffer, fileName, opts, post){
       if (rule[0].test(hdu.history[li])){ historyHits.push(rule[1]); break; }
     }
   }
-  var nonLinear = (globalMedian >= 0.05) || (historyHits.length > 0 && globalMedian >= 0.02);
+  var nonLinear = (globalMedian >= NONLINEAR_MEDIAN) ||
+                  (historyHits.length > 0 && globalMedian >= NONLINEAR_MEDIAN_WITH_HISTORY);
 
   // A tile-compressed file can be handed back as a plain FITS. What goes out is
   // the linear, pre-stretch, pre-debayer data — the thing the .fz actually
@@ -5583,7 +5620,7 @@ function buildDiag(channels, view, timings, params, STRETCH_DIAG){
     pattern: S.patternInfo || 'no debayer',
     linearity: {
       globalMedian: S.globalMedian, historyHits: S.historyHits,
-      rule: 'nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)',
+      rule: 'nonLinear = median >= ' + NONLINEAR_MEDIAN + ' OR (history stretch AND median >= ' + NONLINEAR_MEDIAN_WITH_HISTORY + ')',
       verdict: params.nonLinear ? 'NON-LINEAR — reduced stretch' : 'LINEAR — full autostretch'
     },
     channels: channels.map(function(s, idx){

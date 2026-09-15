@@ -134,7 +134,11 @@ window.__GOLDEN = [
   // leituras possiveis levam a vereditos opostos sobre o mesmo arquivo, entao
   // este fixture discrimina a regra em vez de so acompanha-la.
   ['mudo-fixture',     '/f/test/fixtures/fixture-mudo.fit'],
-  ['duasdecl-fixture', '/f/test/fixtures/fixture-duasdecl.fit']
+  ['duasdecl-fixture', '/f/test/fixtures/fixture-duasdecl.fit'],
+  // O ramo dos 0,02 da regra linear, que o inventario de margens mostrou nunca
+  // ter sido exercitado dos dois lados: HISTORY declarando autostretch com a
+  // mediana em ~0,011, longe demais para a regra acreditar no header.
+  ['declaraestica-fixture', '/f/test/fixtures/fixture-declaraestica.fit']
 ];
 
 /* ------------------------------------------------------------------ *

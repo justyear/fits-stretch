@@ -1,0 +1,185 @@
+{
+  "file": "fixture-declaraestica.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Declared stretch, faint",
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 0.006768582388758659,
+    "rawMax": 1,
+    "nonFinite": 0,
+    "normMin": 0.006768582388758659,
+    "normMax": 1,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.010101472495613032,
+    "historyHits": [
+      "Autostretch",
+      "Midtones transfer"
+    ],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.01019302662699321,
+      "madn": 0.0004949041928135463,
+      "q1": 0.009857328145265888,
+      "q3": 0.010528725108720532,
+      "shadows": 0.009066170388762613,
+      "midtones": 0.01064559858675462,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.010055695429922943,
+      "madn": 0.0004874415457832732,
+      "q1": 0.00971999694819562,
+      "q3": 0.010376134889753566,
+      "shadows": 0.009066170388762613,
+      "midtones": 0.01064559858675462,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.009964141298542763,
+      "madn": 0.0004831665240040668,
+      "q1": 0.009628442816815443,
+      "q3": 0.010284580758373388,
+      "shadows": 0.009066170388762613,
+      "midtones": 0.01064559858675462,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.010055695429922943,
+      "luminanceMADN": 0.0003534018004144035,
+      "shadows": 0.009066170388762613,
+      "midtones": 0.01064559858675462,
+      "target": 0.085,
+      "luminanceSpan": 0.0014190890363927674,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 0,
+      "clipHigh": 0,
+      "highlightCut": 0.13192950331883727
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 0.9906976375167094,
+        "bOverG": 1.0345571126465023
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0000047353035528,
+        "bOverG": 1.0245393052622278
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 540000,
+      "highlightPixels": 5401,
+      "pixelsRescaled": 7093
+    }
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 10,
+    "preview": 1,
+    "stats": 23,
+    "background": 126,
+    "colour": 205,
+    "transfer": 267,
+    "saturation": 137,
+    "crop": 41,
+    "quantise": 35,
+    "downscale": 1,
+    "total": 685
+  },
+  "historyCards": [
+    "Autostretch (midtones transfer function) applied",
+    "DECLARA the line above is the ONLY declaration of stretching,",
+    "DECLARA and the pixels do NOT support it: the median sits at",
+    "DECLARA about 0.011, well under the 0.02 that the rule needs",
+    "DECLARA to believe the header. The right verdict is LINEAR.",
+    "DECLARA This is the case the 0.02 branch exists to resolve and",
+    "DECLARA had never seen -- the only other fixture with a stretch",
+    "DECLARA history sits at eleven times that threshold.",
+    "DECLARA External truth, from neither implementation."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Declared stretch, faint'",
+    "HISTORY Autostretch (midtones transfer function) applied",
+    "HISTORY DECLARA the line above is the ONLY declaration of stretching,",
+    "HISTORY DECLARA and the pixels do NOT support it: the median sits at",
+    "HISTORY DECLARA about 0.011, well under the 0.02 that the rule needs",
+    "HISTORY DECLARA to believe the header. The right verdict is LINEAR.",
+    "HISTORY DECLARA This is the case the 0.02 branch exists to resolve and",
+    "HISTORY DECLARA had never seen -- the only other fixture with a stretch",
+    "HISTORY DECLARA history sits at eleven times that threshold.",
+    "HISTORY DECLARA External truth, from neither implementation.",
+    "END"
+  ]
+}

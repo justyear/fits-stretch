@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -1174,6 +1174,60 @@ if ($Only -eq 'all' -or $Only -eq 'escala') {
 }
 
 
+
+# --------------------------------------------- o ramo dos 0,02, nunca exercitado
+#
+# A REGRA e `nonLinear = mediana >= 0,05 OU (historia de esticamento E mediana
+# >= 0,02)`. O segundo ramo existe para um caso preciso: o header DIZ que houve
+# esticamento e a mediana esta baixa demais para sustentar isso sozinha.
+#
+# O inventario de margens mediu que ele NUNCA FOI EXERCITADO DOS DOIS LADOS: o
+# unico fixture com historia de esticamento e o `nonlinear`, e ele esta a 1.134%
+# do limiar de 0,02. A constante e robusta POR ACIDENTE, nao por escolha -- e
+# "escolhido bem" e "nunca exercitado" produzem exatamente o mesmo verde.
+#
+# Este fixture e o outro lado: HISTORY declarando autostretch, mediana em ~0,011.
+# O veredito certo e LINEAR -- os dois termos da regra falham -- e o que ele
+# exercita e a RESOLUCAO DA CONTRADICAO: o header afirma uma coisa, os pixels
+# dizem outra, e a regra hoje resolve isso baixando o limiar em vez de dizer que
+# as duas fontes discordam.
+#
+# A mediana fica em ~0,011, a 45% do limiar de 0,02: longe o bastante para o
+# proprio fixture nao virar um caso de fronteira. Ver test/compare-margens.ps1.
+if ($Only -eq 'all' -or $Only -eq 'declara') {
+    $W = 900; $H = 600; $planes = 3
+    Write-Host "fixture-declaraestica.fit  ($W x $H x $planes, HISTORY declara esticamento, mediana ~0,011)"
+
+    function HistD([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    $imgX = [FitsFixture]::Scene($W, $H, $planes, 20260915, 0.008, 0.0006, 0.30)
+    $cardsX = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Declared stretch, faint' '' -AsString)
+        ('HISTORY Autostretch (midtones transfer function) applied'.PadRight(80))
+        (HistD 'DECLARA the line above is the ONLY declaration of stretching,')
+        (HistD 'DECLARA and the pixels do NOT support it: the median sits at')
+        (HistD 'DECLARA about 0.011, well under the 0.02 that the rule needs')
+        (HistD 'DECLARA to believe the header. The right verdict is LINEAR.')
+        (HistD 'DECLARA This is the case the 0.02 branch exists to resolve and')
+        (HistD 'DECLARA had never seen -- the only other fixture with a stretch')
+        (HistD 'DECLARA history sits at eleven times that threshold.')
+        (HistD 'DECLARA External truth, from neither implementation.')
+    )
+    Write-Fits (Join-Path $outDir 'fixture-declaraestica.fit') $cardsX `
+               ([FitsFixture]::FloatBytes($imgX, $W, $H, $planes, $false))
+}
 # ------------------------------------------------- escritor: mudo e duas vozes
 #
 # OS DOIS CASOS QUE A `spec-escala-decisao.md` PRECISA E QUE NAO EXISTIAM.

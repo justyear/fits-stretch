@@ -135,17 +135,17 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 29,
-    "preview": 24,
-    "stats": 72,
-    "background": 334,
-    "colour": 417,
+    "decode": 32,
+    "preview": 26,
+    "stats": 73,
+    "background": 345,
+    "colour": 415,
     "transfer": 561,
-    "saturation": 368,
-    "crop": 102,
-    "quantise": 89,
+    "saturation": 315,
+    "crop": 111,
+    "quantise": 88,
     "downscale": 0,
-    "total": 1600
+    "total": 1608
   },
   "historyCards": [
     "CROP synthetic frame for the suggested-crop step.",

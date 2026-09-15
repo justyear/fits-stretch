@@ -141,15 +141,15 @@
     "header": 1,
     "decode": 9,
     "preview": 1,
-    "stats": 24,
-    "background": 123,
-    "colour": 169,
-    "transfer": 220,
-    "saturation": 111,
-    "crop": 31,
-    "quantise": 31,
+    "stats": 22,
+    "background": 119,
+    "colour": 157,
+    "transfer": 204,
+    "saturation": 105,
+    "crop": 25,
+    "quantise": 30,
     "downscale": 0,
-    "total": 572
+    "total": 574
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

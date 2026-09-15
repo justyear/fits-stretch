@@ -134,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
+    "header": 0,
     "decode": 22,
     "preview": 2,
-    "stats": 24,
-    "background": 121,
-    "colour": 166,
-    "transfer": 209,
-    "saturation": 107,
+    "stats": 25,
+    "background": 135,
+    "colour": 172,
+    "transfer": 216,
+    "saturation": 114,
     "crop": 29,
-    "quantise": 31,
-    "downscale": 1,
-    "total": 565
+    "quantise": 33,
+    "downscale": 0,
+    "total": 634
   },
   "historyCards": [
     "SCALE same scene as the other scale fixture: only the",
