@@ -23,8 +23,9 @@ linear de um alvo brilhante ou um quadro já esticado — os números são os me
 e a diferença está no que aconteceu antes, não no que está no array.
 
 É exatamente a forma do problema da escala, e a §3.D de lá já tem a resposta:
-**ler o escritor**. O `HISTORY` do Siril diz `autostretch` **em palavras** quando
-houve esticamento.
+**ler o escritor**. A hipótese é que o `HISTORY` do Siril diz `autostretch` em
+palavras quando houve esticamento — e a §3.1 mostra que isso hoje é **crença e
+não medição**, o que é justamente o que decide se um arquivo a mais é preciso.
 
 **E a regra já lê o `HISTORY` — só que como coadjuvante.** Hoje `historyHits`
 entra apenas para *baixar* o limiar de 0,05 para 0,02. A declaração é tratada
@@ -98,25 +99,90 @@ e recusar ali é a mesma decisão da §3 de lá.
 
 ---
 
+### 3.1 O par é NECESSÁRIO, e decide em vez de confirmar
+
+A pergunta: se o arquivo linear já traz `normalized output` e **não** traz nada
+de esticamento, a regra não poderia ser simplesmente **a ausência de declaração
+de esticamento**, usando o catálogo de termos que já existe?
+
+**Não, e o motivo é de procedência, não de lógica.**
+
+A regra *"ausência de declaração ⇒ linear"* só vale se o escritor for **conhecido
+por declarar esticamento**. Isso é uma propriedade do escritor, não do arquivo:
+ausência de evidência só é evidência de ausência quando a fonte é conhecida por
+ser minuciosa **naquela operação**.
+
+**E é exatamente isso que não está estabelecido.** O catálogo existe:
+
+```js
+var STRETCH_HISTORY = [
+  [/autostretch/i,        'Autostretch'],
+  [/histogram\s*transf/i, 'Histogram Transf.'],
+  [/asinh/i,              'Asinh stretch'],
+  ...
+];
+```
+
+**Ele não tem origem escrita em lugar nenhum.** Sem comentário, sem entrada na
+spec do Módulo 0, sem linha no `NOTAS`. Sete padrões sobre o que outros programas
+escrevem, e nenhum registro de onde vieram — **a mesma forma das três chaves que
+eu chamei de decisivas e que não existiam no arquivo real.**
+
+E o agravante fecha o círculo: o `HISTORY` do `fixture-nonlinear` — a única
+evidência na suíte de que um programa declara esticamento — **fui eu que
+escrevi**, no gerador, para casar com o que eu acreditava que o Siril grava. É
+zero informação pela mesma razão que contar `PROGRAM` nos fixtures é zero
+informação: a população confirma quem a escreveu.
+
+**O que muda conforme a resposta, e as duas respostas são úteis:**
+
+| se o Siril, ao esticar, | então |
+|---|---|
+| **escreve** um termo de esticamento | o catálogo ganha a primeira entrada medida; `declaresStretch: true` para o Siril, e a **ausência** passa a decidir |
+| **não escreve** nada | ausência não prova nada para o Siril; `declaresStretch: false`, e a mediana segue decidindo **para esse escritor** |
+
+A segunda seria a que ninguém suspeitaria, e é a que a suposição atual esconde.
+
+### 3.2 E o pedido encolhe: UM arquivo, não um par
+
+A metade linear já existe e já foi medida. **Falta um único arquivo:** um quadro
+qualquer com o autostretch do Siril aplicado, salvo, e as linhas de `HISTORY`
+reportadas.
+
+```
+o que trazer:   so as linhas HISTORY, e a mediana
+o que nao:      OBJECT, DATE-OBS, TELESCOP, INSTRUME, nome, caminho, pixel
+```
+
+Esse arquivo responde as duas perguntas de uma vez: **se** o Siril declara, e
+**com que palavra** — que é o que valida ou corrige as sete linhas do catálogo.
+
 ## 4. O que medir antes de propor
 
-1. **Que fração dos arquivos com assinatura declara o esticamento.** Mesmo
-   formato da §1.1 da investigação da escala: `HISTORY` completo, mais mediana.
-   Os dois casos que interessam são **um stack linear** e **um arquivo já
-   esticado pelo mesmo programa** — é o par que mostra se a declaração
-   discrimina.
-2. **A curva desta regra, como a da escala.** `k` em passos finos em volta do
-   ponto em que cada fixture cruza 0,05, medindo a saída. O `bigobject` já dá o
-   caso apertado de graça: 1,3%.
-3. **Quantos fixtures estão a menos de 10% de um limiar absoluto.** A pergunta
-   que nenhuma verificação faz hoje, e ela é barata: para cada limiar fixo da
-   cadeia, a distância do fixture até ele. Um inventário de margens.
-4. **O que o `0,02` do ramo com `HISTORY` está fazendo.** Ele existe para o caso
-   *"o header diz esticado mas a mediana está baixa"* — que é precisamente a
-   contradição da §3. Hoje ele **resolve a contradição baixando o limiar**; a
-   pergunta é se isso é o certo ou se é recusa disfarçada de heurística.
+1. ~~**Quantos fixtures estão perto de um limiar absoluto.**~~ **FEITO:**
+   `test/compare-margens.ps1`, e virou verificação em vez de relatório. Achou
+   dois casos dentro de 5% — o `bigobject` (§2.1) e o `fixture-saturation`, que
+   recusa o recorte a **2,8%** do piso de 20%, com os dois números impressos no
+   log desde sempre.
 
----
+   **E respondeu uma pergunta desta investigação de graça:** o ramo
+   `historyHits && mediana >= 0,02` tem **um único fixture aplicável, a 1.134%
+   do limiar**. O `0,02` **nunca foi exercitado dos dois lados** — é robusto por
+   acidente, não por escolha.
+
+2. **UM arquivo do Siril já esticado**, §3.2 — e ele decide, não confirma.
+
+3. **A curva desta regra**, como a da escala: `k` em passos finos em volta do
+   ponto em que cada fixture cruza 0,05, medindo a saída. O `bigobject` já dá o
+   caso apertado de graça, a 1,3%.
+
+4. **O que o `0,02` está fazendo.** Ele existe para o caso *"o header diz
+   esticado mas a mediana está baixa"* — que é **precisamente a contradição** da
+   §3 da spec da escala. Hoje ele **resolve a contradição baixando o limiar**, e
+   a pergunta é se isso é o certo ou se é recusa disfarçada de heurística.
+
+   E agora com um dado a mais: **essa resolução nunca foi exercitada.** Uma
+   heurística que nunca rodou é indistinguível de uma que está errada.
 
 ## 5. O que esta investigação NÃO faz
 

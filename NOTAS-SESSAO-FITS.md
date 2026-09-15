@@ -2090,6 +2090,18 @@ entrar, e a mudança é a prova.
 cruzar o limiar de 0,05. Nenhuma verificação pergunta a que distância de uma
 fronteira um fixture está — ver a classe própria acima.
 
+**11. O catálogo `STRETCH_HISTORY` não tem origem escrita.** Sete padrões sobre
+o que outros programas gravam no `HISTORY`, sem comentário, sem entrada em spec
+e sem linha aqui. **A mesma forma das três chaves que eu chamei de decisivas e
+que não existiam no arquivo real** — e o agravante é que a única evidência na
+suíte de que um programa declara esticamento é o `HISTORY` do
+`fixture-nonlinear`, **que fui eu que escrevi** para casar com o que eu
+acreditava.
+
+Fecha com **um** arquivo: qualquer quadro com o autostretch do Siril aplicado,
+reportando só as linhas de `HISTORY` e a mediana. Ver
+`investigacao-regra-linear.md` §3.1 e §3.2.
+
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
 implementação — é o que autorizou ligar: até ele, a etapa estava verificada
@@ -3447,3 +3459,89 @@ perguntam onde o caso está, só se ele mudou.**
 O inventário que falta é barato: para cada limiar absoluto da cadeia, a distância
 de cada fixture até ele. Uma tabela, e ela diria qual fixture é o caso apertado
 de cada regra — que é exatamente o que uma suíte devia saber sobre si mesma.
+
+## As três perguntas que a suíte não fazia são a mesma ausência
+
+Esta é a que unifica as outras duas, e ela vale mais que qualquer uma das três.
+
+| verificação | a pergunta que ela faz |
+|---|---|
+| golden | o caso **mudou**? |
+| referência Python | os dois lados **concordam**? |
+| controle negativo | a cota **consegue reprovar**? |
+| varredura de unidades | a cota está na **unidade certa**? |
+| **nenhuma** | **onde o caso ESTÁ?** |
+
+**Verificação de consistência pergunta se o caso mudou, nunca onde ele está.** É
+uma família inteira de verificação com um ponto cego comum, e o ponto cego não é
+acidente: consistência é uma relação entre duas leituras, e uma relação entre
+duas leituras não tem como falar sobre a posição de nenhuma delas.
+
+**As três perguntas ausentes são a mesma ausência, em eixos diferentes:**
+
+```
+os fixtures representam a populacao?          eixo: quem e o caso
+quanto o dado real e mais extremo?            eixo: quao longe vai a cauda
+a que distancia da fronteira o caso esta?     eixo: onde o caso senta
+```
+
+As três se respondem olhando **para fora da suíte** — para a população, para o
+mundo, ou para os limiares do próprio código. Nenhuma se responde comparando
+duas execuções, e por isso nenhuma apareceu em anos de verificação verde.
+
+**E o custo das três é o mesmo padrão:** a suíte fica verde enquanto o defeito
+cresce, e o que a descobre é sempre uma coisa de fora — dado real, um segundo
+implementador, ou alguém perguntando o que ninguém tinha perguntado.
+
+## O inventário de margens, e o que ele achou na primeira rodada
+
+`test/compare-margens.ps1`. Para cada limiar absoluto da cadeia, a distância de
+cada fixture até ele, em fração do próprio limiar. **99 pares, 10 limiares, 18
+fixtures.**
+
+**É verificação e não relatório**, e a diferença é o que a faz valer: um caso
+dentro de 5% que não esteja **declarado com o motivo** reprova, e uma declaração
+que saiu da faixa também reprova, porque envelheceu. É a disciplina das âncoras
+de clip do `negative-controls`.
+
+**Achou dois, e o segundo estava impresso no log desde sempre:**
+
+```
+bigobject    linear.mediana         0,04938 contra 0,05      1,23% abaixo
+saturation   recorte.pisoDoQuadro   0,19447 contra 0,20      2,77% abaixo
+```
+
+O segundo aparece no log como *"the largest extended object covers **19.4%** of
+the frame, under the **20%** this step treats as a subject"*. **Os dois números
+estavam lado a lado numa frase que alguém lia toda semana**, e ninguém leu "19,4
+e 20" como a mesma informação que "0,194469 contra 0,2".
+
+> **Um número perto de um limiar não se anuncia sozinho: ele precisa de alguém
+> que subtraia.** Prosa apresenta os dois valores; distância é uma conta, e
+> nenhuma leitura casual faz a conta.
+
+E as duas leituras que o inventário força — *"o limiar está no lugar errado"* ou
+*"o fixture testa outra coisa do que se pensa"* — deram respostas **diferentes**
+nos dois casos:
+
+- **`bigobject`**: o limiar está bem e o fixture caiu ali por acaso;
+- **`saturation`**: o fixture é da saturação, a recusa do recorte é incidental, e
+  **o golden fixa uma moeda que caiu de um lado**. Uma mexida no limiar de sinal
+  vira a moeda, e o diff do golden vai parecer regressão quando for a fronteira
+  sendo cruzada.
+
+### E respondeu a pergunta que a spec da escala deixou aberta
+
+**Quais limiares têm população perto deles.** O que apareceu:
+
+```
+linear.medianaComHistoria (0,02)   o mais proximo esta a 1.134%
+```
+
+O ramo *"o HISTORY declara esticamento E a mediana passa de 0,02"* tem **um único
+fixture aplicável, e ele está a onze vezes do limiar**. A constante 0,02 **nunca
+foi exercitada dos dois lados** — ela é robusta por acidente, não por escolha, e
+isso agora está escrito em vez de suposto.
+
+**A distinção que o inventário instala:** *"escolhido bem"* e *"nunca
+exercitado"* produzem exatamente o mesmo verde, e até agora nada os separava.
