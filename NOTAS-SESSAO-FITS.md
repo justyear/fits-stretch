@@ -3080,3 +3080,115 @@ saiu com o cabeçalho prometendo mais pixels do que tinha. O leitor recusou,
 corretamente, com *"This file looks incomplete"* — o caminho de erro amigável
 funcionando num arquivo que eu mesmo quebrei. **A função auxiliar existia, com o
 `throw`, em todos os outros blocos.**
+
+## Generalizei de um fixture para a cadeia, e chamei isso de conclusão
+
+A frase era: *"tudo que roda depois da MTF é invariante a escala"*. Ela saiu de
+**um** fixture, sob **um** conjunto de escalas, e foi escrita como propriedade da
+cadeia. A varredura seguinte mostrou que é falsa.
+
+O que tinha sido medido, e é bem mais estreito:
+
+> No `fixture-gradient`, sob as escalas testadas, a saída pós-esticamento não
+> mudou **enquanto o ramo de normalização e a regra linear se mantiveram**.
+
+O que derruba a generalização é o `fixture-nonlinear`: ele já está no ramo
+não-linear, onde o ponto preto sai de um percentil e a mediana é **mantida onde
+está**. A saída vai de 63 para 94 entre k=1,0 e k=1,5 **sem cruzar limiar
+nenhum** — e está certo que vá, porque o ramo existe para preservar a colocação
+tonal do arquivo, e colocação tonal é uma afirmação sobre nível absoluto.
+
+**A invariância era propriedade do ramo linear, não da cadeia.**
+
+O que torna esta instância registrável não é o erro — é onde ele apareceu.
+**Num projeto que passou semanas recusando afirmar além do medido**, a frase
+passou porque:
+
+1. ela **resumia** uma medição verdadeira, e o resumo soava mais útil que a
+   medição;
+2. ela era a **boa notícia** da seção — e a boa notícia recebe menos escrutínio
+   que o achado ruim, que é o oposto do que deveria acontecer;
+3. o fixture que a derrubava **estava na mesma suíte** e não foi consultado.
+
+**A regra, e ela é barata:** ao escrever uma conclusão que começa com *"tudo
+que"*, *"sempre"* ou *"a cadeia é"*, conte quantos casos a sustentam. Se for um,
+a frase tem que nomear o caso. Um resumo que apaga o denominador da medição não
+é resumo, é extrapolação.
+
+E a forma de testar sem custo, que foi o que o revisor pediu: **transformar a
+frase em hipótese e procurar o contraexemplo na própria suíte.** Aqui ele estava
+a um fixture de distância.
+
+## Ordem de degraus como diagnóstico, e o resultado pior
+
+Quatro pontos dizem *se* uma coisa quebra. A curva diz **em que ordem** as
+decisões trocam — e a ordem é o diagnóstico, porque nomeia qual decisão é a mais
+frágil naquele conteúdo.
+
+41 pontos de `k`, três fixtures, 123 rodadas da cadeia:
+
+```
+              satRej  amostras  regra linear   ramo    saida move
+gradient        1,9      3,2      3,0 (L->NL)   3,2       3,0
+colour          1,1      1,5      nunca         1,6       1,6
+nonlinear       1,1      1,2      1,6 (NL->L)   1,6       1,1
+```
+
+**A ordem difere nos três.** No `gradient` a regra linear dispara antes do ramo;
+no `colour` ela nunca dispara porque o penhasco chega primeiro; no `nonlinear`
+ela dispara ao contrário.
+
+**Dos dois resultados possíveis, este é o pior.** Se a ordem fosse a mesma nos
+três, ela seria estrutural: haveria uma decisão "a mais frágil", ela seria a
+primeira a consertar, e daria para declarar ao usuário um fator de exposição
+seguro. Como depende do conteúdo, **não existe esse número**: a margem antes de
+a imagem mudar vai de 10% (`nonlinear`) a 200% (`gradient`).
+
+**A regra:** quando um sistema tem vários portões absolutos em série, medir
+*quais* quebram não basta. **A ordem em que quebram é o que diz se o defeito é
+estrutural ou dependente de entrada** — e só a segunda impede qualquer promessa
+geral ao usuário.
+
+## Uma grandeza robusta conserta a fragilidade; não conserta a ambiguidade
+
+Medido: o máximo do quadro chega a **5,18× o percentil 99,9**, e um único pixel
+em 3× o máximo triplica o divisor. Trocar o máximo por um percentil alto mata
+essa fragilidade — um pixel em 5,7 milhões não move o p99,9.
+
+Mas ele **não** estabiliza o ramo sob escala, e nenhuma estatística estabiliza:
+
+> Dois arquivos com **os mesmos valores de pixel** têm que receber o mesmo ramo.
+> Uma imagem escrita em [0,1] e exposta 3× mais brilhante, e uma imagem escrita
+> numa escala de 16 bits que está muito fraca, **são os mesmos números.**
+
+O ramo tenta ler uma **convenção** a partir de **valores**, e a convenção não
+está nos valores. **Robustez trata ruído; isto não é ruído, é informação
+ausente** — e informação ausente não se recupera com estimador melhor.
+
+**A regra:** antes de procurar uma estatística melhor para uma decisão, pergunte
+se a informação que a decisão precisa está nos dados. Se não estiver, toda
+estatística é um palpite com erro-padrão, e o erro-padrão faz o palpite parecer
+medição.
+
+## Leitura e decisão na mesma função
+
+`normalisePhysical` faz duas coisas de naturezas diferentes:
+
+```
+valor armazenado -> valor fisico       BSCALE/BZERO -- PADRAO FITS, resposta certa
+valor fisico     -> [0,1] de trabalho  o divisor    -- POLITICA DO PRODUTO
+```
+
+A primeira tem uma resposta definida por um padrão e não admite opinião. A
+segunda é escolha, e é onde mora tudo que a investigação achou.
+
+Estarem juntas é o que deixa um divisor escolhido pelo máximo **contaminar o que
+deveria ser só leitura**: `rawMin`/`rawMax` são leitura pura — exatos, e o
+comparador já os trata com cota zero — e saem da mesma passada que escolhe o
+divisor. O record não separa *"isto é o que o arquivo diz"* de *"isto é o que eu
+decidi"*.
+
+**A regra geral:** quando uma função mistura o que um padrão determina com o que
+o produto escolhe, o log herda a mistura — e o leitor perde a única distinção que
+importa num produto que promete auditabilidade. **Não refatorado**; registrado
+para que a alternativa tenha que argumentar contra isto.
