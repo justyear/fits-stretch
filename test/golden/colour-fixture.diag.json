@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -133,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 66,
-    "preview": 45,
-    "stats": 89,
-    "background": 347,
-    "colour": 525,
-    "transfer": 731,
-    "saturation": 511,
-    "crop": 166,
-    "quantise": 89,
+    "header": 0,
+    "decode": 28,
+    "preview": 24,
+    "stats": 69,
+    "background": 302,
+    "colour": 581,
+    "transfer": 738,
+    "saturation": 299,
+    "crop": 115,
+    "quantise": 92,
     "downscale": 0,
-    "total": 1861
+    "total": 1553
   },
   "historyCards": [
     "COLOUR synthetic frame with three DIFFERENT channel ratios.",

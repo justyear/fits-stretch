@@ -43,12 +43,38 @@ function normalisePhysical(phys, n, meta, report){
     }
   }
 
+  /* DE ONDE A ESCALA VEIO, e nao so qual ela e.
+   *
+   * `scaleMode` diz o que foi feito. `scaleSource` diz por QUE AUTORIDADE, e sao
+   * perguntas diferentes:
+   *
+   *   'container'  BITPIX e BZERO/BSCALE. O padrao FITS decide, o arquivo
+   *                declarou, e nao ha opiniao a ter.
+   *   'chosen'     nenhuma chave do padrao disse a escala, entao a FERRAMENTA
+   *                escolheu, por uma heuristica sobre os valores.
+   *
+   * A distincao existe porque ela muda o ESTATUTO das decisoes que comparam
+   * contra nivel fixo mais adiante -- a regra linear/nao-linear e o teto da
+   * selecao estelar. Sobre uma escala declarada, elas sao afirmacoes. Sobre uma
+   * escala escolhida aqui, sao afirmacoes CONDICIONADAS a essa escolha, e o log
+   * marca as segundas.
+   *
+   * "A mediana e 0,0168" e "os dados sao lineares" nao tem o mesmo estatuto
+   * epistemico: a primeira e verdade sobre o quadro como ele foi processado, e a
+   * segunda e verdade DADA uma escala que ninguem declarou. Elas apareciam com a
+   * mesma voz.
+   *
+   * Quando a leitura do escritor entrar (spec-escala-decisao.md, degrau 4), ela
+   * acrescenta 'declared' aqui: a escala veio de PROGRAM/HISTORY, conferida
+   * contra os pixels, e as decisoes deixam de ser contingentes.
+   */
   var summary = {
     bitpix: bitpix, kind: meta.kind, bzero: bzero, bscale: bscale,
     width: meta.w, height: meta.h, planes: meta.planes,
     rawMin: mn, rawMax: mx, nonFinite: bad,
     normMin: (mn - lo) / div, normMax: (mx - lo) / div,
-    scaleBasis: basis, scaleMode: mode, scaleLo: lo, scaleHi: hi, scaleDiv: div
+    scaleBasis: basis, scaleMode: mode, scaleLo: lo, scaleHi: hi, scaleDiv: div,
+    scaleSource: (mode === 'int') ? 'container' : 'chosen'
   };
   if (meta.compression) summary.compression = meta.compression;
   report(summary);

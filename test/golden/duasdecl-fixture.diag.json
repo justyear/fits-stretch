@@ -1,0 +1,178 @@
+{
+  "file": "fixture-duasdecl.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "OBJECT": "Two scale declarations",
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 685.7232055664062,
+    "rawMax": 65535,
+    "nonFinite": 0,
+    "normMin": 0.010463465408810655,
+    "normMax": 1,
+    "scaleBasis": "float on a 16-bit scale (max 65535.0)",
+    "scaleMode": "float16",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 65535,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.015126777040258386,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.015274280918593118,
+      "madn": 0.0005014658541490712,
+      "q1": 0.014938582436865798,
+      "q3": 0.01560997940032044,
+      "shadows": 0.014062726844323383,
+      "midtones": 0.010952320821611563,
+      "target": 0.085,
+      "pixelsBlack": 123,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.015060654612039369,
+      "madn": 0.000492170167257077,
+      "q1": 0.014724956130312047,
+      "q3": 0.01539635309376669,
+      "shadows": 0.014062726844323383,
+      "midtones": 0.010952320821611563,
+      "target": 0.085,
+      "pixelsBlack": 123,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.014816510261692225,
+      "madn": 0.0004838790276339345,
+      "q1": 0.014480811779964905,
+      "q3": 0.01513694972152285,
+      "shadows": 0.014062726844323383,
+      "midtones": 0.010952320821611563,
+      "target": 0.085,
+      "pixelsBlack": 123,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.015075913633936065,
+      "luminanceMADN": 0.00036185242486167207,
+      "shadows": 0.014062726844323383,
+      "midtones": 0.010952320821611563,
+      "target": 0.085,
+      "luminanceSpan": 0.0014648661020828565,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 123,
+      "clipHigh": 0,
+      "highlightCut": 0.15304798962386512
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0332576605269606,
+        "bOverG": 0.9799456844831974
+      },
+      "ratiosAfter": {
+        "rOverG": 1.027594660310461,
+        "bOverG": 0.9847901409008898
+      },
+      "maxRatioDrift": 2.220446049250313e-16,
+      "driftSamples": 539848,
+      "highlightPixels": 5402,
+      "pixelsRescaled": 6838
+    }
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 0,
+    "decode": 21,
+    "preview": 1,
+    "stats": 24,
+    "background": 164,
+    "colour": 227,
+    "transfer": 302,
+    "saturation": 132,
+    "crop": 31,
+    "quantise": 33,
+    "downscale": 0,
+    "total": 727
+  },
+  "historyCards": [
+    "additive+scaling normalized input, normalized output",
+    "DECL2 rescaled to the 16-bit range for archival",
+    "DECL2 the two lines above disagree ON PURPOSE. HISTORY is",
+    "DECL2 append-only, so the LAST one describes the pixels:",
+    "DECL2 they run to 65535, not to 1. Reading the first would",
+    "DECL2 contradict the data and refuse; reading the last is",
+    "DECL2 consistent. External truth, from neither side."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "OBJECT  = 'Two scale declarations'",
+    "HISTORY additive+scaling normalized input, normalized output",
+    "HISTORY DECL2 rescaled to the 16-bit range for archival",
+    "HISTORY DECL2 the two lines above disagree ON PURPOSE. HISTORY is",
+    "HISTORY DECL2 append-only, so the LAST one describes the pixels:",
+    "HISTORY DECL2 they run to 65535, not to 1. Reading the first would",
+    "HISTORY DECL2 contradict the data and refuse; reading the last is",
+    "HISTORY DECL2 consistent. External truth, from neither side.",
+    "END"
+  ]
+}

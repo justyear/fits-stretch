@@ -1,0 +1,22 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — fixture-mudo.fit
+900 × 600 · 32-bit float · monochrome · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, one image plane, no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up. Pixel values were already on a 0–1 scale, and the data spans 0.01263 to 0.99350.
+• No colour filter array detected: the 2×2 lattice test found no mosaic (neighbour ratio 0.57 H / 0.57 V, where a mosaic reads above 1.15). Treated as monochrome, no debayer applied.
+• Data is linear: median 0.01653, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
+• Background extraction: measured the sky in 96 boxes of 25 pixels on a 12 × 8 grid and used 84 of them (12 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (0.01645), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Colour calibration: not applied. the frame has 1 channel; colour calibration needs three.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), shadow clip -2.80σ, target background 0.09, applied per channel (unlinked). Highlights untouched at 1.000.
+    L  median 0.01643  MADN 0.00050  →  shadows 0.01504  midtones 0.01498
+    0.017% of pixels land on pure black or pure white after the transfer.
+• Selective saturation: not applied. the frame has 1 channel; there is no chrominance to scale.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• No crop suggested: the largest extended object covers 0.2% of the frame, under the 20% this step treats as a subject; something that small is more likely a big star or an artefact than what you pointed at.
+• Not applied: noise reduction, sharpening, saturation, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

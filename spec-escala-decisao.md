@@ -1,6 +1,6 @@
 # Spec de decisão: como a escala de um FITS float é escolhida
 
-**Status: spec de decisão. Ainda sem implementação.**
+**Status: spec de decisão. Só a §4.3 está implementada.**
 **Evidência:** `investigacao-escala-float.md` — toda medição citada aqui está lá.
 
 ---
@@ -184,6 +184,21 @@ da seleção estelar.
 *"a mediana é 0,0168"* — que é verdade — e *"os dados são lineares"* — que é
 verdade **dada uma escala que ninguém declarou**.
 
+> **FEITO, e é a única parte desta spec já implementada.** O decode emite
+> `scaleSource`: `container` quando `BITPIX`/`BZERO` decidiram, `chosen` quando a
+> ferramenta escolheu. Com `chosen`, o veredito de linearidade e a contagem acima
+> do teto de 0,85 saem com a cláusula que diz de que escolha elas dependem — e só
+> essas duas, porque marcar tudo é não marcar nada.
+>
+> **A consequência apareceu na suíte sem que ninguém a escrevesse:** dos dezoito
+> fixtures, `seestar` e `nobayer` são os únicos cuja escala vem do contêiner, e
+> são **exatamente** os dois cujo veredito sai sem qualificação. A frase aparece
+> e some sozinha, com o motivo.
+>
+> Quando o degrau 4 entrar, ele acrescenta `declared` a `scaleSource` e as
+> decisões deixam de ser contingentes nos arquivos com assinatura — que é o caso
+> principal.
+
 ---
 
 ## 5. Onde a evidência é lida
@@ -282,8 +297,14 @@ próximo tenha.
 
 > **É aqui que o "declarar em vez de recusar" da §4 tem limite.** A escala erra
 > alto; a regra dos 0,05 erra baixo, e errar baixo é o que este projeto recusa em
-> todo lugar. **Depois desta spec, o próximo item é a regra dos 0,05 — não a
-> escala.**
+> todo lugar.
+>
+> **A ordem foi invertida: a regra dos 0,05 vem primeiro** —
+> `investigacao-regra-linear.md`. E a hipótese dela é que o conserto é o mesmo:
+> linear-ou-não-linear também é uma **convenção sobre o que o arquivo já sofreu**,
+> não uma propriedade dos pixels, e o `HISTORY` do Siril diz `autostretch` em
+> palavras quando houve esticamento. Se a declaração responder, a regra dos 0,05
+> vira degrau 5 também e **a mesma tabela de escritores resolve as duas**.
 
 ---
 
@@ -314,6 +335,7 @@ pagou essa conta três vezes.
 - **O critério do degrau 5.** Continua sendo o de hoje até que alguém o derive;
   trocar `max` por um percentil conserta a fragilidade a um pixel (§2.1 da
   investigação) e **não** conserta a ambiguidade, então é melhoria e não solução.
-- **A regra dos 0,05** — §6.3, e é o próximo item.
+- **A regra dos 0,05** — §6.3. **É o próximo item, e virou investigação própria:**
+  `investigacao-regra-linear.md`.
 - **Separar leitura de decisão** em `normalisePhysical` (§2.3 da investigação).
   Continua registrado e não feito.

@@ -33,7 +33,8 @@
     "scaleMode": "int",
     "scaleLo": 0,
     "scaleHi": 65535,
-    "scaleDiv": 65535
+    "scaleDiv": 65535,
+    "scaleSource": "container"
   },
   "rowOrder": {
     "keyword": "BOTTOM-UP",
@@ -159,21 +160,21 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 31,
+    "header": 1,
+    "decode": 37,
     "roworder": 1,
-    "cfa": 23,
-    "debayer": 73,
-    "preview": 26,
-    "stats": 77,
+    "cfa": 22,
+    "debayer": 70,
+    "preview": 28,
+    "stats": 74,
     "background": 311,
-    "colour": 457,
-    "transfer": 637,
-    "saturation": 390,
-    "crop": 104,
-    "quantise": 105,
-    "downscale": 1,
-    "total": 1812
+    "colour": 443,
+    "transfer": 608,
+    "saturation": 382,
+    "crop": 106,
+    "quantise": 107,
+    "downscale": 0,
+    "total": 1785
   },
   "historyCards": [
     "NOBAYER same pixels as fixture-seestar.fit, byte for byte.",

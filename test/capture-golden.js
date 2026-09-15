@@ -120,7 +120,21 @@ window.__GOLDEN = [
   // cartao a menos. E o unico caso em que o padrao sai do teste de trelica e a
   // atribuicao vermelho/azul e SUPOSTA -- a frase que o log imprime sobre isso
   // existia sem nenhum fixture que a imprimisse.
-  ['nobayer-fixture',  '/f/test/fixtures/fixture-nobayer.fit']
+  ['nobayer-fixture',  '/f/test/fixtures/fixture-nobayer.fit'],
+  // Os dois lados da decisao da escala (spec-escala-decisao.md), e nenhum
+  // tinha caso: TODOS os outros fixtures trazem PROGRAM, porque o gerador os
+  // escreve assim.
+  //
+  // `mudo` sao os SEIS cartoes que o astropy escreve e nada mais -- o caso
+  // residual, e ele nao e um arquivo quebrado: e um arquivo correto sem
+  // procedencia declarada.
+  //
+  // `duasdecl` traz DUAS declaracoes de escala que discordam, e os pixels
+  // concordam com a SEGUNDA. HISTORY e append-only e a ultima vence: as duas
+  // leituras possiveis levam a vereditos opostos sobre o mesmo arquivo, entao
+  // este fixture discrimina a regra em vez de so acompanha-la.
+  ['mudo-fixture',     '/f/test/fixtures/fixture-mudo.fit'],
+  ['duasdecl-fixture', '/f/test/fixtures/fixture-duasdecl.fit']
 ];
 
 /* ------------------------------------------------------------------ *

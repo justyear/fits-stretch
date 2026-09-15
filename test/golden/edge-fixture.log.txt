@@ -6,12 +6,13 @@ Processing log — fixture-edge.fit
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.01041 to 1.00000.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
-• Data is linear: median 0.01568, no stretch recorded in the header. Full autostretch applied.
+• Data is linear: median 0.01568, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
 • Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 64 of them (6 brighter than the background, 38 on the frame edge were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01696, G 0.01541, B 0.01420), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
 • Colour calibration: the sky background was levelled between channels (R 0.001431, G -0.000109, B -0.001323 subtracted, additively, so only the floor moved), and the colour balance was measured from 7,694 star pixels in your own frame — red ×0.989, green ×1.000, blue ×1.014.
     Pixels between 0.01993 and 0.85 in luminance were taken as stars; 1 brighter than the upper cut were left out, because a saturated star is 1.0 in all three channels and carries no colour; 1,366 were left out as extended source, being pixels whose neighbourhood is also mostly lit — a galaxy body, not stars.
+    That upper cut is a fixed level, and the scale it sits on was chosen by this tool rather than declared by the file — so how many pixels fall above it holds given that choice.
     The ratio was taken above the sky, not against the raw pixel: the sky is a level common to all three channels and leaving it in drags every ratio toward 1. Star medians R 0.04114, G 0.04085, B 0.04050; above a sky of 0.01556 that is R 0.02557, G 0.02528, B 0.02494.
     Checked for stability before applying: a 10% error in the sky estimate would move the gains by at most 0.09% (in blue). A ratio taken above the sky is only worth applying if it barely moves when the sky estimate does.
     Nothing here was a preference: the numbers came from the stars you photographed. Star colour is the reference because sky has no colour of its own to measure against. No catalogue was consulted, no astrometry was solved, and nothing left this machine.

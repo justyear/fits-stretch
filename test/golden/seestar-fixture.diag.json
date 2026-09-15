@@ -36,7 +36,8 @@
     "scaleMode": "int",
     "scaleLo": 0,
     "scaleHi": 65535,
-    "scaleDiv": 65535
+    "scaleDiv": 65535,
+    "scaleSource": "container"
   },
   "rowOrder": {
     "keyword": "BOTTOM-UP",
@@ -161,20 +162,20 @@
   },
   "timingsMs": {
     "header": 1,
-    "decode": 63,
+    "decode": 36,
     "roworder": 1,
-    "cfa": 38,
-    "debayer": 116,
-    "preview": 49,
-    "stats": 106,
-    "background": 450,
-    "colour": 729,
-    "transfer": 964,
-    "saturation": 669,
-    "crop": 220,
-    "quantise": 128,
-    "downscale": 1,
-    "total": 2926
+    "cfa": 27,
+    "debayer": 113,
+    "preview": 31,
+    "stats": 79,
+    "background": 292,
+    "colour": 566,
+    "transfer": 769,
+    "saturation": 512,
+    "crop": 113,
+    "quantise": 105,
+    "downscale": 0,
+    "total": 2110
   },
   "historyCards": [],
   "allCards": [

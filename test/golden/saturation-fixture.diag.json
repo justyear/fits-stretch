@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -133,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 64,
-    "preview": 45,
-    "stats": 89,
-    "background": 370,
-    "colour": 403,
-    "transfer": 595,
-    "saturation": 523,
-    "crop": 157,
-    "quantise": 93,
+    "header": 1,
+    "decode": 29,
+    "preview": 23,
+    "stats": 74,
+    "background": 265,
+    "colour": 497,
+    "transfer": 634,
+    "saturation": 308,
+    "crop": 105,
+    "quantise": 90,
     "downscale": 0,
-    "total": 1745
+    "total": 1407
   },
   "historyCards": [
     "SAT synthetic frame for the selective saturation step.",

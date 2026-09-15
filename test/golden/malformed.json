@@ -167,6 +167,12 @@
       "veredito": "aceita", "dims": "16x16x1",
       "porque": "+Inf e -Inf misturados com valores reais"
     },
+    "f1-declara-normalizado-mente.fit": {
+      "sha256": "732fb281a76ef86d9220126ba26dbefd06cce89169e45895b2a6b4438566c1a1",
+      "veredito": "aceita",
+      "dims": "16x16x1",
+      "porque": "o HISTORY declara 'normalized output' e os pixels vao a 32000: as duas fontes de verdade discordam. ACEITA de proposito -- a conferencia de falsificacao ainda nao existe, e este caso torna a ausencia dela visivel na suite. Vira 'rejeita' no dia em que ela entrar, e a mudanca e a prova"
+    },
     "e8-constante.fit": {
       "sha256": "fc2f939e0210e6f60b7314a4ed2954703115f9c5f2c2d3ac3332dacf1e8dd66c",
       "veredito": "aceita", "dims": "16x16x1",

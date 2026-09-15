@@ -32,7 +32,8 @@
     "scaleMode": "floatmax",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 250000
+    "scaleDiv": 250000,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -133,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 1,
-    "decode": 24,
+    "header": 0,
+    "decode": 21,
     "preview": 2,
-    "stats": 26,
-    "background": 135,
-    "colour": 183,
-    "transfer": 229,
-    "saturation": 123,
-    "crop": 27,
+    "stats": 24,
+    "background": 122,
+    "colour": 163,
+    "transfer": 205,
+    "saturation": 106,
+    "crop": 28,
     "quantise": 32,
     "downscale": 0,
-    "total": 618
+    "total": 563
   },
   "historyCards": [
     "SCALE same scene as the other scale fixture: only the",

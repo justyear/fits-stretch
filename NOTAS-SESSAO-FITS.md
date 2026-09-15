@@ -4,7 +4,7 @@ Handoff para quem pegar isto depois, inclusive eu mesmo sem contexto.
 
 ## O que é
 
-`stretch-tool/index.html` — **274.548 bytes**, arquivo único, HTML/CSS/JS puro,
+`stretch-tool/index.html` — **278.513 bytes**, arquivo único, HTML/CSS/JS puro,
 sem dependência externa, sem build, sem backend. Abre FITS empilhado, detecta e
 aplica debayer, extrai o fundo, calibra a cor pelas estrelas do próprio quadro,
 aplica autostretch MTF, satura seletivamente, sugere um recorte no objeto — e
@@ -2063,29 +2063,32 @@ modelar o operador asinh. Os outros três órfãos (`float16`, `floatmax`,
 `nobayer`) são novos e esperados — entraram nesta rodada e a referência ainda não
 os viu.
 
-**10. A escala do float: a spec de decisão está escrita, o conserto não começou.**
-`spec-escala-decisao.md`, com `investigacao-escala-float.md` como evidência. A §1
-fechou pelos dois extremos medidos: o caso principal assina (Siril + Seestar,
-`PROGRAM`/`CREATOR`/`HISTORY`), o arquivo de script é **totalmente mudo** (seis
-cartões, zero `HISTORY`). Não há meio-termo.
+**10. A ordem inverteu: a regra dos 0,05 vem ANTES da escala.**
+`investigacao-regra-linear.md` (aberta) e `spec-escala-decisao.md` (decidida,
+não implementada), com `investigacao-escala-float.md` como evidência das duas.
 
-A decisão: **ler o escritor, conferir contra os pixels, e declarar quando ninguém
-assinou.** Recusar fica só para a contradição entre as duas fontes.
+**Por quê:** a escala erra **alto** — branco ou 99,98% preto, e se anuncia. A
+regra linear/não-linear erra **baixo**: 38% mais escuro, com a escala
+perfeitamente declarada, e parece escolha estética.
 
-O que trava o conserto, e é o de sempre:
+**Os três fixtures que travavam entraram** — `mudo` (seis cartões, o caso
+residual), `duasdecl` (duas declarações que discordam, e os pixels concordam com
+a segunda) e `f1-declara-normalizado-mente` no corpus `malformed`, cujo veredito
+esperado é **`aceita` de propósito**: a conferência de falsificação não existe, e
+o caso torna a ausência dela visível na suíte. Vira `rejeita` no dia em que ela
+entrar, e a mudança é a prova.
 
-- **não existe fixture MUDO.** Os quatorze trazem `PROGRAM` porque o gerador
-  escreve — o caso residual, que é metade da decisão, não tem caso.
-- **não existe arquivo que se contradiga** (declara normalizado, máximo fora de
-  [0,1]), que é o único que exercita a recusa. O lugar dele é o corpus
-  `malformed`.
-- **não existe arquivo com duas declarações de escala no `HISTORY`**, então *"a
-  última vence"* é afirmação e não controle.
+**O que falta para qualquer conserto, e é a mesma pergunta para as duas regras:**
 
-**E o próximo item não é a escala: é a regra dos 0,05.** A escala erra alto —
-branco ou preto, que se anuncia. A regra linear/não-linear erra baixo: medido,
-uma imagem 38% mais escura que parece escolha estética. Errar baixo é o que este
-projeto recusa em todo lugar.
+- **que fração dos arquivos reais assina quem os escreveu**, e destes, quantos
+  declaram o esticamento no `HISTORY`. Hoje n=1 dos dois lados: um arquivo com
+  assinatura (Siril + Seestar) e um de script totalmente mudo.
+- o par que discrimina: **um stack linear e um arquivo já esticado pelo mesmo
+  programa.**
+
+**E um achado da suíte que vale sozinho:** o `bigobject` está a **1,3%** de
+cruzar o limiar de 0,05. Nenhuma verificação pergunta a que distância de uma
+fronteira um fixture está — ver a classe própria acima.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -3345,3 +3348,102 @@ isso só se mede com dado real.
 calibrar um limiar, **o número dela é um piso, não uma estimativa**. A cauda de
 dado real é mais longa que a de qualquer gerador, porque o gerador só produz o
 que alguém pensou em escrever — e ninguém pensa em escrever a cauda.
+
+## Quando o erro se anuncia e a decisão é inevitável, declarar é honesto
+
+Regra geral do projeto, e ela resolve um conflito que estava implícito entre duas
+coisas que este repositório já decidiu.
+
+De um lado, a regra da meia escala: *"dizer a verdade num texto que ninguém lê
+não é o mesmo que não prometer"* — de onde saíram o botão que não aparece, o
+recorte que não sugere, e a recusa do CFA quando a suposição não se sustenta.
+
+Do outro, a escolha da escala de um float sem procedência: **declarar e
+processar**, não recusar.
+
+**Elas não se contradizem, e o que as separa são dois eixos:**
+
+| | o erro é | a decisão é |
+|---|---|---|
+| botão da meia escala | **invisível** — 1,07 em vez de 2,0 de redução de ruído | **opcional** — dá para não oferecer |
+| escala de um arquivo mudo | **visível** — branco, ou 99,98% preto | **inevitável** — não há como abrir sem escolher uma |
+
+> **Quando o erro se anuncia e a decisão é inevitável, declarar é honesto e
+> recusar é higiene performática.**
+>
+> E o contrapositivo é a regra antiga: quando o erro é invisível **ou** a decisão
+> é dispensável, não prometer é o certo — porque aí a declaração é a única defesa
+> e ela não chega a quem precisa.
+
+**Higiene performática** é o nome certo para recusar ali: parece rigor, custa a
+função inteira, e protege de um erro que a própria imagem denuncia. O rigor que
+importa é o outro — a frase que diz o que foi escolhido e o que depende disso.
+
+## Medição e decisão não têm a mesma voz
+
+Implementado, e é a distinção mais fina que este log ganhou.
+
+```
+"a mediana e 0,0168"      medicao do quadro COMO ELE FOI PROCESSADO
+"os dados sao lineares"   DECISAO, comparando essa mediana contra 0,05
+```
+
+A primeira é verdade sem qualificação. A segunda é verdade **dada a escala em que
+o quadro foi posto** — e quando nenhuma chave do padrão FITS declarou essa escala,
+quem a escolheu foi a ferramenta.
+
+**Medido:** multiplicar os pixels do `fixture-gradient` por 3 move a mediana de
+0,0168 para 0,0503, cruza o limiar, troca o algoritmo e deixa a saída 38% mais
+escura. **A medição continua certa nas duas escalas; a decisão inverte.**
+
+As duas frases saíam com a mesma voz. Agora a segunda é marcada — e só ela, mais
+o teto de 0,85 da seleção estelar, que são as duas decisões da cadeia que
+comparam contra nível fixo em dado linear. **Marcar tudo seria não marcar nada.**
+
+E a marcação é **condicional à procedência da escala**, não constante:
+`scaleSource` sai do decode como `container` quando `BITPIX`/`BZERO` decidiram e
+`chosen` quando a ferramenta escolheu. A consequência aparece na suíte sem que
+ninguém a escreva:
+
+> **Dos dezoito fixtures, `seestar` e `nobayer` são os únicos cuja escala vem do
+> contêiner — e são os únicos dois cujo veredito de linearidade sai sem
+> qualificação.** A frase aparece e some sozinha, com o motivo.
+
+**A regra:** num produto que vende o log, a diferença entre *"isto é o que eu
+medi"* e *"isto é o que eu concluí, dado o que eu escolhi"* é a diferença entre
+auditável e apenas detalhado. E ela custa uma cláusula.
+
+## Um fixture a 1,3% do penhasco, e nada na suíte pergunta isso
+
+Medindo `HISTORY` contra a mediana nos dezoito fixtures, apareceu de graça:
+
+```
+bigobject    mediana 0,04938     limiar 0,05     LINEAR
+```
+
+**1,2% abaixo. Um aumento de exposição de 1,3% inverte o veredito.** O `gradient`
+precisa de 200% para cruzar o mesmo limiar — **a margem é propriedade do quadro,
+não da regra**, e um dos fixtures já está encostado.
+
+**E ninguém notou, porque nenhuma verificação faz essa pergunta:**
+
+| verificação | pergunta |
+|---|---|
+| golden | mudou? |
+| referência | os dois concordam? |
+| controle negativo | a cota reprova? |
+| varredura de unidades | a cota está na unidade certa? |
+| **nenhuma** | **a que distância da fronteira este caso está?** |
+
+Todas medem a ferramenta contra si mesma ou contra outra implementação. **Nenhuma
+mede a distância de um caso até um limiar** — e um caso a 1,3% da fronteira passa
+em todas elas, hoje e no dia em que trocar de lado.
+
+**É a terceira pergunta que a suíte não faz**, ao lado de *"os fixtures
+representam a população?"* e *"quanto o dado real é mais extremo que o
+sintético?"*. As três são do mesmo tipo: **verificações de consistência não
+perguntam onde o caso está, só se ele mudou.**
+
+O inventário que falta é barato: para cada limiar absoluto da cadeia, a distância
+de cada fixture até ele. Uma tabela, e ela diria qual fixture é o caso apertado
+de cada regra — que é exatamente o que uma suíte devia saber sobre si mesma.

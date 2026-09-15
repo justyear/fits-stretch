@@ -1,0 +1,117 @@
+{
+  "file": "fixture-mudo.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 2,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 1,
+    "rawMin": 0.012629983946681023,
+    "rawMax": 0.9935017824172974,
+    "nonFinite": 0,
+    "normMin": 0.012629983946681023,
+    "normMax": 0.9935017824172974,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": null,
+    "flipApplied": true
+  },
+  "cfa": {
+    "evenDims": true,
+    "isMosaic": false,
+    "headerDeclared": false,
+    "trustedHeader": false,
+    "decidedBy": "lattice statistics (no usable BAYERPAT)",
+    "ratioH": 0.5720520874155675,
+    "ratioV": 0.5725719767950203,
+    "threshold": 1.15,
+    "latticeMedians": {
+      "r0c0": 0.016361416361416362,
+      "r0c1": 0.016361416361416362,
+      "r1c0": 0.016361416361416362,
+      "r1c1": 0.016361416361416362
+    },
+    "latticeContrast": 0,
+    "greenAxis": "main",
+    "stackedHistory": false
+  },
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.016525520714122225,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "L",
+      "median": 0.016433966582742047,
+      "madn": 0.0004963167726843887,
+      "q1": 0.016098268101014723,
+      "q3": 0.016769665064469367,
+      "shadows": 0.015044279619225758,
+      "midtones": 0.014981660318134193,
+      "target": 0.085,
+      "pixelsBlack": 91,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": false,
+    "operator": null,
+    "luminance": null,
+    "colourFidelity": null
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 5,
+    "roworder": 0,
+    "cfa": 10,
+    "preview": 0,
+    "stats": 9,
+    "background": 44,
+    "colour": 1,
+    "transfer": 13,
+    "saturation": 7,
+    "crop": 31,
+    "quantise": 19,
+    "downscale": 0,
+    "total": 168
+  },
+  "historyCards": [],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32",
+    "NAXIS   =                    2",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "EXTEND  =                    T",
+    "END"
+  ]
+}

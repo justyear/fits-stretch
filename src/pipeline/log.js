@@ -128,6 +128,38 @@ function buildLog(ctx){
     L.push('• Debayered with bilinear interpolation to full-resolution RGB.');
   }
 
+  /* --- AFIRMACAO CONTRA AFIRMACAO CONTINGENTE ----------------------
+   *
+   * Duas frases deste log nao tem o mesmo estatuto, e ate aqui sairam com a
+   * mesma voz:
+   *
+   *   "a mediana e 0,0168"      medicao do quadro COMO ELE FOI PROCESSADO
+   *   "os dados sao lineares"   decisao, comparando essa mediana contra um
+   *                             NIVEL FIXO (0,05)
+   *
+   * A primeira e verdade sem qualificacao. A segunda e verdade DADA a escala em
+   * que o quadro foi posto -- e quando nenhuma chave do padrao FITS declarou
+   * essa escala, quem a escolheu foi esta ferramenta, por heuristica.
+   *
+   * Medido: no `fixture-gradient`, multiplicar os pixels por 3 move a mediana de
+   * 0,0168 para 0,0503, cruza o 0,05, troca o algoritmo do esticamento e deixa a
+   * saida 38% mais escura. A medicao continua certa nas duas escalas; a DECISAO
+   * inverte.
+   *
+   * Entao ela e marcada -- e so ela, porque marcar tudo e nao marcar nada. As
+   * duas decisoes desta cadeia que comparam contra nivel fixo em dado LINEAR sao
+   * esta e o teto da selecao estelar, mais abaixo.
+   *
+   * `scaleSource` vem do decode: 'container' quando BITPIX/BZERO decidiram,
+   * 'chosen' quando a ferramenta escolheu. Ver a nota em fits/normalise.js.
+   */
+  var escalaEscolhida = (d.scaleSource === 'chosen');
+  var contingente = escalaEscolhida
+    ? ' This verdict compares that median against a fixed level, and the scale ' +
+      'that level sits on was chosen by this tool, not declared by the file — so ' +
+      'it holds given that choice rather than on its own.'
+    : '';
+
   // --- linearity --------------------------------------------------
   if (st.nonLinear){
     var reasons = [];
@@ -135,10 +167,10 @@ function buildLog(ctx){
     reasons.push('the measured median sits at ' + fx(st.globalMedian, 4));
     L.push('• Data is already non-linear: ' + reasons.join(', ') +
            '. Stretch reduced accordingly — black point taken at the ' + fx(st.blackPercentile * 100, 3) +
-           '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.');
+           '% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved.' + contingente);
   } else {
     L.push('• Data is linear: median ' + fx(st.globalMedian, 5) +
-           ', no stretch recorded in the header. Full autostretch applied.');
+           ', no stretch recorded in the header. Full autostretch applied.' + contingente);
   }
 
   // --- background -------------------------------------------------
@@ -216,6 +248,24 @@ function buildLog(ctx){
              (sr.rejected.extended ? '; ' + grp(sr.rejected.extended) +
                 ' were left out as extended source, being pixels whose neighbourhood ' +
                 'is also mostly lit — a galaxy body, not stars' : '') + '.');
+      /* A SEGUNDA DECISAO CONTRA NIVEL FIXO, e a unica outra.
+       *
+       * O piso da selecao e `mediana + 12 x MADN` -- relativo, e se move com o
+       * quadro. O TETO e 0,85 absoluto, em dado LINEAR, entao ele depende da
+       * escala exatamente como a regra do 0,05 depende.
+       *
+       * Medido no `fixture-gradient`: multiplicar por 2 leva `rejeitado.saturado`
+       * de 0 para 8; por 3, para 296. A mesma imagem fisica, tres contagens
+       * diferentes, porque o corte esta num eixo que a ferramenta escolheu.
+       *
+       * So marca quando ha o que marcar: sem rejeicao por saturacao, o teto nao
+       * decidiu nada neste quadro e a frase nao tem o que qualificar.
+       */
+      if (escalaEscolhida && sr.rejected.saturated){
+        L.push('    That upper cut is a fixed level, and the scale it sits on was chosen ' +
+               'by this tool rather than declared by the file — so how many pixels fall ' +
+               'above it holds given that choice.');
+      }
       L.push('    The ratio was taken above the sky, not against the raw pixel: the sky ' +
              'is a level common to all three channels and leaving it in drags every ' +
              'ratio toward 1. Star medians ' +

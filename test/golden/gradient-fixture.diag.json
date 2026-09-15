@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -133,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 63,
-    "preview": 45,
-    "stats": 92,
-    "background": 487,
-    "colour": 776,
-    "transfer": 993,
-    "saturation": 568,
-    "crop": 157,
-    "quantise": 93,
+    "header": 1,
+    "decode": 30,
+    "preview": 23,
+    "stats": 74,
+    "background": 294,
+    "colour": 420,
+    "transfer": 588,
+    "saturation": 375,
+    "crop": 97,
+    "quantise": 91,
     "downscale": 0,
-    "total": 2544
+    "total": 1595
   },
   "historyCards": [
     "GRADIENT synthetic background, known by construction.",

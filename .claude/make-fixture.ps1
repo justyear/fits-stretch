@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -1173,6 +1173,85 @@ if ($Only -eq 'all' -or $Only -eq 'escala') {
                ([FitsFixture]::FloatBytes($imgMx, $W, $H, $planes, $false))
 }
 
+
+# ------------------------------------------------- escritor: mudo e duas vozes
+#
+# OS DOIS CASOS QUE A `spec-escala-decisao.md` PRECISA E QUE NAO EXISTIAM.
+#
+# A spec propoe um degrau novo na decisao da escala -- ler quem escreveu o
+# arquivo, em vez de adivinhar pelos valores. Ela tem dois lados e a suite nao
+# tinha caso para nenhum dos dois, porque TODOS os fixtures trazem PROGRAM: o
+# gerador os escreve assim, e contar isso como cobertura seria perguntar a
+# minha propria decisao se ela foi tomada.
+if ($Only -eq 'all' -or $Only -eq 'escritor') {
+    $W = 900; $H = 600
+
+    function HistW([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+
+    # --- o arquivo MUDO ---------------------------------------------------
+    #
+    # SEIS CARTOES, exatamente os que `astropy.io.fits.writeto` escreve para um
+    # array 2D e nada mais. Sem PROGRAM, sem CREATOR, sem HISTORY, sem DATAMAX,
+    # sem BUNIT.
+    #
+    # E o caso residual da spec, e ele nao e um arquivo quebrado: e um arquivo
+    # correto escrito por quem sabe o que fez. O astropy nao acrescenta
+    # procedencia por conta propria -- quem escreve tem que DECIDIR escrever, e
+    # a maioria nao decide.
+    #
+    # Sem este fixture, o caminho do caso residual existe no codigo e nao na
+    # suite -- que e a conta que esta sessao ja pagou tres vezes.
+    Write-Host "fixture-mudo.fit      ($W x $H, float32, SEIS CARTOES e nada mais)"
+    $imgM = [FitsFixture]::Scene($W, $H, 1, 20260914, 0.012, 0.0006, 0.30)
+    $cardsM = @(
+        (New-Card 'SIMPLE' 'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX' -32  '')
+        (New-Card 'NAXIS'  2)
+        (New-Card 'NAXIS1' $W)
+        (New-Card 'NAXIS2' $H)
+        (New-Card 'EXTEND' 'T')
+    )
+    Write-Fits (Join-Path $outDir 'fixture-mudo.fit') $cardsM `
+               ([FitsFixture]::FloatBytes($imgM, $W, $H, 1, $false))
+
+    # --- DUAS declaracoes de escala, e elas discordam ----------------------
+    #
+    # O HISTORY e append-only: a ULTIMA linha e a operacao mais recente, e a
+    # spec fixa que e ela que vale. Este fixture e o que torna essa regra
+    # verificavel em vez de afirmada.
+    #
+    # A primeira declaracao diz [0,1]. A segunda diz escala de 16 bits. OS
+    # PIXELS ESTAO EM 16 BITS -- entao ler a ULTIMA da consistente, e ler a
+    # PRIMEIRA daria contradicao e recusa. O fixture discrimina a regra: as duas
+    # leituras possiveis levam a vereditos opostos sobre o MESMO arquivo.
+    Write-Host "fixture-duasdecl.fit  ($W x $H x 3, float32, DUAS declaracoes de escala)"
+    $imgD = [FitsFixture]::Scene($W, $H, 3, 20260914, 0.012, 0.0006, 0.30)
+    [FitsFixture]::Scale($imgD, 65535.0)
+    $cardsD = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   3)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Two scale declarations' '' -AsString)
+        (HistW 'additive+scaling normalized input, normalized output')
+        (HistW 'DECL2 rescaled to the 16-bit range for archival')
+        (HistW 'DECL2 the two lines above disagree ON PURPOSE. HISTORY is')
+        (HistW 'DECL2 append-only, so the LAST one describes the pixels:')
+        (HistW 'DECL2 they run to 65535, not to 1. Reading the first would')
+        (HistW 'DECL2 contradict the data and refuse; reading the last is')
+        (HistW 'DECL2 consistent. External truth, from neither side.')
+    )
+    Write-Fits (Join-Path $outDir 'fixture-duasdecl.fit') $cardsD `
+               ([FitsFixture]::FloatBytes($imgD, $W, $H, 3, $false))
+}
 # ------------------------------------------------------ mosaico sem BAYERPAT
 #
 # O RAMO DO CFA INFERIDO, que tambem nunca teve caso.

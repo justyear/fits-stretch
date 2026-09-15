@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -133,18 +134,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 2,
-    "decode": 186,
-    "preview": 97,
-    "stats": 147,
-    "background": 477,
-    "colour": 700,
-    "transfer": 924,
-    "saturation": 730,
-    "crop": 193,
-    "quantise": 100,
-    "downscale": 0,
-    "total": 2878
+    "header": 0,
+    "decode": 30,
+    "preview": 25,
+    "stats": 71,
+    "background": 287,
+    "colour": 387,
+    "transfer": 531,
+    "saturation": 316,
+    "crop": 139,
+    "quantise": 95,
+    "downscale": 1,
+    "total": 1518
   },
   "historyCards": [
     "CROP synthetic frame for the suggested-crop step.",

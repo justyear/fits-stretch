@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -137,18 +138,18 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 27,
-    "preview": 2,
-    "stats": 39,
-    "background": 254,
-    "colour": 266,
-    "transfer": 342,
-    "saturation": 186,
-    "crop": 65,
-    "quantise": 38,
+    "header": 1,
+    "decode": 9,
+    "preview": 1,
+    "stats": 24,
+    "background": 123,
+    "colour": 169,
+    "transfer": 220,
+    "saturation": 111,
+    "crop": 31,
+    "quantise": 31,
     "downscale": 0,
-    "total": 1009
+    "total": 572
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

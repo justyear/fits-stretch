@@ -44,6 +44,7 @@
     "scaleLo": 0,
     "scaleHi": 0,
     "scaleDiv": 1,
+    "scaleSource": "chosen",
     "compression": {
       "type": "RICE_1",
       "tiles": 3000,
@@ -159,19 +160,19 @@
     "downscaleFactor": 2
   },
   "timingsMs": {
-    "header": 0,
-    "decode": 380,
-    "roworder": 4,
-    "preview": 51,
-    "stats": 135,
-    "background": 659,
-    "colour": 852,
-    "transfer": 1128,
-    "saturation": 877,
-    "crop": 183,
-    "quantise": 124,
-    "downscale": 37,
-    "total": 3658
+    "header": 1,
+    "decode": 159,
+    "roworder": 3,
+    "preview": 25,
+    "stats": 109,
+    "background": 379,
+    "colour": 557,
+    "transfer": 766,
+    "saturation": 518,
+    "crop": 123,
+    "quantise": 121,
+    "downscale": 19,
+    "total": 2249
   },
   "historyCards": [],
   "allCards": [

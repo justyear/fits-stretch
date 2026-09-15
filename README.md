@@ -99,7 +99,7 @@ Processing log — fixture-gradient.fit
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00581 to 0.47135.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
-• Data is linear: median 0.01676, no stretch recorded in the header. Full autostretch applied.
+• Data is linear: median 0.01676, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
 • Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 92 of them (16 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01831, G 0.01658, B 0.01505), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
@@ -266,10 +266,10 @@ automated:
 | command | the question it answers |
 |---|---|
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? |
-| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (705 comparisons across sixteen test frames, 0 failures; the twenty-nine that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
+| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (707 comparisons across eighteen test frames, 0 failures; the thirty-one that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\negative-controls-reference.ps1` | can the *reference* comparison still fail? Every quota it carries is a number, so this sets the stored value to exactly 0.5x and 3x that quota and demands a pass then a failure. A line that survives both is a quota that cannot fail, and it is reported under that name (399 of the 447 lines that carry a quota, and it found one on its first run — about itself) |
-| `test\compare-malformed.ps1` | what happens to a file that lies about itself? (33 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
+| `test\compare-malformed.ps1` | what happens to a file that lies about itself? (34 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
 | `test\compare-safeguards.ps1` | can the two rules that no test frame trips still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing. The second rule is the saturation one: it refuses if scaling chroma would raise the colour noise of the sky by more than 2%, which the correct code cannot do -- so the control runs a deliberately mis-wired mask through the same chain and requires it to refuse at 45% |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |

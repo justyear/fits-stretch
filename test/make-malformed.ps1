@@ -177,6 +177,33 @@ $const = New-Object byte[] 1024
 for ($i = 0; $i -lt 1024; $i += 4) { $const[$i]=0x3D; $const[$i+1]=0xCC; $const[$i+2]=0xCC; $const[$i+3]=0xCD }
 Img 'e8-constante.fit' $F32 0 $const
 
+
+# ---- F. declaracao que contradiz os pixels -------------------------------
+#
+# O HEADER DIZ UMA COISA E OS PIXELS DIZEM OUTRA, e hoje ninguem confere.
+#
+# O HISTORY declara "normalized output" -- a mesma frase que o Siril grava, e
+# que a spec-escala-decisao.md propoe ler como declaracao de escala. Os pixels
+# vao a 32000. As duas unicas fontes de verdade disponiveis DISCORDAM.
+#
+# O VEREDITO ESPERADO HOJE E `aceita`, E E ASSIM QUE TEM QUE SER. A conferencia
+# de falsificacao nao existe: o arquivo entra, cai no ramo `/max` porque
+# 32000 > 1,5, e produz uma imagem. Este caso esta aqui para que a AUSENCIA da
+# conferencia seja visivel na suite em vez de so na spec -- e para que, no dia
+# em que ela entrar, este seja o arquivo que vira `rejeita` e prove que entrou.
+#
+# Um caso cujo veredito esperado vai MUDAR de proposito e diferente de um caso
+# quebrado: a mudanca e a prova, e ela so vale se o estado de antes estiver
+# gravado.
+$decl = New-Object byte[] 1024
+for ($i = 0; $i -lt 1024; $i += 4) {
+  if ((($i / 4) % 16) -eq 0) { $decl[$i]=0x46; $decl[$i+1]=0xFA; $decl[$i+2]=0; $decl[$i+3]=0 }  # 32000.0
+  else { $decl[$i]=0x3D; $decl[$i+1]=0xCC; $decl[$i+2]=0xCC; $decl[$i+3]=0xCD }                  # 0.1
+}
+Img 'f1-declara-normalizado-mente.fit' `
+    @((Num 'BITPIX' -32), (Num 'NAXIS' 2), (Num 'NAXIS1' 16), (Num 'NAXIS2' 16),
+      (Str 'PROGRAM' 'Siril 1.4.4'),
+      (Raw 'HISTORY additive+scaling normalized input, normalized output')) 0 $decl
 Write-Host ''
 Write-Host ('{0} arquivos em {1}' -f $written.Count, $OUT)
 

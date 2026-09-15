@@ -32,7 +32,8 @@
     "scaleMode": "unit",
     "scaleLo": 0,
     "scaleHi": 0,
-    "scaleDiv": 1
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
   },
   "rowOrder": {
     "keyword": "TOP-DOWN",
@@ -134,17 +135,17 @@
   },
   "timingsMs": {
     "header": 0,
-    "decode": 14,
-    "preview": 0,
-    "stats": 18,
-    "background": 87,
-    "colour": 83,
-    "transfer": 110,
-    "saturation": 65,
-    "crop": 19,
-    "quantise": 25,
+    "decode": 4,
+    "preview": 1,
+    "stats": 9,
+    "background": 47,
+    "colour": 51,
+    "transfer": 70,
+    "saturation": 37,
+    "crop": 11,
+    "quantise": 13,
     "downscale": 0,
-    "total": 379
+    "total": 213
   },
   "historyCards": [
     "Small frame: the default edge margin reaches the sample grid.",
