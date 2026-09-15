@@ -1971,219 +1971,124 @@ A etapa da meia escala foi removida — não desligada — depois da primeira ro
 em dado real: ver *"A classe mais cara da sessão"* acima, e a §2 do
 `modulo-5a-spec.md`, que ficou no lugar dela. Saíram `half-scale.js`, o segundo
 botão, o bloco do log, os campos do record, as curvas da referência, o bloco do
-comparador e a entrada do registry. Hoje a suíte está em **701 comparações,
+comparador e a entrada do registry. Hoje a suíte está em **709 comparações,
 0 FAIL**.
 
 O recorte ficou, com a margem consertada (fração do objeto, não do quadro) e uma
 salvaguarda nova de ganho mínimo (1,5×).
 
-O que está aberto, em ordem de peso:
+O que está aberto, **em ordem de prioridade**, com o que cada item destrava:
 
-**1. ~~15 FAIL de deriva de spec~~ — FECHADO. `compare-reference` está em 701
-comparações, 0 FAIL.** A outra ponta recebeu os três fixtures novos, adotou a
-margem como fração da caixa e emitiu as curvas que faltavam; este lado passou a
-gravar a medição do céu também no caminho que recusa. As dez linhas do retângulo
-que tinham virado FAIL ao ganhar a cota certa voltaram a PASS **pelo motivo
-certo**: os dois lados calculam o mesmo retângulo.
+**Fechados nesta sessão**, para não reabrirem por esquecimento: a deriva de spec
+do `compare-reference`; a cota das arestas do retângulo (era posição contra
+contagem); as três pendências da varredura de unidades; as duas dívidas de
+fixture da revisão cruzada (`float16`, `floatmax`, `nobayer`); a cota parcial de
+`extenso.pixels`, que agora soma as duas fronteiras; o ramo dos 0,02, que ganhou
+o outro lado; e o ramo `pattern.corrected` do CFA. A `cropMaxCoverage` continua
+**vazia por construção** — fechada, não dívida.
 
-```
-caixa        279,229,960,743   dos dois lados
-retangulo    199,181,1119,839  dos dois lados
-cobertura    29,0% -> 59,3%    ganho 2,05x
-```
+### 1. O corpus de headers reais — n=3
 
-**2. ~~As arestas do retângulo são comparadas pela cota errada~~ — FECHADO, e
-sobrou uma varredura.** `rect.x/y/w/h` passavam pela cota de contagem por limiar
-de `signalPixels` — uma contagem de pixels, contra uma posição — e por isso
-**nunca reprovavam**: 214 px de diferença real contra uma "cota" de 2543 pixels,
-**PASS~**. Quinta instância da classe "cota lida no eixo errado" e a primeira que
-**afrouxa** — ver a classe acima, que é a mais importante das cinco.
+**Destrava três coisas de uma vez, e é o único item que faz isso:**
 
-Entrou o isolamento de fórmula: `caixa.*` exatas (idênticas dos dois lados),
-`rect(copia do comparador)` conferindo a terceira cópia da fórmula contra este
-lado, `rect(formula)` alimentada com a caixa deles, e `rect.*` com cota
-**propagada pela fórmula** — hoje zero, comparação exata, calculada e não
-afirmada. As oito linhas que passavam agora reprovam, e reprovam pelo motivo
-certo.
+- a **§1 da spec da escala**, que decide entre declarar, recusar e tirar o ramo
+  `/max`. Hoje sabe-se que o caso principal assina e o arquivo de script é mudo,
+  e **não** que fração da população está de cada lado;
+- as **cinco entradas SUPOSTO** do `STRETCH_HISTORY` — cada uma fecha com um
+  arquivo do programa correspondente com a operação aplicada;
+- a entrada **`\bcurves?\b`**, que é a única não-técnica das sete e cujo risco
+  está medido (janela de mediana 0,02–0,05, com o `bigobject` dentro dela).
 
-**O que sobrou:** varrer toda cota da suíte listando a unidade dos dois lados.
-Uma cota na unidade errada que sai grande demais **está afrouxando agora e
-ninguém sabe** — por construção ela não se anuncia.
+**Formato:** chaves de header, `HISTORY` completo, e mínimo / máximo / mediana.
+Sem `OBJECT`, `DATE-OBS`, `TELESCOP`, `INSTRUME`, nome ou caminho.
 
-**3. Falta o fixture de HALO**, e é ele que trava as duas propostas para o
-recorte em dado real (subir o `cropSigma`; retângulo por percentil). Os três
-fixtures de recorte têm elipse sólida: a densidade fica em 76–78% qualquer que
-seja o sigma, e o p90 dá sempre 80% da caixa em cada eixo — fator fixo de elipse
-sólida, não medição. **Modo de falha sem fixture é dívida nomeada, não
-trabalho** — ver a classe acima e a §3.1/§4 da spec.
+**Não depende de mim**, e é o gargalo de tudo que está abaixo.
 
-**4. Cota parcial em `components` e `extenso.pixels`.** A curva de
-`extendedPixels` no limiar de ocupação chegou e está em uso, mas a cota ainda não
-cobre as duas fronteiras ao mesmo tempo — a do sinal e a da ocupação — e a linha
-diz isso. Fecha somando as duas densidades, como foi feito no `amountCheio` do
-Módulo 4.
+### 2. A regra dos 0,05 — investigação aberta
 
-**5. A salvaguarda `cropMaxCoverage` continua vazia por construção**, e isso está
-fechado e não é dívida — ver a classe acima. Registrado aqui só para que a lista
-de salvaguardas do Módulo 5a não pareça ter quatro quando tem três.
+`investigacao-regra-linear.md`. **Vem antes da escala por decisão medida:** a
+escala erra alto (branco ou preto, e se anuncia), esta erra baixo — 38% mais
+escuro, com a escala perfeitamente declarada, e parece escolha estética.
 
-**6. Sem desfazer no recorte aplicado.** A pessoa reabre o arquivo. Deliberado
-por enquanto: um "desfazer" que reconstruísse estado a partir da tela seria o
-começo de uma segunda fonte de verdade.
+**Destrava o conserto da escala**, porque a hipótese é que a mesma tabela de
+escritores resolve as duas. Depende do item 1 para a parte que precisa de
+arquivos; a parte que não precisa — a curva fina em volta do 0,05, e o inventário
+de margens já feito — pode andar antes.
 
-**7. ~~Três pendências da varredura de unidades~~ — as três FECHADAS.**
+### 3. A moeda do `fixture-saturation`
 
-- **`componentes`** ganhou curva própria na referência
-  (`densidadePorLimiar.recorte.componentes`): a cota do `bigobject` caiu de
-  **960,6 para 1**, e a linha passa por 1 contra 1.
-- **`extenso.pixels`** passou a somar as duas fronteiras, sinal + ocupação, com
-  o Δ da ocupação derivado de `1/janela²` — a resolução daquele eixo.
-- **`decode.rawMin/rawMax`** viraram exatos, cota zero, com a derivação lida do
-  `decodeRawExato` da referência em vez de repetida aqui.
-- **O controle negativo em varredura** existe: `negative-controls-reference.ps1`,
-  399 de 447 linhas com cota, 0 divergentes.
+Recusa o recorte a **2,8%** do piso de 20% — um fixture da saturação sentado na
+fronteira de um passo que ele não testa, com o golden fixando um lado de uma
+moeda. **Proposta escrita:** encolher o objeto para `boxFrac ≈ 0,10`, **para
+baixo**, que mantém a cobertura idêntica e só acrescenta margem.
 
-E a ponta solta que ela deixou, também fechada:
+**Destrava:** um diff de golden que hoje pareceria regressão quando for a
+fronteira sendo cruzada. **Custa uma re-rodada da referência**, então vale ir
+junto com a próxima mudança de fixture — e o item 4 é uma candidata natural.
 
-- **A cota de `componentes` é COMPLETA**, conferido do outro lado: o laço da
-  referência refaz o `box_sum` sobre a máscara perturbada e reaplica o teste de
-  0,50 **antes** de rotular, então mover o limiar de sinal move a ocupação junto
-  e a curva cobre as duas fronteiras. Não há termo faltando.
+### 4. `asinh-fixture` sem contrapartida na referência
 
-**8. ~~Duas dívidas nomeadas da revisão cruzada~~ — AS DUAS FECHADAS.** Entraram
-`fixture-float16` e `fixture-floatmax` (os dois ramos do leitor que não tinham
-caso) e `fixture-nobayer` (o mosaico sem `BAYERPAT`, que faz a frase do R/B
-suposto ser impressa). `compare-golden` foi de 52 para 64 verificações.
+Um fixture inteiro que a segunda implementação nunca leu. O golden dele prova
+reprodutibilidade e nada mais.
 
-**9. `asinh-fixture` não tem contrapartida na referência.** Achado pela checagem
-de órfãos: o golden dele prova reprodutibilidade e a segunda implementação nunca
-o leu. Ele existe para que *"o asinh esteja verificado e não apenas escrito"*, e
-hoje ele está escrito e verificado só contra si mesmo. Fecha quando a referência
-modelar o operador asinh. Os outros três órfãos (`float16`, `floatmax`,
-`nobayer`) são novos e esperados — entraram nesta rodada e a referência ainda não
-os viu.
+**Destrava:** a única verificação independente do operador alternativo. Fecha
+quando a referência modelar o asinh — e junto disso sai a frase do *asinh
+inalcançável*, que é a maior das sete dívidas do item 5.
 
-**10. A ordem inverteu: a regra dos 0,05 vem ANTES da escala.**
-`investigacao-regra-linear.md` (aberta) e `spec-escala-decisao.md` (decidida,
-não implementada), com `investigacao-escala-float.md` como evidência das duas.
+### 5. Sete frases do log sem caso
 
-**Por quê:** a escala erra **alto** — branco ou 99,98% preto, e se anuncia. A
-regra linear/não-linear erra **baixo**: 38% mais escuro, com a escala
-perfeitamente declarada, e parece escolha estética.
-
-**Os três fixtures que travavam entraram** — `mudo` (seis cartões, o caso
-residual), `duasdecl` (duas declarações que discordam, e os pixels concordam com
-a segunda) e `f1-declara-normalizado-mente` no corpus `malformed`, cujo veredito
-esperado é **`aceita` de propósito**: a conferência de falsificação não existe, e
-o caso torna a ausência dela visível na suíte. Vira `rejeita` no dia em que ela
-entrar, e a mudança é a prova.
-
-**O que falta para qualquer conserto, e é a mesma pergunta para as duas regras:**
-
-- **que fração dos arquivos reais assina quem os escreveu**, e destes, quantos
-  declaram o esticamento no `HISTORY`. Hoje n=1 dos dois lados: um arquivo com
-  assinatura (Siril + Seestar) e um de script totalmente mudo.
-- o par que discrimina: **um stack linear e um arquivo já esticado pelo mesmo
-  programa.**
-
-**E um achado da suíte que vale sozinho:** o `bigobject` está a **1,3%** de
-cruzar o limiar de 0,05. Nenhuma verificação pergunta a que distância de uma
-fronteira um fixture está — ver a classe própria acima.
-
-**11. O catálogo `STRETCH_HISTORY` não tem origem escrita.** Sete padrões sobre
-o que outros programas gravam no `HISTORY`, sem comentário, sem entrada em spec
-e sem linha aqui. **A mesma forma das três chaves que eu chamei de decisivas e
-que não existiam no arquivo real** — e o agravante é que a única evidência na
-suíte de que um programa declara esticamento é o `HISTORY` do
-`fixture-nonlinear`, **que fui eu que escrevi** para casar com o que eu
-acreditava.
-
-Fecha com **um** arquivo: qualquer quadro com o autostretch do Siril aplicado,
-reportando só as linhas de `HISTORY` e a mediana. Ver
-`investigacao-regra-linear.md` §3.1 e §3.2.
-
-**12. A moeda do `fixture-saturation`: proposta feita, NÃO executada.** Ele
-recusa o recorte a 2,8% do piso de 20% — um fixture da *saturação* sentado na
-fronteira de um passo que ele não testa, com o golden fixando **um lado de uma
-moeda**. Uma mexida no limiar de sinal vira a moeda, e o diff do golden vai
-parecer regressão quando for a fronteira sendo cruzada.
-
-**A proposta, e a direção importa mais que a decisão:** encolher o objeto do
-fixture para `boxFrac ≈ 0,10` — metade do piso. **Para baixo, não para cima.**
-Para cima ele viraria um segundo fixture que sugere, duplicando o `oneobject` e
-mudando o que o golden cobre; para baixo a cobertura fica **idêntica** (continua
-recusando, pelo mesmo motivo) e só a margem entra. É mudança de margem pura, sem
-mudança de cobertura.
-
-**Por que não está feito:** `fixture-saturation` é um dos que a referência Python
-cobre. Regenerá-lo invalida o `cadeia.sha256` e todos os números dele no
-`compare-reference` — a suíte fica vermelha até uma re-rodada do outro lado.
-**Vale fazer junto com a próxima mudança de fixture**, numa re-rodada só, em vez
-de gastar uma agora.
-
-**A regra que sai disto, e é mais geral que o caso:** um fixture deve ficar longe
-dos limiares dos passos que ele **não** testa. Perto do limiar do passo que ele
-testa, a proximidade pode ser deliberada e valiosa; perto do limiar de outro
-passo, ela é **posição não controlada**, e o golden ali fixa um acidente.
-
-**13. A contradição header-contra-pixels passou a DECLARAR, não recusar.** A §3
-da `spec-escala-decisao.md` mudou: a recusa era inconsistente com a §4 da própria
-spec, e a medição fechou — quatro contradições construídas dão **a mesma imagem,
-e é a imagem certa**; obedecer à declaração contradita é que daria branco ou
-preto. As duas regras (0,02 e escala) passam a ter a mesma forma, diferindo só na
-força do aviso.
-
-**O que isso deixa em aberto:** o `f1-declara-normalizado-mente` continua
-`aceita` no corpus `malformed` — o que muda no dia do conserto não é o veredito,
-é o **silêncio**. E o aviso forte da §3.3 está escrito na spec e **não
-implementado**.
-
-**14. Sete frases do log sem caso** — `test/compare-frases.ps1`, 143 frases, 135
-com caso (94%). O ramo `pattern.corrected` do CFA fechou com o
-`fixture-bayerespelhado`; sobram sete dívidas de fixture, declaradas com o
-motivo, mais uma impossível por natureza. O mapa do que a suíte não vê:
+`compare-frases`: 143 frases, 135 com caso. Cada uma das sete é **um ramo cujo
+texto ninguém leu** — e foi exatamente assim que a frase falsa do
+`fixture-declaraestica` sobreviveu.
 
 ```
-NaN na entrada · quadro MONO de lado impar · quadro 2D com HISTORY de stack
-o asinh que nao alcanca o alvo · a variante do alvo no ramo nao-linear
+NaN na entrada  ·  quadro MONO de lado impar  ·  quadro 2D com HISTORY de stack
+o asinh que nao alcanca o alvo (3 literais)  ·  a variante do alvo nao-linear
 ```
 
-**15. O catálogo tem a primeira entrada MEDIDA e a primeira REFUTADA.** O Siril
-1.4.4 não escreve `autostretch` (é modo de visualização, não toca nos pixels) e
-escreve `Histogram Transf. (mid=..., lo=..., hi=...)`. A entrada 2 casa, e casa
-porque o padrão para no prefixo `transf` — **acerta, e o motivo de acertar não
-estava escrito**. Faltam cinco SUPOSTO.
+**Destrava:** revisão do texto que esses ramos emitem. A mais barata agora é o
+quadro mono de lado ímpar — uma variante de header, sem cena nova.
 
-**Os parâmetros do `HISTORY` NÃO servem para reconstruir**, e a causa está
-medida: o Siril arredonda para três casas, e `lo` perde **100%** da informação
-(0,000368 → 0,000) porque é exatamente onde o ponto preto mora num quadro linear.
-Servem para detectar, para ordem de grandeza, e — melhor uso — para **conferir**
-a mediana observada contra o `mid` declarado, que é a falsificação da spec da
-escala aplicada ao esticamento. **Anotado, não implementado.**
+### 6. O fixture de HALO
 
-**E uma confirmação externa que veio de graça:** os três canais usam os mesmos
-parâmetros — o Siril estica **LIGADO**, a mesma decisão que o Módulo 3 tomou aqui
-por medição própria e por outro caminho.
+Objeto com perfil que cai devagar, densidade `pixelFrac / boxFrac` baixa.
 
-**16. `\bcurves?\b` fica SUPOSTO com o risco escrito.** O custo do falso positivo
-só existe na janela de mediana entre 0,02 e 0,05, e **um dos vinte fixtures
-está dentro dela** — o `bigobject`, em 0,04938, que é o mesmo que o inventário de
-margens pegou a 1,2% do limiar de 0,05. Exposto pelos dois lados. Fecha com um
-corpus de headers reais; hoje n=3.
+**Destrava as duas propostas do recorte** — subir o `cropSigma` e o retângulo por
+percentil — que hoje são indistinguíveis porque a elipse sólida dos fixtures dá
+densidade 76–78% qualquer que seja o sigma.
 
-**17. `chromaNoise.growthPct` imprime sempre `0.00%`.** Casas fixas (2) num
-campo cujos valores medidos vão de 7,7e-10 a 4,0e-7 — quatro a sete ordens abaixo
-do último dígito, e não distingue valores 500× diferentes. **Não é erro de
-veredito** (a salvaguarda dispara em 2%); é a perda da distinção entre *"zero"* e
-*"abaixo da resolução"*, que este projeto já registrou como importante.
+### 7. `chromaNoise.growthPct` em exponencial
 
-Os dois campos irmãos — `maxRatioDrift` e `maxHueDrift`, mesma família de
-grandeza minúscula — já usam `toExponential(1)`. **`growthPct` ficou de fora por
-inconsistência, não por decisão.** Custa uma linha e uma recaptura dos vinte
-goldens de log.
+Imprime sempre `0.00%` para valores entre 7,7e-10 e 4,0e-7. Os dois campos irmãos
+(`maxRatioDrift`, `maxHueDrift`) já usam `toExponential(1)`; este ficou de fora
+por **inconsistência, não por decisão**.
+
+**Destrava:** a distinção entre *"exatamente zero"* e *"abaixo da resolução"*, que
+é uma regra registrada deste projeto. Uma linha e uma recaptura dos vinte goldens
+de log — boa carona para o item 3.
 
 **E a pergunta que generaliza, para quando alguém mexer no log:** para cada campo
 com casas fixas, qual é a menor magnitude que ele precisa distinguir de zero?
+
+### 8. O aviso forte da contradição header-contra-pixels
+
+A §3.3 da spec da escala está escrita e **não implementada**: quando a declaração
+e os pixels discordam, o log deve dizer **as duas afirmações e qual valeu**.
+
+**Destrava:** o `f1-declara-normalizado-mente` do corpus `malformed`, que hoje
+passa em **silêncio** — e o que muda no dia do conserto não é o veredito, é o
+silêncio. **Depende do item 1**, porque o degrau 4 vem antes.
+
+### 9. Sem desfazer no recorte aplicado
+
+A pessoa reabre o arquivo. **Deliberado**, e fica: um desfazer que reconstruísse
+estado a partir da tela seria o começo de uma segunda fonte de verdade.
+
+---
+
+**O que NÃO está na lista, de propósito:** o conserto da escala. Ele é o último,
+depende do item 2, que depende do item 1 — e a spec de decisão já está escrita
+esperando os dois.
 
 **Saturação seletiva: LIGADA desde a v1.3.0.** `saturation: true` em `run.js`.
 Os nove passos da §6 do Módulo 4 estão fechados, e o nono — a segunda
@@ -2977,7 +2882,7 @@ a lógica.
 A tabela cresceu de 7 campos para 43, e a cobertura de 53 linhas para **399**.
 
 ```
-701 linhas no comparador
+709 linhas no comparador
 447 carregam cota
 399 sob varredura      0 divergentes, em 3 passadas
  48 fora              isolamento de formula
