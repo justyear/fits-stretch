@@ -94,7 +94,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture', 'ceuclaro-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture', 'ceuclaro-fixture', 'caminho-fixture'),
     [switch]   $Detail
 )
 
@@ -379,7 +379,7 @@ $rows  = @()
 $notes = @()
 
 foreach ($name in $Names) {
-    foreach ($kind in @('log.txt', 'diag.json', 'records.json', 'png')) {
+    foreach ($kind in @('log.txt', 'header.txt', 'diag.json', 'records.json', 'png')) {
         $g = Join-Path $gold  "$name.$kind"
         $f = Join-Path $fresh "$name.$kind"
 
@@ -410,6 +410,17 @@ foreach ($name in $Names) {
         if ($kind -eq 'log.txt') {
             $rows += [pscustomobject]@{ artifact = "$name.$kind"; result = 'FAIL'
                 detail = "log is compared exactly; golden $($gh.Substring(0,16)) ($($gb.Length) B) vs fresh $($fh.Substring(0,16)) ($($fb.Length) B)" }
+            $fail++
+            continue
+        }
+
+        # Texto, comparado exato -- e o unico artefato cujo diff tem que ser LIDO
+        # e nao so aprovado: e o bloco que alguem vai colar em lugar publico, e
+        # uma linha a mais nele nao quebra nada, so vaza. A afirmacao de
+        # vazamento mais abaixo cobre as chaves; o diff cobre o resto.
+        if ($kind -eq 'header.txt') {
+            $rows += [pscustomobject]@{ artifact = "$name.$kind"; result = 'FAIL'
+                detail = "header summary is compared exactly; golden $($gh.Substring(0,16)) ($($gb.Length) B) vs fresh $($fh.Substring(0,16)) ($($fb.Length) B) - LEIA o diff linha a linha" }
             $fail++
             continue
         }
@@ -544,6 +555,147 @@ if ($nanFail -eq 0) {
     Write-Host 'nenhum valor nao-finito na saida de nenhum golden'
 } else {
     $fail += $nanFail
+}
+
+<#
+O BLOCO DE HEADER NUNCA CARREGA UM IDENTIFICADOR. AFIRMACAO, NAO COMPARACAO.
+
+Na mesma forma da checagem de nao-finitos acima, e pela mesma razao: uma
+comparacao contra golden so pega o que MUDOU. Se o bloco sempre tiver carregado
+OBJECT, o golden carrega, a captura carrega, e o comparador da PASS byte a byte
+sobre o defeito. Nao existe caso em que uma chave identificadora deva sair
+daqui, entao esta linha nao precisa de referencia para julgar -- e e exatamente
+por isso que ela pega o que a referencia tambem tem.
+
+E ELA E A VERIFICACAO MAIS IMPORTANTE DESTE ARQUIVO. O bloco existe para ser
+colado num forum publico por alguem que quer ajudar. Uma chave a mais nao quebra
+nada, nao aparece em tela, nao muda um numero: so vaza -- e vaza o alvo, a data
+e o equipamento de quem estava tentando ser util. Num produto cujo argumento e
+"nada sai da sua maquina", e o pior defeito que existe.
+
+QUATRO AFIRMACOES, e a segunda e a que realmente vale:
+
+  1. nenhuma chave da lista de PROIBICAO sai como cartao
+  2. nenhuma chave FORA DA LISTA DE PERMISSAO sai como cartao   <- esta
+  3. nenhum VALOR de chave identificadora aparece no texto
+  4. o nome do arquivo nao aparece
+
+A 2 e mais forte que a 1 porque nao depende de alguem ter previsto a chave. Uma
+lista de proibicao so pega o que foi imaginado; a de permissao pega tudo que nao
+foi. A 1 fica mesmo assim, porque ela e a promessa escrita ao lado do botao, e
+uma promessa sem verificacao e uma frase.
+
+AS DUAS LISTAS SAO LIDAS DE `src/pipeline/header-summary.js`. Nao ha copia aqui:
+uma segunda copia de uma lista de seguranca e uma copia que vai ficar para tras,
+e a que fica para tras e sempre a do teste.
+
+O QUE ESTA CHECAGEM NAO ALCANCA, e esta dito no proprio produto: HISTORY e
+COMMENT sao texto livre e saem inteiros. Se um programa escreveu o nome do alvo
+dentro de uma linha de HISTORY, nenhuma lista de chaves pega. O que o bloco faz e
+contar e apontar as linhas suspeitas; o que esta lista faz e registrar quando
+isso acontece num fixture, para que o caso nao passe em silencio.
+#>
+$leakFail = 0
+$hsPath = Join-Path $root 'src\pipeline\header-summary.js'
+if (-not (Test-Path -LiteralPath $hsPath)) {
+    Write-Host "VAZAMENTO FAIL - $hsPath ausente: as listas nao tem de onde vir"
+    $leakFail++
+} else {
+    $hsSrc = Get-Content -LiteralPath $hsPath -Raw
+    function Get-JsArray([string]$src, [string]$name) {
+        $m = [regex]::Match($src, ('var\s+' + [regex]::Escape($name) + '\s*=\s*\[(.*?)\]\s*;'),
+                            [System.Text.RegularExpressions.RegexOptions]::Singleline)
+        if (-not $m.Success) { return @() }
+        return @([regex]::Matches($m.Groups[1].Value, "'([^']+)'") | ForEach-Object { $_.Groups[1].Value })
+    }
+    $permitidas = Get-JsArray $hsSrc 'HEADER_SUMMARY_KEYS'
+    $proibidas  = Get-JsArray $hsSrc 'HEADER_SUMMARY_NEVER'
+    if ($permitidas.Count -lt 5 -or $proibidas.Count -lt 5) {
+        Write-Host ("VAZAMENTO FAIL - as listas nao foram lidas do header-summary.js ({0} permitidas, {1} proibidas). O formato do arquivo mudou." -f $permitidas.Count, $proibidas.Count)
+        $leakFail++
+    }
+
+    <#
+    VALOR IDENTIFICADOR DENTRO DE TEXTO LIVRE: DECLARADO, com as duas metades.
+
+    Nasce VAZIA, e e para nascer vazia -- toda estrutura de excecao nasce com as
+    duas metades, especialmente a que reprova. Uma entrada aqui diz "este fixture
+    tem o valor de uma chave identificadora dentro de uma linha de HISTORY ou
+    COMMENT, e isso e o caso que o desenho admite nao alcancar". Se a entrada
+    deixar de valer, a segunda metade reprova, para que ela nao envelheca em
+    silencio.
+    #>
+    $VAZAMENTO_DECLARADO = @()
+
+    $usadasDecl = @{}
+    foreach ($name in $Names) {
+        foreach ($onde in @(@{ dir = $fresh; rotulo = 'captura' }, @{ dir = $gold; rotulo = 'golden' })) {
+            $hp = Join-Path $onde.dir "$name.header.txt"
+            if (-not (Test-Path -LiteralPath $hp)) { continue }
+            $txt = Get-Content -LiteralPath $hp -Raw
+            $linhas = $txt -split "`n"
+
+            # As linhas de CARTAO: comecam na coluna zero e tem ` = `. Texto livre
+            # entra indentado, e prosa nao tem `=` nessa forma -- entao esta e a
+            # secao de chaves e nada mais.
+            $cartoes = @()
+            foreach ($l in $linhas) {
+                $mm = [regex]::Match($l, '^([A-Za-z0-9_-]+)\s+=\s')
+                if ($mm.Success) { $cartoes += $mm.Groups[1].Value }
+            }
+
+            foreach ($k in $cartoes) {
+                if ($proibidas -contains $k) {
+                    Write-Host ("VAZAMENTO FAIL - {0} ({1}): a chave proibida {2} saiu como cartao" -f $name, $onde.rotulo, $k)
+                    $leakFail++
+                }
+                # NAXISn vem do proprio NAXIS e nao da lista.
+                if (($permitidas -notcontains $k) -and ($k -notmatch '^NAXIS[0-9]$')) {
+                    Write-Host ("VAZAMENTO FAIL - {0} ({1}): a chave {2} nao esta na lista de permissao e saiu assim mesmo" -f $name, $onde.rotulo, $k)
+                    $leakFail++
+                }
+            }
+
+            # Os VALORES. Vem do diag do mesmo fixture: e o unico lugar do harness
+            # que sabe o que o header do arquivo traz. So as chaves que o diag
+            # expoe, e esta limitacao esta dita em vez de escondida.
+            $dp = Join-Path $onde.dir "$name.diag.json"
+            if (-not (Test-Path -LiteralPath $dp)) { $dp = Join-Path $gold "$name.diag.json" }
+            if (-not (Test-Path -LiteralPath $dp)) { continue }
+            $dg = Get-Content -LiteralPath $dp -Raw | ConvertFrom-Json
+
+            $alvos = @()
+            foreach ($k in 'OBJECT', 'TELESCOP', 'INSTRUME') {
+                $v = $dg.header.$k
+                if ($null -ne $v -and "$v".Trim().Length -ge 3) { $alvos += @{ chave = $k; valor = "$v".Trim() } }
+            }
+            if ($dg.file -and "$($dg.file)".Length -ge 3) { $alvos += @{ chave = 'nome do arquivo'; valor = "$($dg.file)" } }
+
+            foreach ($a in $alvos) {
+                if (-not $txt.Contains($a.valor)) { continue }
+                # Dentro de texto livre? O desenho admite, e a excecao e declarada.
+                $emTextoLivre = $false
+                foreach ($l in $linhas) { if ($l -match '^\s\s\S' -and $l.Contains($a.valor)) { $emTextoLivre = $true } }
+                $decl = $VAZAMENTO_DECLARADO | Where-Object { $_.fixture -eq $name -and $_.chave -eq $a.chave } | Select-Object -First 1
+                if ($emTextoLivre -and $decl) { $usadasDecl["$name|$($a.chave)"] = $true; continue }
+                Write-Host ("VAZAMENTO FAIL - {0} ({1}): o valor de {2} aparece no bloco{3}" -f `
+                    $name, $onde.rotulo, $a.chave, $(if ($emTextoLivre) { ' dentro de texto livre, e nao esta declarado' } else { '' }))
+                $leakFail++
+            }
+        }
+    }
+
+    foreach ($d in $VAZAMENTO_DECLARADO) {
+        if (-not $usadasDecl.ContainsKey("$($d.fixture)|$($d.chave)")) {
+            Write-Host ("VAZAMENTO FAIL - a declaracao {0}/{1} nao vale mais: o valor nao aparece. Apague a entrada." -f $d.fixture, $d.chave)
+            $leakFail++
+        }
+    }
+}
+if ($leakFail -eq 0) {
+    Write-Host ('nenhuma chave fora da lista de permissao, e nenhum identificador, em nenhum bloco de header')
+} else {
+    $fail += $leakFail
 }
 <#
 GOLDEN NO DISCO QUE NAO ESTA EM $Names NAO PODE SUMIR EM SILENCIO.

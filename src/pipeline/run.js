@@ -553,6 +553,10 @@ async function openFile(buffer, fileName, opts, post){
   SESSION = {
     fileName: fileName,
     now: now,
+    // Pinned the same way `now` is, and for the same reason: the build stamp
+    // moves with every source change, so a golden that carried the real one
+    // would differ on every commit and nobody would read the diff.
+    buildStamp: opts.buildStamp || null,
     hdu: hdu, map: m,
     decData: dec.data,
     decodedInfo: decodedInfo,
@@ -785,7 +789,7 @@ async function runChain(params, mode, post){
   if (!stretchRecord) throw FitsError('unknown', 'the chain produced no stretch record');
 
   var channels = stretchRecord.before.perChannel;
-  var log = null, diag = null;
+  var log = null, diag = null, headerText = null;
 
   if (full){
     var ctx = {
@@ -816,6 +820,19 @@ async function runChain(params, mode, post){
     };
     log = buildLog(ctx);
 
+    /* O BLOCO DE HEADER, montado aqui junto do log porque as duas saidas de
+     * texto saem da mesma rodada e nenhuma delas toca em pixel.
+     *
+     * Ele NAO depende dos parametros da rodada -- so do arquivo -- mas montar
+     * num lugar so evita a pergunta "qual dos dois esta atualizado". */
+    headerText = buildHeaderSummary({
+      map: SESSION.map,
+      cards: SESSION.hdu.cards,
+      decoded: SESSION.decodedInfo,
+      median: SESSION.globalMedian,
+      build: SESSION.buildStamp
+    });
+
     timings.total = (SESSION.autoRunDone ? 0 : SESSION.openMs) + (Date.now() - runStart);
     diag = buildDiag(channels, view, timings, params, {
       linked: stretchRecord.linked || null,
@@ -835,6 +852,7 @@ async function runChain(params, mode, post){
     viewData: view.data.buffer,
     rgba: (view.factor === 1) ? null : rgba.buffer,
     log: log,
+    headerSummary: headerText,
     // Preview measures a smaller frame, so its numbers describe that frame and
     // not the one the log is about. Handing back a diagnostics panel built from
     // them would invite reading preview statistics as frame statistics.

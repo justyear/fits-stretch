@@ -1,0 +1,50 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 900
+NAXIS2   = 600
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      2619.47168
+max      250000
+median   3779.15109
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (8 lines, in file order) ---
+  SCALE same scene as the other scale fixture: only the
+  SCALE physical scale differs, so the difference between
+  SCALE their goldens is the normalisation branch and
+  SCALE nothing else.
+  SCALE multiplied by 250000: past 70000, divisor is the top pixel.
+  SCALE No DATAMIN/DATAMAX and no BUNIT on purpose: this is
+  SCALE the case where the header declares no scale at all
+  SCALE and the reader has to decide on its own.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

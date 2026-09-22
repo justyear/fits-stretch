@@ -1,0 +1,50 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 900
+NAXIS2   = 600
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.0585582554
+max      1
+median   0.0805371176
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (8 lines, in file order) ---
+  mean stacking with winsorized sigma clipping, 30 frames
+  SKY the sky sits near 0.080 of full scale -- a city sky, and
+  SKY the frame is LINEAR: no tonal operation was applied.
+  SKY Nothing above names a stretch, so the rule has only the
+  SKY median to go on, and the median says NON-LINEAR. That
+  SKY verdict is WRONG about this file, and the log has to say
+  SKY that it decided with nothing but the median.
+  SKY External truth, from neither implementation.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

@@ -45,6 +45,11 @@ window.__capture = async function (name) {
 
   return {
     log:  await post(name + '.log.txt',   new Blob([st.log])),
+    // O bloco de header que o botao copia. Golden proprio, byte a byte, por
+    // duas razoes: e uma saida de TEXTO nova (entao cai no compare-frases), e
+    // e a unica saida da pagina cujo defeito grave e silencioso -- uma chave
+    // identificadora a mais nao quebra nada, so vaza.
+    header: await post(name + '.header.txt', new Blob([st.headerSummary || ''])),
     diag: await post(name + '.diag.json', new Blob([JSON.stringify(st.diag, null, 2)])),
     // The per-step, per-channel measurements — before and after every step that
     // touched pixels. This is what survives the day the PNG stops being
@@ -58,6 +63,16 @@ window.__capture = async function (name) {
 // moves with the calendar is not a golden. Never change it: changing it
 // invalidates every stored log, for no gain.
 window.__GOLDEN_DATE = '2026-09-05';
+
+/* O carimbo do build, fixado — pela mesma razao que a data.
+ *
+ * O carimbo real e o sha256 dos fontes, entao ele muda a cada mexida em
+ * qualquer arquivo de `src/`. Um golden que o carregasse teria diff em todo
+ * commit, e um diff que muda sempre e um diff que ninguem le.
+ *
+ * O valor fixado se anuncia como fixado: ninguem pode confundi-lo com um
+ * carimbo de verdade lendo o golden. */
+window.__GOLDEN_BUILD = 'pinned-for-goldens';
 
 // The reference set. Paths are served by serve.ps1's /f/ route, which maps
 // anything under stretch-tool/.
@@ -152,7 +167,13 @@ window.__GOLDEN = [
   // O golden existe para que a frase que anuncia isso tenha quem a imprima. As
   // outras tres saidas da regra ja tinham fixture; esta e a que carrega o aviso
   // medido (1,25% de exposicao, 47,6% de brilho) e era a unica sem leitor.
-  ['ceuclaro-fixture', '/f/test/fixtures/fixture-ceuclaro.fit']
+  ['ceuclaro-fixture', '/f/test/fixtures/fixture-ceuclaro.fit'],
+  // O unico buraco do bloco de header: HISTORY e COMMENT sao texto livre e saem
+  // inteiros, entao nenhuma lista de chaves protege o que um programa escreveu
+  // ali dentro. Este fixture traz duas linhas com cara de caminho e as unicas
+  // linhas de COMMENT da suite -- sem ele, o aviso que aponta o buraco seria um
+  // ramo que ninguem nunca viu impresso.
+  ['caminho-fixture', '/f/test/fixtures/fixture-caminho.fit']
 ];
 
 /* ------------------------------------------------------------------ *
@@ -452,7 +473,7 @@ window.__captureAll = async function () {
   var out = {};
   for (var i = 0; i < window.__GOLDEN.length; i++) {
     var name = window.__GOLDEN[i][0], url = window.__GOLDEN[i][1], over = window.__GOLDEN[i][2];
-    var r = await window.__loadFromURL(url, { now: window.__GOLDEN_DATE });
+    var r = await window.__loadFromURL(url, { now: window.__GOLDEN_DATE, buildStamp: window.__GOLDEN_BUILD });
     if (r !== 'ok') throw new Error(name + ': ' + url + ' failed to load');
     if (over) await window.__rerun(over);
     out[name] = await window.__capture(name);

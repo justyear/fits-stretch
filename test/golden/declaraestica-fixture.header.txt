@@ -1,0 +1,51 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 900
+NAXIS2   = 600
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.00676858239
+max      1
+median   0.0101014725
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (9 lines, in file order) ---
+  Autostretch (midtones transfer function) applied
+  DECLARA the line above is the ONLY declaration of stretching,
+  DECLARA and the pixels do NOT support it: the median sits at
+  DECLARA about 0.011, well under the 0.02 that the rule needs
+  DECLARA to believe the header. The right verdict is LINEAR.
+  DECLARA This is the case the 0.02 branch exists to resolve and
+  DECLARA had never seen -- the only other fixture with a stretch
+  DECLARA history sits at eleven times that threshold.
+  DECLARA External truth, from neither implementation.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

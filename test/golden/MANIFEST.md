@@ -18,8 +18,8 @@ ganchos. Os dois:
 
 | arquivo | bytes | sha256 |
 |---|---|---|
-| `index.html` | 291384 | `459c4c6a4474454661ccffdb34e8d186c04c74f5252c7eb7f7544ca6800ef67e` |
-| `.claude/index-test.html` | 293077 | `96f50868f7f0bcf5f50f168f4a6b483bb3bdf8ac1f65e0d51c983db893fe00b1` |
+| `index.html` | 303390 | `676b2cf0eadaabeffe0e79a4d4d077eec4c2110b2f993783fa0f3ba4ba9dcd5a` |
+| `.claude/index-test.html` | 305083 | `dda01c772e804a7fab8becf6d08ae30c1d3cb32275bf93bf7e22a773f7ac7416` |
 
 <!--/BUILD_HASHES-->
 

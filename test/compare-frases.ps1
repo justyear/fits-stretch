@@ -43,9 +43,6 @@ param([switch]$Tudo)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $gold = Join-Path $PSScriptRoot 'golden'
-$fonte = Join-Path $root 'src\pipeline\log.js'
-
-if (-not (Test-Path -LiteralPath $fonte)) { Write-Host 'src/pipeline/log.js ausente'; exit 2 }
 
 # ---------------------------------------------------------------------------
 # FRASES SEM CASO, DECLARADAS.
@@ -103,31 +100,91 @@ $DECLARADAS = @(
     @{ chave = 'the median decided this on its own.'
        classe = 'DIVIDA'
        porque = 'a variante sem distancia, para mediana zero (ou nao-finita), que nao tem como ser dividida. Fecha com um fixture de quadro praticamente todo em zero e header mudo sobre esticamento -- a cena e barata, e o caso e real: um float mal escalado cai nele' }
+
+    # MESMA CAUSA que a primeira entrada desta lista, do outro lado: o bloco de
+    # header so imprime esta linha quando o decode achou valor nao-finito, e os
+    # unicos arquivos da suite que tem sao os do corpus `malformed`, que mede
+    # veredito de decode e nao produz saida de texto nenhuma.
+    #
+    # As duas fecham com o MESMO fixture, e e por isso que ficam anotadas uma ao
+    # lado da outra: promover o `e6-metade-nan` a fixture de cadeia paga as duas
+    # de uma vez.
+    @{ chave = 'non-finite sample(s) were left out of all three'
+       classe = 'DIVIDA'
+       porque = 'a linha de nao-finitos do BLOCO DE HEADER. Mesma causa e mesmo conserto da primeira entrada desta lista: um fixture de cadeia com NaN na entrada paga as duas' }
 )
 
 # ---------------------------------------------------------------------------
-$texto = Get-Content -LiteralPath $fonte -Raw -Encoding UTF8
+# AS FONTES DE TEXTO, E POR QUE ISTO E UMA TABELA E NAO UMA VARIAVEL.
+#
+# Este arquivo mediu UMA fonte -- `log.js` -- durante toda a sua vida. Quando o
+# botao "Copy header summary" entrou, com uma segunda fonte de prosa e um
+# segundo corpus de goldens, ele continuou imprimindo os mesmos 148/139 sem uma
+# palavra: a fonte nova simplesmente nao existia para ele.
+#
+# E a MESMA classe que esta sessao ja pegou duas vezes em uma rodada -- a
+# comparacao debaixo de um `continue` e a lista `$Names` do compare-golden. Uma
+# enumeracao escrita a mao nao reclama quando a lista cresce: ela responde sobre
+# o que conhece, com a mesma cara de sempre.
+#
+# Entao a tabela vem com a guarda logo abaixo: todo golden de TEXTO que existe no
+# disco tem que ter uma fonte aqui.
+# ---------------------------------------------------------------------------
+$FONTES = @(
+    @{ rotulo = 'log';    fonte = 'src\pipeline\log.js';            corpus = '*-fixture.log.txt' }
+    @{ rotulo = 'header'; fonte = 'src\pipeline\header-summary.js'; corpus = '*-fixture.header.txt' }
+)
 
-# Comentarios fora ANTES dos literais: o apostrofo de "someone's post" abre uma
-# string que nao existe e engole metade do arquivo. Foi o primeiro resultado
-# errado deste instrumento, e ele parecia plausivel -- quatro "frases" que eram
-# pedacos de codigo.
-$limpo = [regex]::Replace($texto, '/\*(?:.|\n)*?\*/', ' ')
-$limpo = [regex]::Replace($limpo, '(?m)//.*$', '')
+$frases = @(); $corpusPorFonte = @{}; $faltando = @()
+foreach ($F in $FONTES) {
+    $fp = Join-Path $root $F.fonte
+    if (-not (Test-Path -LiteralPath $fp)) { $faltando += $F.fonte; continue }
+    $texto = Get-Content -LiteralPath $fp -Raw -Encoding UTF8
 
-$literais = [regex]::Matches($limpo, "'((?:[^'\\]|\\.)*)'") | ForEach-Object { $_.Groups[1].Value }
-$frases = @($literais | Where-Object {
-    $_.Length -ge 25 -and (($_ -split ' ').Count -ge 4) -and $_ -notmatch '^\s+$'
-} | Select-Object -Unique)
+    # Comentarios fora ANTES dos literais: o apostrofo de "someone's post" abre
+    # uma string que nao existe e engole metade do arquivo. Foi o primeiro
+    # resultado errado deste instrumento, e ele parecia plausivel -- quatro
+    # "frases" que eram pedacos de codigo.
+    $limpo = [regex]::Replace($texto, '/\*(?:.|\n)*?\*/', ' ')
+    $limpo = [regex]::Replace($limpo, '(?m)//.*$', '')
 
-$logs = @(Get-ChildItem -LiteralPath $gold -Filter '*-fixture.log.txt')
-$corpus = ($logs | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }) -join "`n"
+    $literais = [regex]::Matches($limpo, "'((?:[^'\\]|\\.)*)'") | ForEach-Object { $_.Groups[1].Value }
+    foreach ($l in $literais) {
+        if ($l.Length -ge 25 -and (($l -split ' ').Count -ge 4) -and $l -notmatch '^\s+$') {
+            $frases += [pscustomobject]@{ texto = $l; rotulo = $F.rotulo }
+        }
+    }
 
-$semCaso = @($frases | Where-Object { -not $corpus.Contains($_) })
+    $arqs = @(Get-ChildItem -LiteralPath $gold -Filter $F.corpus -ErrorAction SilentlyContinue)
+    $corpusPorFonte[$F.rotulo] = @{
+        texto = (($arqs | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }) -join "`n")
+        n     = $arqs.Count
+    }
+}
+if ($faltando.Count) { Write-Host ('fonte ausente: ' + ($faltando -join ', ')); exit 2 }
+
+# Uma frase identica em duas fontes conta uma vez, e basta aparecer no corpus de
+# QUALQUER uma delas: o que se pergunta e se alguem ja leu aquele texto impresso.
+$frases = @($frases | Group-Object texto | ForEach-Object { $_.Group[0] })
+
+$semCaso = @($frases | Where-Object { -not $corpusPorFonte[$_.rotulo].texto.Contains($_.texto) })
 $comCaso = $frases.Count - $semCaso.Count
+$logs = @($corpusPorFonte.Values | ForEach-Object { $_.n } | Measure-Object -Sum).Sum
+
+# ---------------------------------------------------------------------------
+# GUARDA: TODO GOLDEN DE TEXTO TEM UMA FONTE NA TABELA ACIMA.
+#
+# Mecanica de proposito -- os sufixos de texto que existem no disco menos os que
+# a tabela cobre. A lista de fontes e escrita a mao, e foi escrita a mao que ela
+# ficou para tras; a guarda e o que a impede de ficar de novo.
+# ---------------------------------------------------------------------------
+$sufixosNoDisco = @(Get-ChildItem -LiteralPath $gold -Filter '*-fixture.*.txt' -ErrorAction SilentlyContinue |
+                    ForEach-Object { ($_.Name -replace '^.*?-fixture\.', '') } | Select-Object -Unique)
+$sufixosCobertos = @($FONTES | ForEach-Object { $_.corpus -replace '^\*-fixture\.', '' })
+$sufixosSemFonte = @($sufixosNoDisco | Where-Object { $sufixosCobertos -notcontains $_ })
 
 function Declarada($f) {
-    foreach ($d in $DECLARADAS) { if ($f.Contains($d.chave)) { return $d } }
+    foreach ($d in $DECLARADAS) { if ($f.texto.Contains($d.chave)) { return $d } }
     return $null
 }
 
@@ -141,7 +198,14 @@ foreach ($f in $semCaso) {
 $declaracoesVelhas = @($DECLARADAS | Where-Object { -not $usadas.ContainsKey($_.chave) })
 
 Write-Host ''
-Write-Host ('COBERTURA DE FRASES -- {0} frases no log.js, {1} goldens de log' -f $frases.Count, $logs.Count)
+Write-Host ('COBERTURA DE FRASES -- {0} frases em {1} fonte(s), {2} goldens de texto' -f `
+            $frases.Count, $FONTES.Count, $logs)
+foreach ($F in $FONTES) {
+    $nf = @($frases | Where-Object { $_.rotulo -eq $F.rotulo }).Count
+    $ns = @($semCaso | Where-Object { $_.rotulo -eq $F.rotulo }).Count
+    Write-Host ('  {0,-8} {1,4} frases, {2} sem caso, {3} goldens' -f `
+                $F.rotulo, $nf, $ns, $corpusPorFonte[$F.rotulo].n)
+}
 Write-Host ('  com caso  {0,4}   ({1:P0})' -f $comCaso, ($comCaso / [double]$frases.Count))
 Write-Host ('  sem caso  {0,4}' -f $semCaso.Count)
 Write-Host ''
@@ -164,8 +228,8 @@ if ($Tudo -and $semCaso.Count) {
     foreach ($f in $semCaso) {
         $d = Declarada $f
         $c = if ($d) { $d.classe } else { 'NAO DECLARADA' }
-        $t = if ($f.Length -gt 78) { $f.Substring(0, 78) + '...' } else { $f }
-        Write-Host ('  [{0}] {1}' -f $c, $t)
+        $t = if ($f.texto.Length -gt 70) { $f.texto.Substring(0, 70) + '...' } else { $f.texto }
+        Write-Host ('  [{0}] [{1}] {2}' -f $c, $f.rotulo, $t)
         if ($d) { Write-Host ('           {0}' -f $d.porque) }
     }
     Write-Host ''
@@ -175,8 +239,8 @@ $bad = 0
 if ($naoDeclaradas.Count) {
     Write-Host ('FRASES FAIL -- {0} frase(s) sem caso e sem declaracao:' -f $naoDeclaradas.Count)
     foreach ($f in $naoDeclaradas) {
-        $t = if ($f.Length -gt 78) { $f.Substring(0, 78) + '...' } else { $f }
-        Write-Host ('  ' + $t)
+        $t = if ($f.texto.Length -gt 70) { $f.texto.Substring(0, 70) + '...' } else { $f.texto }
+        Write-Host ('  [{0}] {1}' -f $f.rotulo, $t)
     }
     Write-Host 'Ou o fixture que a imprime esta faltando, ou a frase esta morta.'
     Write-Host 'Decida qual, e escreva a entrada em $DECLARADAS com a classe e o motivo.'
@@ -187,6 +251,12 @@ if ($declaracoesVelhas.Count) {
     $declaracoesVelhas | ForEach-Object { Write-Host ('  ' + $_.chave) }
     Write-Host 'A frase ganhou caso. Apague a entrada em vez de deixa-la envelhecer.'
     $bad += $declaracoesVelhas.Count
+}
+if ($sufixosSemFonte.Count) {
+    Write-Host ('FRASES FAIL -- {0} golden(s) de texto sem fonte na tabela $FONTES:' -f $sufixosSemFonte.Count)
+    $sufixosSemFonte | ForEach-Object { Write-Host ('  *-fixture.' + $_) }
+    Write-Host 'Uma saida de texto nova entrou e este arquivo continuaria medindo so as antigas.'
+    $bad += $sufixosSemFonte.Count
 }
 
 if ($bad -gt 0) { exit 1 }

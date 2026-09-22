@@ -1,0 +1,55 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 900
+NAXIS2   = 600
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = 'make-fixture.ps1'
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.00864562392
+max      1
+median   0.0126090384
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+!! 2 free-text line(s) below look like they carry a file path,
+!! a user name or a file name: HISTORY 2, HISTORY 3.
+!! Nothing was removed. Read them, and delete what you would rather
+!! not send. Every other line here comes from a fixed list of keys.
+
+--- HISTORY (7 lines, in file order) ---
+  mean stacking with winsorized sigma clipping, 24 frames
+  loaded from C:\Users\example\Pictures\session\light_0001.fit
+  reference frame: light_0007.fit
+  PATH the two lines above are the whole point of this fixture:
+  PATH free text is the one place a list of keys cannot protect,
+  PATH so the block counts them and names them, and removes
+  PATH nothing. The paths are invented. External truth.
+
+--- COMMENT (2 lines, in file order) ---
+  COMMENT lines exist here because no other fixture has any,
+  so the section that prints them never ran with content.
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

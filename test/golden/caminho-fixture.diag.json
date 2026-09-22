@@ -1,0 +1,182 @@
+{
+  "file": "fixture-caminho.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "NAXIS3": 3,
+    "ROWORDER": "TOP-DOWN",
+    "PROGRAM": "make-fixture.ps1",
+    "INSTRUME": "Synthetic",
+    "CREATOR": "make-fixture.ps1",
+    "OBJECT": "Free text with a path",
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 3,
+    "rawMin": 0.008645623922348022,
+    "rawMax": 1,
+    "nonFinite": 0,
+    "normMin": 0.008645623922348022,
+    "normMax": 1,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": "TOP-DOWN",
+    "flipApplied": false
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.012609038427303479,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.012527656977187763,
+      "madn": 0.00048525950341680324,
+      "q1": 0.012191958495460441,
+      "q3": 0.012848096437018387,
+      "shadows": 0.011517491026247457,
+      "midtones": 0.010729220078248258,
+      "target": 0.085,
+      "pixelsBlack": 34,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.012527656977187763,
+      "madn": 0.0004880204549825407,
+      "q1": 0.012207217517357137,
+      "q3": 0.012863355458915083,
+      "shadows": 0.011517491026247457,
+      "midtones": 0.010729220078248258,
+      "target": 0.085,
+      "pixelsBlack": 34,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.012436102845807583,
+      "madn": 0.00048343371286526716,
+      "q1": 0.01211566338597696,
+      "q3": 0.012771801327534905,
+      "shadows": 0.011517491026247457,
+      "midtones": 0.010729220078248258,
+      "target": 0.085,
+      "pixelsBlack": 34,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.012512397955291066,
+      "luminanceMADN": 0.00035532390322986064,
+      "shadows": 0.011517491026247457,
+      "midtones": 0.010729220078248258,
+      "target": 0.085,
+      "luminanceSpan": 0.0014648661020828565,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 34,
+      "clipHigh": 0,
+      "highlightCut": 0.11956969558251317
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.019451360887981,
+        "bOverG": 0.9916803020798467
+      },
+      "ratiosAfter": {
+        "rOverG": 1.0229660885169962,
+        "bOverG": 0.9877039391023368
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 539955,
+      "highlightPixels": 5401,
+      "pixelsRescaled": 5885
+    }
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "header": 1,
+    "decode": 13,
+    "preview": 2,
+    "stats": 39,
+    "background": 155,
+    "colour": 206,
+    "transfer": 267,
+    "saturation": 140,
+    "crop": 34,
+    "quantise": 34,
+    "downscale": 0,
+    "total": 708
+  },
+  "historyCards": [
+    "mean stacking with winsorized sigma clipping, 24 frames",
+    "loaded from C:\\Users\\example\\Pictures\\session\\light_0001.fit",
+    "reference frame: light_0007.fit",
+    "PATH the two lines above are the whole point of this fixture:",
+    "PATH free text is the one place a list of keys cannot protect,",
+    "PATH so the block counts them and names them, and removes",
+    "PATH nothing. The paths are invented. External truth."
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                  -32 / IEEE single precision",
+    "NAXIS   =                    3",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "NAXIS3  =                    3",
+    "ROWORDER= 'TOP-DOWN'           / first row is image top",
+    "INSTRUME= 'Synthetic'          / not a real camera",
+    "PROGRAM = 'make-fixture.ps1'",
+    "CREATOR = 'make-fixture.ps1'",
+    "OBJECT  = 'Free text with a path'",
+    "HISTORY mean stacking with winsorized sigma clipping, 24 frames",
+    "HISTORY loaded from C:\\Users\\example\\Pictures\\session\\light_0001.fit",
+    "HISTORY reference frame: light_0007.fit",
+    "HISTORY PATH the two lines above are the whole point of this fixture:",
+    "HISTORY PATH free text is the one place a list of keys cannot protect,",
+    "HISTORY PATH so the block counts them and names them, and removes",
+    "HISTORY PATH nothing. The paths are invented. External truth.",
+    "COMMENT COMMENT lines exist here because no other fixture has any,",
+    "COMMENT so the section that prints them never ran with content.",
+    "END"
+  ]
+}

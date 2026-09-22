@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer', 'ceuclaro')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer', 'ceuclaro', 'caminho')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -1930,6 +1930,74 @@ if ($Only -eq 'all' -or $Only -eq 'ceuclaro') {
     )
     Write-Fits (Join-Path $outDir 'fixture-ceuclaro.fit') $cardsC `
                ([FitsFixture]::FloatBytes($imgC, $W, $H, $planes, $false))
+}
+
+# --------------------------------------------- texto livre com cheiro de caminho
+#
+# O UNICO BURACO DO BLOCO DE HEADER, E O FIXTURE QUE O MOSTRA.
+#
+# `header-summary.js` monta o bloco por LISTA DE PERMISSAO: nenhuma chave e lida
+# a nao ser as que estao na lista, entao OBJECT, TELESCOP e companhia nao tem por
+# onde sair. HISTORY e COMMENT sao a excecao consciente -- eles saem INTEIROS,
+# porque sao a resposta que o catalogo procura, e sao TEXTO LIVRE.
+#
+# Um programa pode ter escrito ali dentro um caminho, um nome de usuario ou o
+# nome do arquivo original. Nenhuma lista de chaves alcanca isso, e apagar por
+# heuristica seria pior: apagaria dado do catalogo e daria uma sensacao de
+# seguranca que a heuristica nao sustenta.
+#
+# O que a ferramenta faz e apontar: conta as linhas suspeitas e as nomeia, sem
+# tocar em nada. ESTE FIXTURE E O CASO DESSA FRASE -- sem ele, o aviso que
+# protege o unico buraco do desenho seria um ramo que ninguem nunca viu impresso,
+# que e exatamente a conta que esta sessao ja pagou quatro vezes.
+#
+# DUAS linhas suspeitas, de proposito, escolhidas para serem os dois formatos mais
+# comuns: um caminho absoluto de Windows e um nome de arquivo solto. Os caminhos
+# sao INVENTADOS -- 'example' nao e o nome de ninguem, e nenhum arquivo real ou
+# de terceiro tocou nesta arvore.
+#
+# E ele cobre TAMBEM as linhas de COMMENT, que nenhum outro fixture tem: ate aqui
+# a secao de COMMENT do bloco saia sempre vazia, entao o laco que a imprime nunca
+# rodou com conteudo.
+if ($Only -eq 'all' -or $Only -eq 'caminho') {
+    $W = 900; $H = 600; $planes = 3
+
+    function HistP([string]$t) {
+        if ($t.Length -gt 72) { throw "HISTORY text too long ($($t.Length)): $t" }
+        return ('HISTORY ' + $t).PadRight(80)
+    }
+    function ComP([string]$t) {
+        if ($t.Length -gt 72) { throw "COMMENT text too long ($($t.Length)): $t" }
+        return ('COMMENT ' + $t).PadRight(80)
+    }
+
+    Write-Host "fixture-caminho.fit   ($W x $H x $planes, HISTORY com caminho e COMMENT)"
+    $imgP = [FitsFixture]::Scene($W, $H, $planes, 20260917, 0.010, 0.0006, 0.30)
+    $cardsP = @(
+        (New-Card 'SIMPLE'   'T'  'conforms to FITS standard')
+        (New-Card 'BITPIX'   -32  'IEEE single precision')
+        (New-Card 'NAXIS'    3)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'NAXIS3'   $planes)
+        (New-Card 'ROWORDER' 'TOP-DOWN' 'first row is image top' -AsString)
+        (New-Card 'INSTRUME' 'Synthetic' 'not a real camera' -AsString)
+        (New-Card 'PROGRAM'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'CREATOR'  'make-fixture.ps1' '' -AsString)
+        (New-Card 'OBJECT'   'Free text with a path' '' -AsString)
+        (HistP 'mean stacking with winsorized sigma clipping, 24 frames')
+        # AS DUAS LINHAS SUSPEITAS. Caminhos inventados.
+        (HistP 'loaded from C:\Users\example\Pictures\session\light_0001.fit')
+        (HistP 'reference frame: light_0007.fit')
+        (HistP 'PATH the two lines above are the whole point of this fixture:')
+        (HistP 'PATH free text is the one place a list of keys cannot protect,')
+        (HistP 'PATH so the block counts them and names them, and removes')
+        (HistP 'PATH nothing. The paths are invented. External truth.')
+        (ComP  'COMMENT lines exist here because no other fixture has any,')
+        (ComP  'so the section that prints them never ran with content.')
+    )
+    Write-Fits (Join-Path $outDir 'fixture-caminho.fit') $cardsP `
+               ([FitsFixture]::FloatBytes($imgP, $W, $H, $planes, $false))
 }
 Write-Host ''
 Get-ChildItem $outDir -File | ForEach-Object { "  {0,12:N0}  {1}" -f $_.Length, $_.Name }

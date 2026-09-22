@@ -1,0 +1,44 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 400
+NAXIS2   = 300
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.0104147214
+max      1
+median   0.0156761018
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (2 lines, in file order) ---
+  Small frame: the default edge margin reaches the sample grid.
+  Exists so rejected-edge is exercised, not merely reachable.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

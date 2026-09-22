@@ -1,0 +1,53 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 1601
+NAXIS2   = 1200
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.00119668397
+max      0.407777548
+median   0.0493832812
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (11 lines, in file order) ---
+  CROP synthetic frame for the suggested-crop step.
+  CROP WIDTH IS ODD (1601) on purpose: (1601-1) is a
+  CROP multiple of the background lattice divisor, and that
+  CROP is the case that produced a NaN in the last column.
+  CROP Objects have a SHARP edge at r = 1 of the ellipse, so
+  CROP the expected bounding box is the ellipse box below and
+  CROP it came from neither implementation.
+  OBJ1 cx=800 cy=600 rx=700 ry=500
+  OBJ1 box x=100 y=100 w=1400 h=1000
+  BIG one object already covering more than cropMaxCoverage.
+  BIG There is nothing to crop to, so the step must NOT suggest.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

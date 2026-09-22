@@ -2080,6 +2080,180 @@ colisão de chave, não interferência. A linha do bloco da cadeia virou
 
 **Hoje: 401 campos sob varredura, 0 divergentes.**
 
+## Classe irmã: a enumeração escrita à mão que não reclama quando a lista cresce
+
+**Registrada junto da primeira porque são a mesma doença por dois caminhos.** A
+de cima é uma verificação que existe e não é alcançada. Esta é uma verificação
+que roda inteira, responde com convicção, e **responde sobre um conjunto menor
+do que o que existe** — sem dizer que o conjunto encolheu, porque para ela não
+encolheu: ela nunca soube do resto.
+
+> **O sintoma é um número que não muda quando devia.** Não há erro, não há
+> silêncio suspeito, não há linha a menos: há o mesmo número de sempre, e o
+> mesmo número de sempre é a coisa que ninguém investiga.
+
+### Três instâncias, e a terceira caiu escrevendo esta seção
+
+```
+compare-golden   $Names       fixture novo entrou, capturado, promovido
+                              -> continuou imprimindo 80 checks
+compare-frases   $fonte       fonte de prosa nova entrou, com corpus proprio
+                              -> continuou imprimindo 148/139
+build.ps1        $Sources     (nao caiu: um arquivo fora dele nao compila,
+                              e o build quebra alto no mesmo minuto)
+```
+
+A terceira linha é a que explica as duas primeiras: **`$Sources` é uma lista
+escrita à mão igual às outras, e nunca falhou** — porque esquecer um arquivo ali
+quebra o build ruidosamente, na hora. As duas que falharam são as listas cujo
+esquecimento **não muda nada visível**.
+
+> **O critério para saber se uma enumeração precisa de guarda:** o que acontece
+> quando alguém esquece de somar um item? Se quebra, não precisa. Se o número
+> final continua plausível, precisa — e precisa mais quanto mais plausível for.
+
+### A forma da guarda, e ela é a mesma nas três
+
+Não é "manter a lista certa": é **derivar o conjunto esperado do disco** e
+reprovar na diferença.
+
+```
+compare-golden   goldens em test/golden/  menos  os nomes em $Names
+compare-frases   sufixos *-fixture.*.txt  menos  os cobertos por $FONTES
+compare-reference  fixtures com golden    menos  os que emitiram linearidade
+```
+
+As três leem o mundo e subtraem a lista, nunca o contrário. **Uma lista escrita à
+mão aqui seria a terceira cópia da mesma verdade, e a que ninguém atualiza.**
+
+E as três têm controle negativo rodado: tirando o item da lista, cada uma reprova
+nomeando o que ficou de fora.
+
+### Por que esta é mais assustadora que a primeira
+
+A primeira foi achada por uma varredura que contava linhas por escopo — um
+instrumento apontado de propósito. **A segunda e a terceira foram achadas por
+acaso**: um número que ficou igual ao lado de um fixture novo, e uma contagem de
+frases que não mexeu quando uma fonte inteira de prosa entrou no produto.
+
+Nada procurava nenhuma das duas. E a suíte estava verde nos dois casos.
+
+## O botão que coleta o header, e a lista de permissão que o sustenta
+
+**O pedido por escrito falhou:** quatro dias, cinco grupos, zero respostas. Dava
+trabalho a quem responde e não devolvia nada. **A ferramenta já leu o header
+inteiro e já mediu os três números** — então a coleta vira um botão, e o custo
+para quem ajuda cai para um clique e uma lida.
+
+`Copy header summary`, ao lado de `Copy processing log`. E a promessa é a mesma
+do resto do produto: **o texto vai para a área de transferência e para aí**.
+Ninguém envia nada, a pessoa vê antes de colar, e a frase ao lado do botão diz o
+que vai e o que não vai antes de ela apertar.
+
+### A decisão que carrega o resto: permissão, não proibição
+
+A tentação é listar o que não pode sair. **Uma lista de proibição exige
+antecipar cada chave identificadora que existe ou que vai existir** — `SWCREATE`,
+`SITELAT`, `OBJCTRA`, `FOCUSER`, a chave privada que o próximo programa
+inventar. E antecipar é exatamente o que falha.
+
+> **Errar por omissão numa lista de proibição VAZA. Errar por omissão numa lista
+> de permissão só perde um dado.**
+
+Então nada é lido do header a não ser o que está em `HEADER_SUMMARY_KEYS`. A
+lista de proibição existe (`HEADER_SUMMARY_NEVER`) e **não é o mecanismo**: ela é
+o que o teste afirma e o que a frase do botão promete. **Uma lista, duas
+leitoras** — `compare-golden.ps1` lê as duas constantes do próprio
+`header-summary.js` em vez de manter uma cópia que ficaria para trás.
+
+**E chaves ausentes são impressas como ausentes**, o que parece enchimento e é o
+contrário: a pergunta que trava a escala é *"que fração dos arquivos declara
+`DATAMAX` / `BUNIT`"*. Um bloco que omitisse o que falta responderia "sim" nos
+arquivos que têm e **nada** nos outros. **Ausência é metade do dado, e a metade
+difícil de conseguir.**
+
+### O buraco, e ele é consciente
+
+`HISTORY` e `COMMENT` saem **inteiros** — são a resposta que o catálogo procura,
+e são texto livre. Um programa pode ter escrito um caminho, um nome de usuário ou
+o nome do alvo ali dentro, e **nenhuma lista de chaves alcança isso**.
+
+Apagar por heurística seria pior: apagaria dado do catálogo e daria uma sensação
+de segurança que a heurística não sustenta. O que a ferramenta faz é **contar e
+apontar**, sem tocar em nada:
+
+```
+!! 2 free-text line(s) below look like they carry a file path,
+!! a user name or a file name: HISTORY 2, HISTORY 3.
+!! Nothing was removed. Read them, and delete what you would rather
+!! not send. Every other line here comes from a fixed list of keys.
+```
+
+`fixture-caminho.fit` existe para essa frase — duas linhas com cara de caminho
+(inventadas) e as **únicas linhas de `COMMENT` da suíte**, que até aqui faziam
+aquela seção sair sempre vazia. Sem ele, o aviso que protege o único buraco do
+desenho seria um ramo que ninguém nunca viu impresso.
+
+### A verificação: afirmação, não comparação
+
+Na forma da checagem de não-finitos, e pela mesma razão. **Uma comparação contra
+golden só pega o que mudou**: se o bloco sempre tiver carregado `OBJECT`, o
+golden carrega, a captura carrega, e o comparador dá PASS byte a byte sobre o
+defeito.
+
+Quatro afirmações, e a segunda é a que vale:
+
+```
+1. nenhuma chave da lista de PROIBICAO sai como cartao
+2. nenhuma chave FORA DA LISTA DE PERMISSAO sai como cartao   <- esta
+3. nenhum VALOR de chave identificadora aparece no texto
+4. o nome do arquivo nao aparece
+```
+
+**A 2 não depende de alguém ter previsto a chave.** Controle negativo rodado, e é
+o argumento inteiro em quatro linhas:
+
+```
+OBJECT injetado    -> reprova pela 1 E pela 2
+FOCUSER injetado   -> reprova SO pela 2        <- chave que ninguem baniu
+valor de OBJECT    -> reprova pela 3
+o mesmo, dentro de HISTORY -> reprova pela 3 com a mensagem de texto livre
+```
+
+`FOCUSER` é a linha que justifica o desenho: ninguém o baniu, ninguém pensou
+nele, e ele não passa.
+
+**A lista de exceção para valor dentro de texto livre nasce vazia**, com as duas
+metades — uma declaração que deixe de valer reprova. É a regra que esta sessão já
+registrou como geral.
+
+### O carimbo do build é gerado
+
+O bloco diz qual código mediu os três números. **Um número de versão escrito à
+mão só está certo enquanto alguém lembra de mexer nele** — e este projeto já
+mediu o custo disso duas vezes esta semana. O carimbo é o sha256 dos fontes mais
+o template, 16 dígitos, injetado por `build.ps1` num marcador que tem que aparecer
+**exatamente uma vez**.
+
+E ele é **fixado na captura de golden**, como a data já era: o carimbo real muda
+a cada mexida em qualquer fonte, e um golden que o carregasse teria diff em todo
+commit. O valor fixado se anuncia como fixado — `pinned-for-goldens` — para que
+ninguém o confunda com um carimbo de verdade ao ler o golden.
+
+### O que isto custou na suíte
+
+```
++ src/pipeline/header-summary.js      a fonte, com as duas listas
++ fixture-caminho.fit                 o caso do aviso, e as unicas linhas COMMENT
++ 22 goldens *.header.txt             110 checks no compare-golden (eram 84)
++ compare-frases: 2 fontes            166 frases, 156 com caso
++ a afirmacao de vazamento            4 checagens, com controle negativo
+```
+
+E a terceira instância da classe irmã caiu aqui: o `compare-frases` media **uma**
+fonte de prosa, e continuou imprimindo 148/139 depois que uma fonte inteira de
+texto novo entrou no produto.
+
 ## O degrau 5 passou a se anunciar, e ganhou o fixture que faltava
 
 **IMPLEMENTADO.** A medição da §7 disse que a regra troca de veredito sob ganho e
@@ -2187,7 +2361,7 @@ A etapa da meia escala foi removida — não desligada — depois da primeira ro
 em dado real: ver *"A classe mais cara da sessão"* acima, e a §2 do
 `modulo-5a-spec.md`, que ficou no lugar dela. Saíram `half-scale.js`, o segundo
 botão, o bloco do log, os campos do record, as curvas da referência, o bloco do
-comparador e a entrada do registry. Hoje a suíte está em **750 comparações,
+comparador e a entrada do registry. Hoje a suíte está em **752 comparações,
 0 FAIL**.
 
 O recorte ficou, com a margem consertada (fração do objeto, não do quadro) e uma
@@ -2226,15 +2400,25 @@ verdade, ele também mede a porta que a §8.5 deixou aberta — se alguma estat�
 **afim-invariante** separa as duas classes. Hoje a suíte tem um único arquivo
 esticado e fui eu que escrevi os pixels e o header.
 
-**Formato:** chaves de header, `HISTORY` completo, e mínimo / máximo / mediana.
-Sem `OBJECT`, `DATE-OBS`, `TELESCOP`, `INSTRUME`, nome ou caminho.
+**O PEDIDO MUDOU DE FORMA, e essa era a parte que estava errada.** Quatro dias,
+cinco grupos, zero respostas: por escrito, o pedido dava trabalho a quem responde
+e não devolvia nada. **Agora a ferramenta coleta** — `Copy header summary`
+monta o bloco inteiro, com as chaves, o `HISTORY` completo e os três números, e o
+custo para quem ajuda é um clique e uma lida.
+
+**Formato:** é a saída do botão, literal. Chaves de header (as ausentes impressas
+como ausentes), `HISTORY` e `COMMENT` inteiros, mínimo / máximo / mediana nas
+unidades do arquivo, e o carimbo do build. Sem `OBJECT`, `DATE-OBS`, `TELESCOP`,
+`INSTRUME`, `OBSERVER`, coordenadas, nome ou caminho — por lista de permissão, e
+verificado por afirmação na suíte.
 
 **Arquivo público de observatório serve, e resolve a metade linear na hora** —
 NASA, ESO, telescópios abertos são escritos por software com convenção definida e
 são exatamente o caso "não-Seestar" que falta. **A metade esticada é a difícil:**
 arquivo publicado costuma ser dado de ciência, que é linear por definição. Para o
 degrau 4 valer, o corpus precisa de pelo menos um arquivo que **saiu de um
-programa de processamento com o esticamento aplicado e salvo**.
+programa de processamento com o esticamento aplicado e salvo** — e esse só vem de
+quem processa, que é exatamente o público que o botão agora atende.
 
 **Não depende de mim**, e é o gargalo de tudo que está abaixo.
 
@@ -2287,25 +2471,25 @@ reprodutibilidade e nada mais.
 
 **Destrava:** a única verificação independente do operador alternativo. Fecha
 quando a referência modelar o asinh — e junto disso sai a frase do *asinh
-inalcançável*, que é a maior das oito dívidas do item 5.
+inalcançável*, que é a maior das nove dívidas do item 5.
 
-### 5. Oito frases do log sem caso
+### 5. Nove frases do log sem caso
 
-`compare-frases`: 148 frases, 139 com caso (94%). Cada uma das oito é **um ramo
-cujo texto ninguém leu** — e foi exatamente assim que a frase falsa do
-`fixture-declaraestica` sobreviveu.
+`compare-frases`: **166 frases em duas fontes** (`log.js` e `header-summary.js`),
+156 com caso (94%). Cada uma das nove é **um ramo cujo texto ninguém leu** — e foi
+exatamente assim que a frase falsa do `fixture-declaraestica` sobreviveu.
 
 ```
-NaN na entrada  ·  quadro MONO de lado impar  ·  quadro 2D com HISTORY de stack
-o asinh que nao alcanca o alvo (3 literais)  ·  a variante do alvo nao-linear
-a frase do degrau 5 SEM distancia, para mediana zero
+NaN na entrada (log)  ·  NaN na entrada (bloco de header)  ·  MONO de lado impar
+quadro 2D com HISTORY de stack  ·  o asinh que nao alcanca o alvo (3 literais)
+a variante do alvo nao-linear   ·  a frase do degrau 5 SEM distancia
 ```
 
-**Destrava:** revisão do texto que esses ramos emitem. A mais barata agora é o
-quadro mono de lado ímpar — uma variante de header, sem cena nova. A oitava
-entrou nesta rodada junto com a frase do degrau 5, e fecha com um quadro quase
-todo em zero e header mudo: a cena é barata e o caso é real, porque um float mal
-escalado cai nele (medido: `declaraestica` × 1,501 lê mediana zero e sai preto).
+**Destrava:** revisão do texto que esses ramos emitem. E **duas delas fecham com
+o mesmo fixture** — promover o `e6-metade-nan` do corpus `malformed` a fixture de
+cadeia paga a linha de não-finitos do log e a do bloco de header de uma vez. É a
+mais barata da lista agora, e passou à frente do quadro mono de lado ímpar porque
+paga duas.
 
 ### 6. O fixture de HALO
 
@@ -3140,7 +3324,7 @@ a lógica.
 A tabela cresceu de 7 campos para 44, e a cobertura de 53 linhas para **401**.
 
 ```
-750 linhas no comparador
+752 linhas no comparador
 449 carregam cota
 401 sob varredura      0 divergentes, em 3 passadas
  48 fora              isolamento de formula

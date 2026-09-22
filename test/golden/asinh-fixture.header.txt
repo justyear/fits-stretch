@@ -1,0 +1,63 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 1600
+NAXIS2   = 1200
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.00581162283
+max      0.471346289
+median   0.0167594924
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (21 lines, in file order) ---
+  GRADIENT synthetic background, known by construction.
+  GRADIENT g(u,v) = A0 + A1*u + A2*v + A3*u^2 + A4*v^2 + A5*u*v
+  GRADIENT u = x/(NAXIS1-1)  v = y/(NAXIS2-1)  image coords
+  GRADIENT ROWORDER is TOP-DOWN so v=0 is the first stored row.
+  GRADIENT R A0=0.012100000 A1=0.007100000 A2=0.004100000
+  GRADIENT R A3=-0.002400000 A4=0.001400000 A5=0.001100000
+  GRADIENT G A0=0.011000000 A1=0.006200000 A2=0.003800000
+  GRADIENT G A3=-0.002100000 A4=0.001300000 A5=0.000900000
+  GRADIENT B A0=0.010100000 A1=0.005300000 A2=0.003500000
+  GRADIENT B A3=-0.001800000 A4=0.001100000 A5=0.000800000
+  OBJECT extended source added on top: I = PEAK*exp(-K*R)
+  OBJECT R = hypot((x-CX)/A, (y-CY)/B), per-channel tint below
+  OBJECT CX=430 CY=880 A=343 B=214 PEAK=0.050000000 K=3
+  OBJECT tint R/G/B = 1.05/1/0.95, R<=1 covers 12.01 pct
+  PROBE bright stars, PEAK=0.450000000 SIGMA=2.2, positions recorded
+  PROBE x,y: 218,216 606,216 994,216 1382,216
+  PROBE x,y: 1382,600 1382,856 994,856 1252,1100
+  FIELD 300 ordinary stars, seed 20260907, not part of the truth
+  NOISE gaussian sigma=0.001200000, seed 20260908, added last
+  TRUTH the GRADIENT rows above came from neither implementation.
+  TRUTH See modulo-1-spec.md section 5 for why that matters.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

@@ -1,0 +1,57 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 1600
+NAXIS2   = 1200
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0
+max      0.0234605987
+median   0.0109915821
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (15 lines, in file order) ---
+  SAT synthetic frame for the selective saturation step.
+  SAT HUE is written as an ANGLE IN TURNS and the region colours
+  SAT are BUILT from it, so the test reads the truth from here
+  SAT and neither implementation can influence the number.
+  SKY level R=0.011000000 G=0.012500000 B=0.009500000
+  NOISE common sigma=0.001800000 per-channel sigma=0.001100000
+  NOISE the per-channel term is what gives the sky a COLOUR to
+  NOISE amplify. Common-mode noise alone would make the chroma
+  NOISE safeguard untestable by construction.
+  SEED 20260913, noise added last, clipped to [0,1]
+  FLAT no object at all: every pixel sits below the SNR
+  FLAT threshold, so the saturation step must leave the whole
+  FLAT frame untouched. Exists because a safeguard with no
+  FLAT case that exercises it is an assertion, not a control.
+  TRUTH these rows came from neither implementation.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

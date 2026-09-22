@@ -1,0 +1,56 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 1601
+NAXIS2   = 1200
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.00108295272
+max      0.404501349
+median   0.0136212202
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (14 lines, in file order) ---
+  CROP synthetic frame for the suggested-crop step.
+  CROP WIDTH IS ODD (1601) on purpose: (1601-1) is a
+  CROP multiple of the background lattice divisor, and that
+  CROP is the case that produced a NaN in the last column.
+  CROP Objects have a SHARP edge at r = 1 of the ellipse, so
+  CROP the expected bounding box is the ellipse box below and
+  CROP it came from neither implementation.
+  OBJ1 cx=400 cy=560 rx=350 ry=280
+  OBJ1 box x=50 y=280 w=700 h=560
+  OBJ2 cx=1200 cy=640 rx=350 ry=280
+  OBJ2 box x=850 y=360 w=700 h=560
+  TWO two extended objects, both above cropMinFrame. Choosing
+  TWO one of them decides the composition for the person, so the
+  TWO step must NOT suggest, and must say why.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

@@ -79,6 +79,7 @@ $Sources = @(
     'src\pipeline\steps\crop.js',
     'src\pipeline\render.js',
     'src\pipeline\log.js',
+    'src\pipeline\header-summary.js',
     'src\pipeline\run.js'
 ) | ForEach-Object { Join-Path $root $_ }
 
@@ -91,6 +92,12 @@ function Read-Text($path) {
     return $L1.GetString([System.IO.File]::ReadAllBytes($path))
 }
 
+function Get-Sha256([byte[]]$b) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { return -join ($sha.ComputeHash($b) | ForEach-Object { $_.ToString('x2') }) }
+    finally { $sha.Dispose() }
+}
+
 $tpl = Read-Text $template
 
 $at = $tpl.IndexOf($marker)
@@ -98,6 +105,30 @@ if ($at -lt 0) { throw "marker $marker not found in $template" }
 if ($tpl.IndexOf($marker, $at + 1) -ge 0) { throw "marker $marker appears more than once in $template" }
 
 $bundle = ($Sources | ForEach-Object { Read-Text $_ }) -join ''
+
+<#
+O CARIMBO DO BUILD, E POR QUE ELE E GERADO E NAO ESCRITO A MAO.
+
+O bloco de header que a pessoa copia diz qual codigo mediu os tres numeros. Um
+numero de versao escrito a mao so esta certo enquanto alguem lembra de mexer
+nele -- e este projeto ja mediu o que acontece com uma lista escrita a mao que
+ninguem atualiza (ver o MANIFEST desatualizado por dois commits, e a lista
+`$Names` do compare-golden).
+
+Entao o carimbo e o sha256 dos FONTES mais o template, cortado em 16 digitos, e
+substitui `__BUILD_STAMP__` no pacote. Nao e circular: o hash e dos fontes COM o
+marcador, nao da saida. Mexeu em qualquer fonte, o carimbo muda; nao mexeu, ele
+nao muda -- que e o que faz `-Check` continuar comparando byte a byte.
+
+O marcador tem que aparecer exatamente uma vez. Zero significa que o arquivo
+saiu do pacote e o bloco passaria a anunciar um literal; duas significa duas
+fontes de verdade.
+#>
+$stampMark = '__BUILD_STAMP__'
+$stampHits = ([regex]::Matches($bundle, [regex]::Escape($stampMark))).Count
+if ($stampHits -ne 1) { throw "$stampMark aparece $stampHits vez(es) no pacote; tem que aparecer exatamente uma" }
+$buildStamp = (Get-Sha256 ($L1.GetBytes($bundle + $tpl))).Substring(0, 16)
+$bundle = $bundle.Replace($stampMark, $buildStamp)
 
 # The marker sits on its own line; the source already ends in a newline, so the
 # marker's own line break is consumed with it.
@@ -121,11 +152,6 @@ $publish = $withHooks.Substring(0, $hs) + $withHooks.Substring($cut)
 $bytesTest    = $L1.GetBytes($withHooks)
 $bytesPublish = $L1.GetBytes($publish)
 
-function Get-Sha256([byte[]]$b) {
-    $sha = [System.Security.Cryptography.SHA256]::Create()
-    try { return -join ($sha.ComputeHash($b) | ForEach-Object { $_.ToString('x2') }) }
-    finally { $sha.Dispose() }
-}
 
 $hashTest    = Get-Sha256 $bytesTest
 $hashPublish = Get-Sha256 $bytesPublish

@@ -1,0 +1,65 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 1600
+NAXIS2   = 1200
+NAXIS3   = 3
+BZERO    = (absent)
+BSCALE   = (absent)
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'TOP-DOWN'
+BAYERPAT = (absent)
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0
+max      0.917512059
+median   0.0152488492
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (23 lines, in file order) ---
+  SAT synthetic frame for the selective saturation step.
+  SAT HUE is written as an ANGLE IN TURNS and the region colours
+  SAT are BUILT from it, so the test reads the truth from here
+  SAT and neither implementation can influence the number.
+  SKY level R=0.011000000 G=0.012500000 B=0.009500000
+  NOISE common sigma=0.001800000 per-channel sigma=0.001100000
+  NOISE the per-channel term is what gives the sky a COLOUR to
+  NOISE amplify. Common-mode noise alone would make the chroma
+  NOISE safeguard untestable by construction.
+  SEED 20260913, noise added last, clipped to [0,1]
+  HUE core    = 0.083000000 turns, HSV sat 0.550000000, peak 0.900000000
+  HUE core tests the highlight roll-off: without it a bright
+  HUE core becomes a flat disc of one colour.
+  HUE nebula  = 0.995000000 turns, HSV sat 0.800000000, peak 0.220000000
+  HUE nebula tests the neon case: strong red at mid-tone.
+  HUE arm     = 0.583000000 turns, HSV sat 0.650000000, peak 0.018000000
+  HUE arm tests the SNR mask: faint blue just above the noise,
+  HUE which the mask must let through and not treat as sky.
+  GEOM core   cx=1120 cy=380 rx=105 ry=88
+  GEOM nebula cx=460 cy=430 rx=300 ry=210
+  GEOM arm    cx=760 cy=900 rx=420 ry=150
+  GEOM I = peak * exp(-((x-cx)/rx)^2 - ((y-cy)/ry)^2)
+  TRUTH these rows came from neither implementation.
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

@@ -236,8 +236,13 @@
         <button class="btn primary" id="dlpng">Download PNG</button>
         <button class="btn" id="dlcrop" hidden>Crop to the object</button>
         <button class="btn" id="copylog">Copy processing log</button>
+        <button class="btn" id="copyheader">Copy header summary</button>
         <button class="btn" id="dlfits" hidden>Download uncompressed FITS</button>
       </div>
+      <p class="hint" id="headerhint">The header summary copies the keywords and the HISTORY lines an open
+        catalogue of FITS conventions needs, plus this file’s min, max and median — and never OBJECT,
+        DATE-OBS, TELESCOP, INSTRUME, OBSERVER, sky coordinates, the file name or any path. It goes to
+        your clipboard and nowhere else: read it before you paste it anywhere.</p>
       <p class="hint" id="crophint" hidden></p>
       <p class="hint" id="fitshint" hidden>This file arrived compressed. The FITS button writes it back out
         unpacked and unstretched, with the observation keywords kept, so Siril and PixInsight can open it.</p>
@@ -280,7 +285,7 @@ var elErr = $('err'), elErrTitle = $('errtitle'), elErrBody = $('errbody');
 var elDiag = $('diag'), elDiagBody = $('diagbody');
 var elToast = $('toast');
 
-var state = { log: '', diag: null, full: null, crop: null, view: null, w: 0, h: 0, name: '' };
+var state = { log: '', headerSummary: '', diag: null, full: null, crop: null, view: null, w: 0, h: 0, name: '' };
 
 /* ------------------------------------------------------------------ *
  * Friendly errors
@@ -491,6 +496,7 @@ function finish(m){
   // canvas and leaves the text alone.
   if (m.log !== null){
     state.log = m.log;
+    state.headerSummary = m.headerSummary;
     state.diag = m.diag;
   }
 
@@ -620,20 +626,35 @@ $('errback').addEventListener('click', reset);
 /* ------------------------------------------------------------------ *
  * Outputs
  * ------------------------------------------------------------------ */
-$('copylog').addEventListener('click', function(){
-  var text = state.log;
+/* Um caminho de copia para os dois botoes. O que eles copiam e diferente; o
+ * modo de copiar, o texto do aviso e o que acontece quando a area de
+ * transferencia nao esta disponivel, nao. */
+function copyToClipboard(text, done){
   if (!text) return;
   function fallback(){
     var ta = document.createElement('textarea');
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); toast('Processing log copied'); }
+    try { document.execCommand('copy'); toast(done); }
     catch (e){ toast('Could not copy — select the text instead'); }
     document.body.removeChild(ta);
   }
   if (navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(function(){ toast('Processing log copied'); }, fallback);
+    navigator.clipboard.writeText(text).then(function(){ toast(done); }, fallback);
   } else fallback();
+}
+
+$('copylog').addEventListener('click', function(){
+  copyToClipboard(state.log, 'Processing log copied');
+});
+
+/* O BLOCO DE HEADER.
+ *
+ * Nada e enviado: ele vai para a area de transferencia e para ai. A frase ao
+ * lado do botao diz o que vai e o que nao vai, e o proprio texto copiado repete
+ * as duas coisas -- porque quem cola num forum pode nao ser quem apertou. */
+$('copyheader').addEventListener('click', function(){
+  copyToClipboard(state.headerSummary, 'Header summary copied — read it before you paste it');
 });
 
 $('dlpng').addEventListener('click', function(){
