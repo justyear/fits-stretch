@@ -2352,6 +2352,91 @@ Nenhum fixture cai nela hoje.
 > uma divergência **que ninguém sabe que tem**, porque o campo que a revelaria
 > está abaixo de um `continue`.
 
+## v1.5.0 — publicada em 2026-09-23, e a auditoria que o botão exigiu
+
+`index.html` **303.390 bytes**, sha256
+`676b2cf0eadaabeffe0e79a4d4d077eec4c2110b2f993783fa0f3ba4ba9dcd5a`, carimbo de
+build `08f6b679024be3ae`. Tag anotada `v1.5.0` sobre `51ec35a`. O asset do
+release no GitHub é criado à mão (não há `gh` nesta máquina), e tem que ser
+**este** arquivo — o do commit da tag, não o do master (ver *Regra de
+publicação*).
+
+### A auditoria do botão foi feita no build PUBLICADO, e o método fica
+
+O botão é a primeira saída do produto feita para ser colada em público, então a
+pergunta não é "o golden bate" — é **o que a página entrega à área de
+transferência**, no arquivo que as pessoas baixam, que não tem ganchos de teste.
+
+O método, para a próxima vez:
+
+1. servir `index.html` e conferir que o que o navegador recebeu é o do disco
+   (sha256 dos bytes servidos) e que não há `__state` nem `__loadFromURL`;
+2. **soltar o arquivo como um usuário solta** — `DataTransfer` com um `File`
+   construído dos bytes do fixture, e um evento `drop` na janela. É o mesmo
+   caminho do arrastar, sem gancho nenhum;
+3. interceptar `navigator.clipboard.writeText` e apertar o botão. **O ponto de
+   medida é a fronteira onde o texto sai da página**, e é ali que se intercepta;
+4. conferir contra um **oráculo independente do código**: a lista de permissão e
+   a de proibição da *especificação do pedido*, não as constantes do
+   `header-summary.js` — senão a auditoria pergunta ao código se ele concorda
+   consigo mesmo;
+5. ler o header **inteiro** de cada arquivo, todas as HDUs, e exigir que nenhum
+   valor de texto de chave fora da permissão apareça fora do texto livre.
+
+**Resultado: 20/20 sem nenhum identificador.** 19 dos 20 headers traziam
+`OBJECT` e `INSTRUME`; nenhum saiu. As linhas com cara de caminho foram todas
+apontadas — inclusive duas que eu não plantei: `nobayer` e `bayerespelhado` têm
+no `HISTORY` a frase *"same pixels as fixture-seestar.fit"*, e o aviso as pegou.
+Confirmação independente da heurística, em material que não foi escrito para ela.
+
+**E cada checagem tinha material positivo para acusar**, o que é a diferença
+entre uma auditoria e uma lista de zeros: havia valor identificador em 19
+arquivos, caminho em 3, e o nome do arquivo em todo log.
+
+### Três coisas que a auditoria achou fora do botão
+
+**1. O log imprime o nome do arquivo, em todo run, desde a v1.0.** A linha
+*"Processing log — <nome>"*. O botão promete nunca copiar o nome; o log, que a
+própria página convida a colar (*"Paste the log alongside your image"*), copia.
+Nenhum outro identificador vaza pelo log — `OBJECT` e `INSTRUME` não aparecem
+nele em nenhum dos 20. **Não mexi**: é decisão de produto, e muda os 22 goldens de
+log. Está no *Em aberto*.
+
+**2. Um nome de arquivo original de terceiro estava no NOTAS**, na tabela
+*"Verificado contra dado real"* — as outras três linhas tinham sido anonimizadas,
+esta não. Consertado em `51ec35a`, no padrão das vizinhas. **Continua no
+histórico, em toda tag desde a v1.0.0**, e tirar de lá é reescrever histórico e
+reempurrar cinco tags. Decisão do dono do repositório; está no *Em aberto*.
+
+**3. A cópia do log no README estava falsa** — erro meu da rodada anterior. O
+README diz *"the actual file"* e mostrava a frase velha do degrau 5. Consertado, e
+com guarda: `build.ps1 -Check` compara os dois blocos do README com os goldens,
+byte a byte. Controle negativo rodado: com a frase velha, reprova na linha 9.
+
+### E uma regra que saiu disto: número escrito à mão num documento é datado
+
+Os números da tabela do README (752 comparações, 401 cotas, 166 frases) são
+cópias à mão de saídas de script. Pelo critério das enumerações, precisariam de
+guarda — continuam plausíveis quando envelhecem. Rodar a suíte inteira dentro do
+`-Check` não é razoável. **A saída foi mudar o modo de falha:** *"as of v1.5.0"*.
+Um número datado envelhece visivelmente em vez de mentir em silêncio.
+
+> **Onde a guarda é barata, guarda. Onde não é, data.** O que não pode existir é
+> o número sem uma das duas.
+
+### O MANIFEST: a codificação foi desfeita, o conteúdo não
+
+Commit próprio (`3269686`), só codificação: 436 linhas com o acento passado
+**quatro** vezes por UTF-8→cp1252→UTF-8 (um "é" de 2 bytes tinha virado 42),
+desfeitas linha a linha até ponto fixo, com a volta exigida em UTF-8 estrito. A
+conferência foi contra a última versão limpa do histórico, `7bb4623`: 805 de 807
+linhas idênticas, e as 2 diferentes são a tabela de hashes, que mudou de verdade.
+
+**E o que a conferência revelou:** fora a tabela de hashes, o MANIFEST **não mudou
+uma linha desde `7bb4623`**. As seções de fixtures e artefatos descrevem a suíte
+daquela época. É a mesma classe outra vez — um documento que se apresenta como
+*"the long version"* e parou no tempo.
+
 ## Em aberto
 
 
@@ -2525,6 +2610,36 @@ silêncio. **Depende do item 1**, porque o degrau 4 vem antes.
 
 A pessoa reabre o arquivo. **Deliberado**, e fica: um desfazer que reconstruísse
 estado a partir da tela seria o começo de uma segunda fonte de verdade.
+
+### 10. O log imprime o nome do arquivo — decisão de produto
+
+Achado na auditoria da v1.5.0. A linha *"Processing log — <nome>"* sai em todo
+run, e a página convida a colar o log em público. O botão novo promete nunca
+copiar o nome; o log copia. Nenhum outro identificador sai pelo log.
+
+**Destrava:** a coerência entre as duas saídas feitas para colar. As saídas
+possíveis — tirar o nome, ou deixar e dizer ao lado do botão do log que ele vai
+junto — mudam os 22 goldens de log, então é recaptura em commit próprio.
+
+### 11. Um nome de arquivo original no histórico público — decisão do dono
+
+Consertado na árvore em `51ec35a`, e **continua em toda tag desde a v1.0.0**.
+Tirar de lá é reescrever histórico e reempurrar as cinco tags anteriores, o que
+quebra clone de quem já clonou — o mesmo custo que fez a decisão da identidade do
+git ficar como estava. A diferença é que aquela era sobre autoria e esta é sobre
+um identificador que o CLAUDE.md proíbe. **Não é da auditoria decidir.**
+
+### 12. O MANIFEST parou em `7bb4623`
+
+Só a tabela de hashes é atualizada; as seções de fixtures e artefatos descrevem a
+suíte de semanas atrás. Ou reescreve, ou reduz ao que é verificado por máquina —
+e diz no topo que o resto é histórico.
+
+### 13. Duas chaves candidatas à lista de permissão do bloco de header
+
+`XBAYROFF` e `YBAYROFF`, os deslocamentos do padrão Bayer. São convenção de CFA,
+exatamente o tipo de coisa que o catálogo existe para medir, e não identificam
+ninguém. **Não entraram porque a lista foi especificada**; ampliar é decisão sua.
 
 ---
 
