@@ -63,3 +63,30 @@ function allocFrom(ctor, source, what){
   }
 }
 
+
+/* SHA-256 dos bytes do arquivo, os 8 primeiros bytes em hexadecimal.
+ *
+ * Identifica o arquivo para quem o tem, e nao diz nada para quem nao tem. Ver
+ * a nota longa em `openFile`, que e onde a decisao esta escrita.
+ *
+ * `null` quando o navegador nao oferece `crypto.subtle` -- contexto nao-seguro,
+ * ou navegador velho. Quem chama tem que ter os dois lados escritos: uma
+ * impressao digital ausente que saisse como string vazia viraria um campo em
+ * branco no log, e campo em branco num log auditavel e pior que uma frase
+ * dizendo que nao deu.
+ */
+async function fileDigestShort(buffer){
+  try {
+    var c = (typeof self !== 'undefined' && self.crypto) ? self.crypto : null;
+    if (!c || !c.subtle || !c.subtle.digest) return null;
+    var h = await c.subtle.digest('SHA-256', buffer);
+    var b = new Uint8Array(h), s = '', i;
+    for (i = 0; i < 8; i++){
+      var d = b[i].toString(16);
+      s += (d.length === 1 ? '0' : '') + d;
+    }
+    return s;
+  } catch (e){
+    return null;
+  }
+}

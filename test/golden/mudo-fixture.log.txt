@@ -1,7 +1,7 @@
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-mudo.fit
+Processing log — SHA-256 144aec3e731cc03b (identifies the file, not its name)
 900 × 600 · 32-bit float · monochrome · 2026-09-05
 
 • Read the FITS: 32-bit IEEE float, one image plane, no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up. Pixel values were already on a 0–1 scale, and the data spans 0.01263 to 0.99350.

@@ -1,7 +1,7 @@
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-float16.fit
+Processing log — SHA-256 7e5bff2cd2a88fb2 (identifies the file, not its name)
 900 × 600 · 32-bit float · 3 channels · 2026-09-05
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values divided down onto 0–1 from the 16-bit scale they were written on, where the data spans 0.01048 to 1.00000.

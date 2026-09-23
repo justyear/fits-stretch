@@ -310,8 +310,43 @@ async function openFile(buffer, fileName, opts, post){
   function mark(name, from){ timings[name] = Date.now() - from; }
   function stage(label, pct){ post({ type: 'progress', stage: label, pct: pct }); }
 
+  /* A IMPRESSAO DIGITAL DO ARQUIVO, E POR QUE ELA SUBSTITUIU O NOME.
+   *
+   * O log imprimia `Processing log — <nome do arquivo>` desde a v1.0. E a
+   * pagina convida a colar o log ("Paste the log alongside your image"), o que
+   * fazia do nome do arquivo a unica coisa identificavel que a ferramenta
+   * pedia para publicar. O botao de header, logo ao lado, promete por escrito
+   * nunca copiar o nome -- entao as duas saidas feitas para colar diziam
+   * coisas opostas, e uma delas estava no ar desde a primeira versao.
+   *
+   * O sha256 resolve as tres coisas de uma vez:
+   *
+   *   identifica o arquivo   para quem TEM o arquivo, e so para essa pessoa
+   *   nao identifica nada    para quem nao tem: e um numero
+   *   CONFERE                `certutil -hashfile x SHA256`, `shasum -a 256 x`
+   *
+   * A terceira e a que o nome nao dava: com o nome, "este log e do seu
+   * arquivo?" e uma promessa; com o digest, e uma conta que o leitor faz.
+   *
+   * DEZESSEIS DIGITOS, os mesmos do carimbo do build -- 64 bits, e uma escala
+   * em que colisao acidental nao acontece. Dois comprimentos diferentes para a
+   * mesma ideia no mesmo produto seria uma escolha a explicar sem ganho.
+   *
+   * ANTES DO DECODE, e isto nao e ordem por gosto: `toNormalisedFloat` escreve
+   * NO PROPRIO buffer. Depois do decode o hash seria de outros bytes que nao
+   * os do arquivo, e ninguem conseguiria reproduzi-lo com uma ferramenta de
+   * linha de comando -- que e a unica razao de ele existir.
+   *
+   * E ele pode faltar: `crypto.subtle` exige contexto seguro. `file://` conta
+   * como seguro em Chrome e Firefox, que e como a pagina e usada, mas Safari
+   * nao foi testado e um navegador antigo pode nao ter. Entao a linha tem os
+   * dois lados e nenhum deles mente. */
   var step = Date.now();
   stage('Reading FITS header', 4);
+  var fileHash = await fileDigestShort(buffer);
+  mark('digest', step);
+
+  step = Date.now();
   var hdu = findImageHDU(buffer);
   mark('header', step);
 
@@ -551,7 +586,11 @@ async function openFile(buffer, fileName, opts, post){
   };
 
   SESSION = {
+    // O nome fica aqui e NAO vai para o log: a tela precisa dele (a barra de
+    // cima, o nome do PNG, o nome do FITS exportado), e nada disso sai da
+    // maquina. O que sai -- o log -- leva a impressao digital.
     fileName: fileName,
+    fileHash: fileHash,
     now: now,
     // Pinned the same way `now` is, and for the same reason: the build stamp
     // moves with every source change, so a golden that carried the real one
@@ -793,7 +832,7 @@ async function runChain(params, mode, post){
 
   if (full){
     var ctx = {
-      fileName: SESSION.fileName,
+      fileHash: SESSION.fileHash,
       date: SESSION.now.toISOString().slice(0, 10),
       decoded: SESSION.decodedInfo,
       rowOrder: SESSION.rowOrder,

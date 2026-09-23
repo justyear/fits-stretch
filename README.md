@@ -99,7 +99,7 @@ this page — not a sample, not an illustration, the actual file:
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-gradient.fit
+Processing log — SHA-256 b14ac76614949a4f (identifies the file, not its name)
 1600 × 1200 · 32-bit float · 3 channels · 2026-09-05
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00581 to 0.47135.
@@ -132,10 +132,24 @@ Processing log — fixture-gradient.fit
 Every number above was measured from the file itself.
 ```
 
-The date on the second line, `2026-09-05`, is the day this golden was captured
-and is deliberately frozen there — a log that printed today's date could not be
-compared byte for byte against a stored one. Your own runs print the day you
-ran them.
+**The log does not name your file — it fingerprints it.** That first line is the
+SHA-256 of the bytes you opened, first eight bytes of it. It tells anyone who
+*has* the file that this log belongs to it, and tells anyone who does not
+nothing at all. It is also checkable, which a file name never was:
+
+```
+certutil -hashfile yourfile.fit SHA256      (Windows)
+shasum -a 256 yourfile.fit                  (macOS, Linux)
+```
+
+The first sixteen characters of that output are what the log prints. The name
+stays on your screen — in the title bar, and on the PNG and FITS you download —
+because that is yours and never leaves the machine. What the page asks you to
+paste is the part that does not identify you.
+
+The date, `2026-09-05`, is the day this golden was captured and is deliberately
+frozen there — a log that printed today's date could not be compared byte for
+byte against a stored one. Your own runs print the day you ran them.
 
 Every figure there was read off the frame: 92 of 108 sample boxes accepted,
 15,014 star pixels used and 46,129 thrown out as galaxy body, a luminance median
@@ -171,9 +185,9 @@ press it.
 
 - a fixed list of header keywords — `BITPIX`, `NAXIS` and its axes, `BZERO`,
   `BSCALE`, `DATAMIN`, `DATAMAX`, `BUNIT`, `ROWORDER`, `BAYERPAT`, `PROGRAM`,
-  `CREATOR`, `PRODUCER` — with the ones your file does not have printed as
-  `(absent)`, because which keywords are *missing* is half of what the catalogue
-  needs to know;
+  `CREATOR`, `PRODUCER`, and the two Bayer offsets `XBAYROFF` and `YBAYROFF` —
+  with the ones your file does not have printed as `(absent)`, because which
+  keywords are *missing* is half of what the catalogue needs to know;
 - every `HISTORY` and `COMMENT` line, in the order the file has them;
 - three numbers that are not pixels: the minimum, the maximum and the median,
   in the file's own units;
@@ -220,6 +234,8 @@ DATAMAX  = (absent)
 BUNIT    = (absent)
 ROWORDER = 'BOTTOM-UP'
 BAYERPAT = 'GRBG'
+XBAYROFF = 0
+YBAYROFF = 0
 PROGRAM  = 'make-fixture.ps1'
 CREATOR  = (absent)
 PRODUCER = (absent)

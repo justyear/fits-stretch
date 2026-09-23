@@ -59,6 +59,69 @@ fez. **5 é escolha da ferramenta**, e é o único degrau em que ela está adivi
 Hoje a decisão vai de 1–2 para 5. **O degrau 4 é o que falta, e é onde o caso
 principal mora.**
 
+
+### A procedência dos degraus, medida no FITS Support Office
+
+**Achado em 2026-09-23**, depois que alguém no grupo de astrofotografia apontou
+`fits.gsfc.nasa.gov`. Não resolve a metade esticada do corpus — é tudo dado de
+ciência —, mas move a **procedência dos degraus** de suposição para documento.
+
+O dicionário de palavras-chave do padrão está em
+<https://heasarc.gsfc.nasa.gov/docs/fcg/standard_dict.html>, e o das demais
+convenções em <https://heasarc.gsfc.nasa.gov/docs/fcg/common_dict.html>.
+
+| chave | onde está documentada | status |
+|---|---|---|
+| `BUNIT` | **FITS Standard**, reservada | DOCUMENTADO |
+| `DATAMIN` / `DATAMAX` | **FITS Standard**, reservadas | DOCUMENTADO |
+| `HISTORY` / `COMMENT` | **FITS Standard**, reservadas | DOCUMENTADO |
+| `CREATOR` | recomendação **HEASARC** (`ofwg_recomm/r7.html`) | DOCUMENTADO |
+| `PROGRAM` | **UCOLICK** — convenção local de um observatório | FRACO |
+| `PRODUCER` | **não aparece** em nenhum dos dois dicionários | SEM ORIGEM |
+| `ROWORDER`, `BAYERPAT`, `XBAYROFF`, `YBAYROFF` | **não aparecem** | SEM ORIGEM |
+
+**O degrau 3 fica mais forte do que estava escrito.** `DATAMIN`/`DATAMAX` são
+reservadas do padrão, com texto normativo:
+
+> *"The value field shall always contain a floating point number, regardless of
+> the value of BITPIX. This number shall give the minimum valid physical value
+> represented by the array, exclusive of any special values."*
+
+`shall`. Quando estão lá, não há o que interpretar — que é exatamente o que o
+degrau 3 já assumia, e agora com a citação.
+
+**E o degrau 4 ganha a base que lhe faltava.** A entrada de `HISTORY` diz:
+
+> *"This keyword shall have no associated value; columns 9-80 may contain any
+> ASCII text. The text should contain a history of steps and procedures
+> associated with the processing of the associated data. Any number of HISTORY
+> card images may appear in a header."*
+
+**Ler o `HISTORY` para saber o que foi feito com o arquivo não é invenção
+nossa: é o uso que o padrão designa para o campo.** A investigação da regra
+linear (§8.4) chegou a isso por medição; o padrão chega pelo outro lado.
+
+> **E a palavra que decide a §1 inteira é `should`, não `shall`.**
+>
+> O padrão RECOMENDA registrar o processamento e não OBRIGA. Um arquivo que não
+> diz nada sobre o que sofreu **está em conformidade**. Então o caso mudo não é
+> arquivo malfeito nem escritor desleixado: é o padrão sendo seguido.
+>
+> Isso fecha uma pergunta que a spec tratava como aberta — *"dá para exigir a
+> declaração?"*. Não dá. O degrau 5 tem que existir, e a pergunta que resta é só
+> **que fração declara**, que continua precisando do corpus.
+
+**O que isto NÃO move:** as sete entradas do `STRETCH_HISTORY`. O padrão diz que
+`HISTORY` guarda o histórico de processamento e **não diz com que palavras** —
+nenhum texto prescrito, nenhum vocabulário. As entradas SUPOSTO continuam
+SUPOSTO, e só fecham com arquivos de cada programa.
+
+**E uma correção que isto impõe à escada:** o degrau 4 trata `PROGRAM` e
+`CREATOR` como equivalentes, e eles não são. `CREATOR` é recomendação HEASARC;
+`PROGRAM` tem como única origem a convenção local de **um** observatório. Os dois
+fixtures da suíte trazem `PROGRAM`, porque foi o que o gerador escreveu — outra
+população que confirma quem a escreveu. **Anotado, não consertado:** qual das
+duas os programas de astrofotografia realmente gravam é pergunta para o corpus.
 ### 2.1 O degrau 4, com a única forma que ele pode ter
 
 Uma tabela de escritores, na forma da `STRETCH_HISTORY` que já existe em

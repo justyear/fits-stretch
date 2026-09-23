@@ -1,7 +1,7 @@
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-seestar.fit
+Processing log — SHA-256 6d0acf7bbd4ce595 (identifies the file, not its name)
 1920 × 1080 · 16-bit integer · 3 channels · 2026-09-05
 
 • Read the FITS: 16-bit unsigned integer (BZERO 32768), one image plane, rows stored bottom-up and flipped back the right way up. Pixel values rescaled onto 0–1 from the 0 to 65535 range they were stored in, where the data spans 0.00780 to 0.31510.

@@ -1,7 +1,7 @@
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-edge.fit
+Processing log — SHA-256 3f18a50b3e896aab (identifies the file, not its name)
 400 × 300 · 32-bit float · 3 channels · 2026-09-05
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.01041 to 1.00000.

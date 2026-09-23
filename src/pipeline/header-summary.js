@@ -59,7 +59,13 @@ var HEADER_SUMMARY_KEYS = [
   'BITPIX', 'NAXIS',
   'BZERO', 'BSCALE',
   'DATAMIN', 'DATAMAX', 'BUNIT',
-  'ROWORDER', 'BAYERPAT',
+  // Os dois deslocamentos do mosaico entraram depois, e a razao de terem
+  // entrado DEPOIS vale mais que os dois campos: a lista foi especificada por
+  // quem pediu o botao, e ampliar uma lista de permissao por conta propria e
+  // exatamente o movimento que uma lista de permissao existe para impedir.
+  // Sao convencao de CFA -- dizem onde o padrao Bayer comeca -- e um par de
+  // inteiros 0 ou 1 nao identifica ninguem.
+  'ROWORDER', 'BAYERPAT', 'XBAYROFF', 'YBAYROFF',
   'PROGRAM', 'CREATOR', 'PRODUCER'
 ];
 

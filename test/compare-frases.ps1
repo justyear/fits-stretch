@@ -84,6 +84,22 @@ $DECLARADAS = @(
        classe = 'DIVIDA'
        porque = 'variante do texto do alvo no ramo NAO-LINEAR por canal. O nonlinear entra por outro caminho, entao esta forma da frase nunca sai' }
 
+    # O outro lado da impressao digital do arquivo.
+    #
+    # `crypto.subtle` exige contexto seguro. `file://` CONTA como seguro em
+    # Chrome e em Firefox -- que e como a pagina e usada, e por isso o lado bom
+    # e o unico que sai em qualquer captura. O lado ruim precisa de um navegador
+    # que nao oferece a API, e a captura roda num servidor local, que e contexto
+    # seguro por definicao.
+    #
+    # IMPOSSIVEL e nao DIVIDA: para cobrir seria preciso capturar um golden com
+    # `crypto.subtle` removido do ambiente. Um golden que depende de uma API
+    # AUSENTE registra o ambiente da captura, nao o comportamento da pagina --
+    # e o fixture passaria a afirmar que aquele navegador existe.
+    @{ chave = 'could not compute the file digest'
+       classe = 'IMPOSSIVEL'
+       porque = 'depende de um navegador SEM crypto.subtle. A captura roda em http://127.0.0.1, que e contexto seguro, e file:// tambem e nos dois navegadores testados -- entao nao ha captura possivel em que esta metade saia. A outra metade esta em todos os 22 goldens' }
+
     @{ chave = 'this browser cannot allocate a canvas at full size'
        classe = 'IMPOSSIVEL'
        porque = 'depende de o navegador FALHAR em alocar o canvas. Nao ha como provocar isso de forma reprodutivel numa captura, e um golden que dependesse de pressao de memoria seria pior que a frase sem caso' }

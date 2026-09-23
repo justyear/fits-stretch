@@ -26,7 +26,20 @@ function buildLog(ctx){
          (TOOL_URL ? ': ' + TOOL_URL : '.'));
   L.push('Nothing was uploaded. The file never left this machine.');
   L.push('');
-  L.push('Processing log — ' + ctx.fileName);
+  /* O ARQUIVO, IDENTIFICADO SEM SER NOMEADO.
+   *
+   * Aqui saia o nome do arquivo, e esta e a unica linha do log que carregava
+   * algo identificavel. Num log que a propria pagina manda colar junto com a
+   * imagem, o nome e o dado que a pessoa nao escolheu publicar.
+   *
+   * O digest diz a mesma coisa para quem precisa -- "este log e deste arquivo"
+   * -- e diz mais, porque da para CONFERIR. O nome so podia ser acreditado.
+   *
+   * O parenteses fica: quem le o log num forum nao leu o README, e um numero
+   * hexadecimal sem rotulo convida a ser lido como qualquer outra coisa. */
+  L.push('Processing log — ' + (ctx.fileHash
+    ? 'SHA-256 ' + ctx.fileHash + ' (identifies the file, not its name)'
+    : 'this browser could not compute the file digest, so nothing identifies the file here'));
   L.push(d.width + ' × ' + d.height + ' · ' +
          (d.bitpix > 0 ? d.bitpix + '-bit integer' : Math.abs(d.bitpix) + '-bit float') + ' · ' +
          (ctx.outChannels === 3 ? '3 channels' : 'monochrome') + ' · ' + ctx.date);

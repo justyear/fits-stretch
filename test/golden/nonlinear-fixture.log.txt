@@ -1,7 +1,7 @@
 Processed with Stretch, a one-page FITS autostretch that runs in the browser.
 Nothing was uploaded. The file never left this machine.
 
-Processing log — fixture-nonlinear.fit
+Processing log — SHA-256 f11ae11071b83e48 (identifies the file, not its name)
 900 × 600 · 32-bit float · 3 channels · 2026-09-05
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.18413 to 1.00000.
