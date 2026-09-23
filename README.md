@@ -35,7 +35,9 @@ address is not on the internet; it cannot leave the tab. Every other kind of
 entry — an `http://` or `https://` to anywhere — is absent, and there is no code
 in the file that could produce one.
 
-There is no account, no sign-in, no upload button, and no analytics. There is
+There is no account, no sign-in, no upload button, and no analytics. The one
+button meant for sharing — *Copy header summary*, below — puts text on your
+clipboard and stops there; what happens to it next is your decision. There is
 no server to send anything to — the file you downloaded *is* the program. You
 can open it in a text editor and read it. That is not a figure of speech; it is
 one file of readable code with no minification and no external libraries, and
@@ -59,6 +61,9 @@ prove it does what it says.
    page. There is no installer and nothing to allow.
 3. Drag a `.fit`, `.fits` or `.fz` file onto it.
 4. Look at the result. Download the picture, and the log if you want it.
+5. *Optional, and only if you want to help:* **Copy header summary** — see
+   [The header summary](#the-header-summary) for what it copies and what it
+   never does.
 
 No installation. No Python, no dependencies, nothing to keep updated. It works
 offline, on a laptop on a mountain.
@@ -99,7 +104,7 @@ Processing log — fixture-gradient.fit
 
 • Read the FITS: 32-bit IEEE float, 3 image planes, rows stored top-down. Pixel values were already on a 0–1 scale, and the data spans 0.00581 to 0.47135.
 • No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
-• Data is linear: median 0.01676, no stretch recorded in the header. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
+• Data is linear: median 0.01676, under the 0.05 this rule compares against. Nothing in the header declares a stretch, so the median decided this on its own — a 198.3% rise in the frame’s overall level would reverse it. Full autostretch applied. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
 • Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 92 of them (16 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
     Each channel got its own model median back as a pedestal (R 0.01831, G 0.01658, B 0.01505), so the background level is preserved and only its variation was removed.
     The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
@@ -150,6 +155,103 @@ If it came out large, the tool would say so and apply nothing. That is the part
 worth having: a tool that always produces an answer is not measuring, it is
 guessing and rounding to something plausible, and you would have no way to tell
 the two apart.
+
+---
+
+## The header summary
+
+**Copy header summary** exists for one reason: to help build an open catalogue
+of what FITS writers actually put in their files — which keywords they declare,
+which they leave out, and what they write in `HISTORY` when they process an
+image. That catalogue is what lets this page stop guessing about files it has
+never seen. It is optional, and the tool works exactly the same if you never
+press it.
+
+**What it copies:**
+
+- a fixed list of header keywords — `BITPIX`, `NAXIS` and its axes, `BZERO`,
+  `BSCALE`, `DATAMIN`, `DATAMAX`, `BUNIT`, `ROWORDER`, `BAYERPAT`, `PROGRAM`,
+  `CREATOR`, `PRODUCER` — with the ones your file does not have printed as
+  `(absent)`, because which keywords are *missing* is half of what the catalogue
+  needs to know;
+- every `HISTORY` and `COMMENT` line, in the order the file has them;
+- three numbers that are not pixels: the minimum, the maximum and the median,
+  in the file's own units;
+- which build of this page produced them.
+
+**What it never copies:** `OBJECT`, `DATE-OBS`, `TELESCOP`, `INSTRUME`,
+`OBSERVER`, sky coordinates, site position, the file name, or any path.
+
+That list is not the mechanism, and the difference matters. The block is
+assembled from the **fixed list above** — nothing else in your header is ever
+read into it. A list of forbidden keywords only protects you from the ones
+somebody thought of; a list of permitted ones protects you from the rest too.
+The test suite checks the output against both, on every test frame, and it
+fails on any keyword that is not on the permitted list — including ones nobody
+thought to forbid.
+
+**The one exception is said out loud, in the text itself.** `HISTORY` and
+`COMMENT` are free text, copied whole, because they are exactly what the
+catalogue is asking about. If a program wrote a folder path or a file name
+inside one of them, no list of keywords can see it. So the block counts the
+lines that look like one and names them at the top — *"2 free-text lines below
+look like they carry a file path … HISTORY 2, HISTORY 3"* — and removes
+nothing. You read it; you decide.
+
+It goes to your clipboard and nowhere else. This is the whole block for one of
+the repository's test frames, as it is stored and compared byte for byte:
+
+```
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = 16
+NAXIS    = 2
+NAXIS1   = 1920
+NAXIS2   = 1080
+BZERO    = 32768
+BSCALE   = 1
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = 'BOTTOM-UP'
+BAYERPAT = 'GRBG'
+PROGRAM  = 'make-fixture.ps1'
+CREATOR  = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      511
+max      20650
+median   720.666667
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (0 lines, in file order) ---
+  (none)
+
+--- COMMENT (0 lines, in file order) ---
+  (none)
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.
+```
+
+That test frame's header also carries `OBJECT`, `INSTRUME`, `EXPTIME` and two
+Bayer-offset keywords. None of them is in the block, because none of them is on
+the list. The line `build pinned-for-goldens` is the one thing that differs from
+what you will see: in the page it is a sixteen-character fingerprint of the
+code, and in the stored copy it is fixed so that the file does not change every
+time any code does.
 
 ---
 
@@ -261,18 +363,19 @@ work, so it reported a failure that was not real — and a false failure from
 your test harness is worse than no harness, because you cannot tell it apart
 from a genuine regression. Until there is a driver whose failures can be
 trusted, the capture is something you watch happen. Everything after it is
-automated:
+automated. The counts in brackets are as of v1.5.0 — each script prints its own
+when you run it:
 
 | command | the question it answers |
 |---|---|
-| `test\compare-golden.ps1` | is today's output the same as yesterday's? |
-| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (709 comparisons across twenty test frames, 0 failures; the thirty-three that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
+| `test\compare-golden.ps1` | is today's output the same as yesterday's? And, as assertions rather than comparisons — so they hold even if a stored copy shares the defect: no value in any output is NaN or infinite, and no header summary carries a keyword outside the permitted list, the value of an identifying one, or the file name (110 checks across twenty-two runs) |
+| `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (752 comparisons across twenty-two runs, 0 failures; the sixty that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
-| `test\negative-controls-reference.ps1` | can the *reference* comparison still fail? Every quota it carries is a number, so this sets the stored value to exactly 0.5x and 3x that quota and demands a pass then a failure. A line that survives both is a quota that cannot fail, and it is reported under that name (399 of the 447 lines that carry a quota, and it found one on its first run — about itself) |
+| `test\negative-controls-reference.ps1` | can the *reference* comparison still fail? Every quota it carries is a number, so this sets the stored value to exactly 0.5x and 3x that quota and demands a pass then a failure. A line that survives both is a quota that cannot fail, and it is reported under that name (401 of the 449 lines that carry a quota, and it found one on its first run — about itself) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (34 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
 | `test\compare-safeguards.ps1` | can the two rules that no test frame trips still refuse? It applies the gains only if a 10% error in the sky estimate would move them by under 5%. No test frame trips that, so this sweep raises the sky until it does — and asserts the gains do *not* drift while it still accepts, because a rule that refused on difference rather than on unreliability would be measuring the wrong thing. The second rule is the saturation one: it refuses if scaling chroma would raise the colour noise of the sky by more than 2%, which the correct code cannot do -- so the control runs a deliberately mis-wired mask through the same chain and requires it to refuse at 45% |
 | `test\compare-margens.ps1` | how close is each test frame to each fixed threshold in the chain? Every other check asks whether a case *changed*; this one asks *where it sits*. A frame within 5 % of a threshold is named debt — either the threshold is in the wrong place, or the frame is testing something other than what it is thought to test — and it must be declared with a reason or the check fails. It found two on its first run, one of which had been printing its own number in the log for months |
-| `test\compare-frases.ps1` | does every sentence the log can print have a test frame that prints it? Code coverage and *sentence* coverage are not the same thing: a branch can be covered by a test that checks the number and never prints the words — and in a log, the words are what the reader reads. 143 sentences, 135 with a case; the 8 without are declared with a reason, and a new one fails the check -- as does a declaration that quietly gains one |
+| `test\compare-frases.ps1` | does every sentence the page can print — in the log or in the header summary — have a test frame that prints it? Code coverage and *sentence* coverage are not the same thing: a branch can be covered by a test that checks the number and never prints the words — and in a log, the words are what the reader reads. 166 sentences, 156 with a case; the 10 without are declared with a reason, and a new one fails the check -- as does a declaration that quietly gains one |
 | `test\compare-truth.js` | is the fitted background the gradient we *put into* the test image — checked against numbers stored in the file's own header, which came from neither implementation? |
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 
@@ -299,7 +402,7 @@ was measured, what is verified and what is not.
 - **It has been tested against synthetic frames and a second implementation, not
   against a large collection of real files.** The measurements are honest about
   which is which.
-- **A file that lies about itself is refused, not guessed at.** 33 deliberately
+- **A file that lies about itself is refused, not guessed at.** 34 deliberately
   broken files are part of the test suite, and each one has to keep getting the
   same answer. The failure the suite watches hardest for is the quiet one: a
   file that used to be refused starting to produce a picture. It has caught that

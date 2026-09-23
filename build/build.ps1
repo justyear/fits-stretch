@@ -278,6 +278,61 @@ function Test-Manifest($expect) {
     return $problems
 }
 
+<#
+O README MOSTRA DUAS SAIDAS "DE VERDADE", E ESTA CHECAGEM E O QUE AS TORNA DE
+VERDADE.
+
+A secao do log diz: "This is the whole log for the frame at the top of this
+page -- not a sample, not an illustration, the actual file". A do bloco de header
+diz "as it is stored and compared byte for byte". As duas frases eram promessa e
+nao verificacao -- e a do log ja estava FALSA: a frase do degrau 5 mudou numa
+rodada, o golden foi recapturado, e a copia do README ficou com a frase velha,
+"no stretch recorded in the header", que o produto nao imprime mais.
+
+E a mesma classe que esta sessao registrou tres vezes em uma semana: uma copia
+escrita a mao ao lado de uma afirmacao de que ela e a coisa. O criterio tambem e
+o mesmo: esquecer de atualizar a copia nao quebra nada, e o README continua
+perfeitamente plausivel -- entao precisa de guarda.
+
+A comparacao e byte a byte contra o golden, com UMA concessao dita: o bloco
+cercado do markdown termina com uma quebra de linha antes da cerca, e o golden
+nao. Nada mais e normalizado.
+#>
+function Test-ReadmeCopies {
+    $path = Join-Path $root 'README.md'
+    if (-not (Test-Path -LiteralPath $path)) { return @('README.md ausente') }
+    $md = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes($path))
+    $problems = @()
+    $pares = @(
+        @{ secao = '## The log';            golden = 'test\golden\gradient-fixture.log.txt' },
+        @{ secao = '## The header summary'; golden = 'test\golden\seestar-fixture.header.txt' }
+    )
+    foreach ($p in $pares) {
+        $at = $md.IndexOf("`n" + $p.secao + "`n")
+        if ($at -lt 0) { $problems += ("README.md: secao '{0}' nao encontrada" -f $p.secao); continue }
+        $open = $md.IndexOf("`n" + '```' + "`n", $at)
+        if ($open -lt 0) { $problems += ("README.md: '{0}' sem bloco cercado" -f $p.secao); continue }
+        $start = $open + 5
+        $close = $md.IndexOf("`n" + '```' + "`n", $start - 1)
+        if ($close -lt 0) { $problems += ("README.md: bloco de '{0}' sem cerca de fechamento" -f $p.secao); continue }
+        $bloco = $md.Substring($start, $close - $start)
+        $gp = Join-Path $root $p.golden
+        if (-not (Test-Path -LiteralPath $gp)) { $problems += ("{0} ausente" -f $p.golden); continue }
+        $gold = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes($gp))
+        if ($bloco -ne $gold) {
+            $bl = $bloco -split "`n"; $gl = $gold -split "`n"; $linha = 0
+            for ($i = 0; $i -lt [Math]::Max($bl.Count, $gl.Count); $i++) {
+                if ($i -ge $bl.Count -or $i -ge $gl.Count -or $bl[$i] -ne $gl[$i]) { $linha = $i + 1; break }
+            }
+            $problems += ("README.md, secao '{0}': difere de {1} a partir da linha {2} do bloco" -f $p.secao, $p.golden, $linha)
+        }
+    }
+    if ($problems.Count -eq 0) {
+        Write-Host ("README: {0} blocos que se dizem o arquivo de verdade conferem com o golden, byte a byte" -f $pares.Count)
+    }
+    return $problems
+}
+
 if ($Check) {
     $fail = 0
     foreach ($pair in @(@($outPublish, $bytesPublish, $hashPublish, 'publicacao'),
@@ -309,6 +364,13 @@ if ($Check) {
     if ($stale.Count) {
         Write-Host 'CHECK FAIL - a tabela de hashes do MANIFEST nao bate com o build:'
         foreach ($s in $stale) { Write-Host ("  {0}" -f $s) }
+        $fail++
+    }
+
+    $readme = Test-ReadmeCopies
+    if ($readme.Count) {
+        Write-Host 'CHECK FAIL - o README diz que mostra o arquivo de verdade, e nao mostra:'
+        foreach ($s in $readme) { Write-Host ("  {0}" -f $s) }
         $fail++
     }
 
