@@ -2611,35 +2611,57 @@ silêncio. **Depende do item 1**, porque o degrau 4 vem antes.
 A pessoa reabre o arquivo. **Deliberado**, e fica: um desfazer que reconstruísse
 estado a partir da tela seria o começo de uma segunda fonte de verdade.
 
-### 10. O log imprime o nome do arquivo — decisão de produto
+### 10. ~~O log imprime o nome do arquivo~~ — FECHADO
 
-Achado na auditoria da v1.5.0. A linha *"Processing log — <nome>"* sai em todo
-run, e a página convida a colar o log em público. O botão novo promete nunca
-copiar o nome; o log copia. Nenhum outro identificador sai pelo log.
+O log passou a imprimir `SHA-256 <16 dígitos>` no lugar do nome. Identifica para
+quem tem o arquivo, não diz nada para quem não tem, e **é conferível** —
+`certutil -hashfile x SHA256`, `shasum -a 256 x` — que é o que o nome nunca deu.
+Auditado no build publicado: 20/20, com o digest batendo contra um sha256
+calculado fora do pipeline.
 
-**Destrava:** a coerência entre as duas saídas feitas para colar. As saídas
-possíveis — tirar o nome, ou deixar e dizer ao lado do botão do log que ele vai
-junto — mudam os 22 goldens de log, então é recaptura em commit próprio.
+O nome continua na tela e nos arquivos baixados. O que mudou é só o que a pessoa
+é convidada a publicar.
 
-### 11. Um nome de arquivo original no histórico público — decisão do dono
+### 11. Um nome de arquivo original no histórico público
 
-Consertado na árvore em `51ec35a`, e **continua em toda tag desde a v1.0.0**.
-Tirar de lá é reescrever histórico e reempurrar as cinco tags anteriores, o que
-quebra clone de quem já clonou — o mesmo custo que fez a decisão da identidade do
-git ficar como estava. A diferença é que aquela era sobre autoria e esta é sobre
-um identificador que o CLAUDE.md proíbe. **Não é da auditoria decidir.**
+Consertado na árvore em `51ec35a`. **Continua em toda tag desde a v1.0.0.**
 
-### 12. O MANIFEST parou em `7bb4623`
+**A reescrita foi autorizada e está medida:** 0 forks, 0 stars, 0 watchers,
+`network_count` 0. Os downloads de release são do `index.html` solto (9 no total
+entre as seis versões), e baixar um asset não é clone — nada que uma reescrita
+quebre. **O que não dá para medir sem token:** `git clone` não aparece em API
+pública; 0 forks é o melhor indicador disponível e não é prova.
+
+**Bloqueado por permissão, não por decisão:** `git filter-branch` é recusado
+pelo classificador de ações destrutivas desta sessão. O escopo já está apurado:
+54 blobs, **um único formato de linha**, só em `NOTAS-SESSAO-FITS.md`; o hit no
+`CLAUDE.md` é fragmento do exemplo mascarado e **tem que ficar**. Filtro escrito
+e testado nos dois sentidos (no-op byte a byte onde não há token; uma linha onde
+há). Bundle de backup de 442 MB em `../backup-antes-da-reescrita/`.
+
+### 12. O MANIFEST parou em `7bb4623` — adiado por decisão
 
 Só a tabela de hashes é atualizada; as seções de fixtures e artefatos descrevem a
 suíte de semanas atrás. Ou reescreve, ou reduz ao que é verificado por máquina —
-e diz no topo que o resto é histórico.
+e diz no topo que o resto é histórico. **Fica para depois.**
 
-### 13. Duas chaves candidatas à lista de permissão do bloco de header
+### 13. ~~XBAYROFF e YBAYROFF~~ — FECHADO, entraram
 
-`XBAYROFF` e `YBAYROFF`, os deslocamentos do padrão Bayer. São convenção de CFA,
-exatamente o tipo de coisa que o catálogo existe para medir, e não identificam
-ninguém. **Não entraram porque a lista foi especificada**; ampliar é decisão sua.
+Na lista de permissão do bloco de header. Convenção de CFA, não identificam
+ninguém. O comentário no código registra que entraram **por decisão de quem
+pediu o botão**, e não por conta própria — que é o movimento que uma lista de
+permissão existe para impedir.
+
+### 14. `PROGRAM` e `CREATOR` não são equivalentes, e a escada os trata como se fossem
+
+Medido no dicionário do FITS Support Office (spec da escala, *"A procedência dos
+degraus"*): `CREATOR` é recomendação **HEASARC**; `PROGRAM` tem como única origem
+a convenção local de **um** observatório; `PRODUCER` não aparece em dicionário
+nenhum. O degrau 4 cita os três na mesma linha.
+
+**Destrava:** saber qual deles os programas de astrofotografia realmente gravam
+— e isso é o corpus outra vez. Os fixtures todos trazem `PROGRAM` porque foi o
+que o gerador escreveu: mais uma população que confirma quem a escreveu.
 
 ---
 
