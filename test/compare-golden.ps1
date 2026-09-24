@@ -94,7 +94,7 @@
 
 param(
     [string]   $Fresh = '.claude\shots',
-    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture', 'ceuclaro-fixture', 'caminho-fixture', 'swcreate-fixture'),
+    [string[]] $Names = @('seestar-fixture', 'rice-fixture', 'nonlinear-fixture', 'gradient-fixture', 'edge-fixture', 'colour-fixture', 'asinh-fixture', 'saturation-fixture', 'flatsky-fixture', 'twoobjects-fixture', 'bigobject-fixture', 'oneobject-fixture', 'cropped-fixture', 'float16-fixture', 'floatmax-fixture', 'nobayer-fixture', 'mudo-fixture', 'duasdecl-fixture', 'declaraestica-fixture', 'bayerespelhado-fixture', 'ceuclaro-fixture', 'caminho-fixture', 'swcreate-fixture', 'escritor-controle-bp-fixture', 'escritor-autoghs-fixture', 'escritor-ghs-asinh-fixture', 'escritor-base-fixture', 'escritor-pixelmath-fixture'),
     [switch]   $Detail
 )
 
@@ -696,6 +696,50 @@ if ($leakFail -eq 0) {
     Write-Host ('nenhuma chave fora da lista de permissao, e nenhum identificador, em nenhum bloco de header')
 } else {
     $fail += $leakFail
+}
+
+<#
+O CATALOGO DE ESTICAMENTO, AFIRMADO FIXTURE A FIXTURE.
+
+Os goldens fixam os rotulos que cada fixture recebe -- e uma recaptura fixaria
+tambem um rotulo ERRADO, sem reclamar: o golden e a captura sairiam do mesmo
+codigo e concordariam. Esta tabela e o que a medicao de escritores DISSE que
+cada um tem que receber, escrita antes e fora da captura.
+
+A origem de cada linha e `medicao-escritores-resultado-a.md`, secao 4, e o
+relatorio `medicao-escritores-relatorio-a.txt`. Os cinco fixtures tem o header
+gravado pelo Siril 1.4.4 e os pixels de medicao_escritores.py.
+
+`-` quer dizer NENHUM rotulo, e e uma afirmacao tao forte quanto as outras: o
+controle `escritor-controle-bp` e o falso positivo do `GHS BP shift` fechado, e
+o dia em que ele voltar a receber `GHS` e o dia em que o item 2 transformaria
+um deslocamento de ponto preto em veredito de esticamento.
+#>
+$CATALOGO_ESPERADO = @(
+    @{ f = 'escritor-controle-bp-fixture'; r = '-' }
+    @{ f = 'escritor-autoghs-fixture';     r = 'GHS' }
+    @{ f = 'escritor-ghs-asinh-fixture';   r = 'Modified asinh' }
+    @{ f = 'escritor-base-fixture';        r = '-' }
+    @{ f = 'escritor-pixelmath-fixture';   r = '-' }
+)
+$catFail = 0
+foreach ($e in $CATALOGO_ESPERADO) {
+    if ($Names -notcontains $e.f) { continue }
+    foreach ($onde in @(@{ dir = $fresh; rotulo = 'captura' }, @{ dir = $gold; rotulo = 'golden' })) {
+        $dp = Join-Path $onde.dir "$($e.f).diag.json"
+        if (-not (Test-Path -LiteralPath $dp)) { continue }
+        $h = @((Get-Content -LiteralPath $dp -Raw | ConvertFrom-Json).linearity.historyHits)
+        $tem = if ($h.Count -eq 0) { '-' } else { $h -join ' + ' }
+        if ($tem -ne $e.r) {
+            Write-Host ("CATALOGO FAIL - {0} ({1}): recebeu [{2}], a medicao diz [{3}]" -f $e.f, $onde.rotulo, $tem, $e.r)
+            $catFail++
+        }
+    }
+}
+if ($catFail -eq 0) {
+    Write-Host ('catalogo: os {0} fixtures de escritor recebem exatamente os rotulos que a medicao mediu' -f $CATALOGO_ESPERADO.Count)
+} else {
+    $fail += $catFail
 }
 <#
 GOLDEN NO DISCO QUE NAO ESTA EM $Names NAO PODE SUMIR EM SILENCIO.

@@ -18,8 +18,8 @@ ganchos. Os dois:
 
 | arquivo | bytes | sha256 |
 |---|---|---|
-| `index.html` | 309415 | `2c0f61755d451aeccded5ce66835fe6b4fb7fc2fa3feb4f9897f698c6bc76eec` |
-| `.claude/index-test.html` | 311108 | `c36fd529e2fbbcb440f8753c05ec0bde150b37383dd4df6af2a39d273455658a` |
+| `index.html` | 314014 | `4593f1f4ba3090e58217f4216d017c4e6de09300f812d7a48b42fb55938b15cd` |
+| `.claude/index-test.html` | 315707 | `7e54cd1bce3d3900e7fbafb3829cda9a16e465fb700c5eaef7f11a1ad5fc8c73` |
 
 <!--/BUILD_HASHES-->
 
@@ -373,6 +373,54 @@ caminho Rice com o caminho do gradiente: uma falha neste fixture passaria a ter
 duas explicações possíveis, e separar as duas custaria mais do que os 23 MB
 valem. O `fixture-rice.fit.fz` existe para exercitar o Rice; este existe para
 exercitar o gradiente. Um fixture, uma pergunta.
+
+## Fixtures de escritor — header gravado pelo Siril 1.4.4
+
+**Cinco fixtures que o `make-fixture.ps1` NÃO gera.** Os pixels são sintéticos,
+de `medicao_escritores.py` (semente 20260923); o header foi gravado pelo próprio
+Siril 1.4.4, no Windows, pelo `siril-cli`, na parte A de
+`medicao-escritores.md`. Regerá-los exige o Siril — então a âncora é o SHA-256
+abaixo, e não um gerador. Nenhum dado de terceiro: nenhum dos cinco tem
+`DATE-OBS` nem `TELESCOP`, e as chaves de escritor herdadas da entrada se
+anunciam fictícias.
+
+A entrada da medição, idêntica byte a byte no ensaio do Siril 1.2.1 e na rodada
+do 1.4.4:
+
+```
+entrada.fit        31cdd423200c2e79340dd34e743663f84359464a8b080cf4aec6918900b34042
+entrada-limpa.fit  be3b67740821e6e58b97444c372aee95d7ba7b336fc2b2f895032f27bdf5b81a
+```
+
+| fixture | saída da medição | operação no Siril | o catálogo tem que dar |
+|---|---|---|---|
+| `fixture-escritor-controle-bp.fit` | `s20-linstretch-controle` | `GHS BP shift`, afim | **nenhum rótulo** |
+| `fixture-escritor-autoghs.fit` | `s07-autoghs` | `AutoGHS` | `GHS` |
+| `fixture-escritor-ghs-asinh.fit` | `s08-modasinh` | `GHS asinh` | **só** `Modified asinh` |
+| `fixture-escritor-base.fit` | `s00-base` | carregar e salvar | nenhum rótulo |
+| `fixture-escritor-pixelmath.fit` | `s11-pixelmath` | PixelMath: estica, não se declara e apaga o HISTORY herdado | nenhum rótulo |
+
+```
+fixture-escritor-controle-bp.fit  c77d58fd76a9159c7aae215fba67161e6f7525356385299a0297ead8583cb392
+fixture-escritor-autoghs.fit      f6ffbd2914597387424a8b2de0b4939a6feb2c0119898ec320be5cab1a597f15
+fixture-escritor-ghs-asinh.fit    dfcdc7da74646022e16a2799b9107623e34285735c6a4e9d78f58d59d2ed7eca
+fixture-escritor-base.fit         a6d93461a7e04224bf8616f8316ba0b6f24c4991db0d49e8d2468e343ede3015
+fixture-escritor-pixelmath.fit    454f5a890daae4b7fde4b2ddd842b25b7fe13e20946c4eb5cbb33a5d792ed123
+```
+
+A coluna da direita é **afirmada** no `compare-golden.ps1`, em cima do golden e da
+captura — não só fixada pelo golden, porque uma recaptura fixaria também um
+rótulo errado. O relatório bruto da medição está na raiz, em
+`medicao-escritores-relatorio-a.txt`.
+
+O nome descreve o ramo, não o programa (`medicao-escritores.md`, §8): programa,
+versão e sistema moram aqui.
+
+**O texto medido vai além dos cinco.** `catalogo-historico.json`, nesta pasta, tem
+as 26 linhas de HISTORY que a medição e os arquivos reais mostraram — 1.2.1, 1.4.4
+e arquivo real — cada uma com o rótulo esperado, escrito à mão. Não é golden: é
+tabela de afirmação, lida por `__captureCatalogo` e conferida por
+`test/compare-catalogo.ps1`, que roda a `historyLabels` do pipeline publicado.
 
 ## Artefatos
 

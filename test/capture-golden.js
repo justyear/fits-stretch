@@ -178,7 +178,22 @@ window.__GOLDEN = [
   // o CAMINHO DO CODIGO -- a linha de SWCREATE com valor no bloco de header. NAO
   // prova que o N.I.N.A. grava a chave: essa evidencia e um header publico, de
   // procedencia propria, e este fixture foi escrito aqui.
-  ['swcreate-fixture', '/f/test/fixtures/fixture-swcreate.fit']
+  ['swcreate-fixture', '/f/test/fixtures/fixture-swcreate.fit'],
+  // A MEDICAO DE ESCRITORES (medicao-escritores.md), parte A: pixels sinteticos
+  // de medicao_escritores.py, HEADER ESCRITO PELO SIRIL 1.4.4. Os cinco nao saem
+  // do make-fixture.ps1 -- regera-los exige o Siril -- e a ancora e o SHA-256
+  // registrado no MANIFEST. Cada um existe para um ramo do catalogo:
+  //
+  //   controle-bp  `GHS BP shift`, afim: NENHUM rotulo (o falso positivo, fechado)
+  //   autoghs      `AutoGHS`: rotulo GHS (antes passava sem rotulo)
+  //   ghs-asinh    `GHS asinh`: UM rotulo so, Modified asinh (antes, dois)
+  //   base         carregar e salvar: silencio de escritor conhecido
+  //   pixelmath    esticado, mudo, e com o HISTORY herdado APAGADO
+  ['escritor-controle-bp-fixture', '/f/test/fixtures/fixture-escritor-controle-bp.fit'],
+  ['escritor-autoghs-fixture',     '/f/test/fixtures/fixture-escritor-autoghs.fit'],
+  ['escritor-ghs-asinh-fixture',   '/f/test/fixtures/fixture-escritor-ghs-asinh.fit'],
+  ['escritor-base-fixture',        '/f/test/fixtures/fixture-escritor-base.fit'],
+  ['escritor-pixelmath-fixture',   '/f/test/fixtures/fixture-escritor-pixelmath.fit']
 ];
 
 /* ------------------------------------------------------------------ *
@@ -485,5 +500,36 @@ window.__captureAll = async function () {
   }
   out['malformed'] = await window.__captureMalformed();
   out['safeguards'] = await window.__captureSafeguards();
+  out['catalogo'] = await window.__captureCatalogo();
   return out;
+};
+
+/* ------------------------------------------------------------------ *
+ * THE STRETCH CATALOGUE AGAINST MEASURED TEXT.
+ *
+ * Every HISTORY line a writer has been measured writing, from
+ * test/golden/catalogo-historico.json, handed ONE AT A TIME to historyLabels
+ * -- the function the pipeline itself calls, evaluated out of the same
+ * pipeline-src block the worker runs, the way __captureMalformed reaches the
+ * decoder. A copy of the table here would test the copy.
+ *
+ * The rule list goes out with the results, so compare-catalogo.ps1 can tell a
+ * capture of this catalogue from a stale capture of another one.
+ * ------------------------------------------------------------------ */
+window.__captureCatalogo = async function () {
+  var src = document.getElementById('pipeline-src').textContent;
+  var shim = { onmessage: null, postMessage: function () {} };
+  new Function('self', src + ';self.__C={historyLabels:historyLabels,historyRule:historyRule,' +
+    'regras:STRETCH_HISTORY.map(function(r){return [String(r[0]),r[1]];})};')(shim);
+  var C = shim.__C;
+
+  var tabela = await fetch('/f/test/golden/catalogo-historico.json').then(function (r) { return r.json(); });
+  var linhas = tabela.linhas.map(function (e) {
+    return { linha: e.linha, rotulos: C.historyLabels([e.linha]), regra: C.historyRule(e.linha) };
+  });
+
+  var body = new Blob([JSON.stringify({ regras: C.regras, linhas: linhas }, null, 2)]);
+  var ab = await body.arrayBuffer();
+  await fetch('/save/catalogo.results.json', { method: 'POST', body: ab });
+  return { linhas: linhas.length, arquivo: 'catalogo.results.json', bytes: ab.byteLength };
 };

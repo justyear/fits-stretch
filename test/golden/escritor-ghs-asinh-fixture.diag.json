@@ -1,0 +1,179 @@
+{
+  "file": "fixture-escritor-ghs-asinh.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": -32,
+    "NAXIS": 3,
+    "NAXIS1": 512,
+    "NAXIS2": 384,
+    "NAXIS3": 3,
+    "BZERO": 0,
+    "BSCALE": 1,
+    "PROGRAM": "Siril 1.4.4",
+    "CREATOR": "justyear-sintetico 0 (dispositivo ficticio)",
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": -32,
+    "kind": "32-bit IEEE float",
+    "bzero": 0,
+    "bscale": 1,
+    "width": 512,
+    "height": 384,
+    "planes": 3,
+    "rawMin": 0.0347871407866478,
+    "rawMax": 0.9717698097229004,
+    "nonFinite": 0,
+    "normMin": 0.0347871407866478,
+    "normMax": 0.9717698097229004,
+    "scaleBasis": "float already normalised to [0,1]",
+    "scaleMode": "unit",
+    "scaleLo": 0,
+    "scaleHi": 0,
+    "scaleDiv": 1,
+    "scaleSource": "chosen"
+  },
+  "rowOrder": {
+    "keyword": null,
+    "flipApplied": true
+  },
+  "cfa": "skipped — file already has 3 planes",
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.05645329467714453,
+    "historyHits": [
+      "Modified asinh"
+    ],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "NON-LINEAR — reduced stretch"
+  },
+  "channels": [
+    {
+      "channel": "R",
+      "median": 0.05645838101777676,
+      "madn": 0.003366144692513856,
+      "q1": 0.054642557412069886,
+      "q3": 0.06105134660868238,
+      "shadows": 0.05065995269703212,
+      "midtones": 0.09373470386686247,
+      "target": 0.05650415808346685,
+      "pixelsBlack": 96,
+      "pixelsWhite": 0,
+      "totalPixels": 196608,
+      "statSamples": 196608,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "G",
+      "median": 0.05683985656519417,
+      "madn": 0.0031527974936925583,
+      "q1": 0.055069810025177385,
+      "q3": 0.06005951018539712,
+      "shadows": 0.05065995269703212,
+      "midtones": 0.09373470386686247,
+      "target": 0.05650415808346685,
+      "pixelsBlack": 96,
+      "pixelsWhite": 0,
+      "totalPixels": 196608,
+      "statSamples": 196608,
+      "statStride": 1,
+      "nonFinite": 0
+    },
+    {
+      "channel": "B",
+      "median": 0.056107423514152745,
+      "madn": 0.003137919837956104,
+      "q1": 0.05438315403982605,
+      "q3": 0.05967803463797971,
+      "shadows": 0.05065995269703212,
+      "midtones": 0.09373470386686247,
+      "target": 0.05650415808346685,
+      "pixelsBlack": 96,
+      "pixelsWhite": 0,
+      "totalPixels": 196608,
+      "statSamples": 196608,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": true,
+    "operator": "mtf",
+    "luminance": {
+      "luminanceMedian": 0.05650415808346685,
+      "luminanceMADN": 0.0025377287352092246,
+      "shadows": 0.05065995269703212,
+      "midtones": 0.09373470386686247,
+      "target": 0.05650415808346685,
+      "luminanceSpan": 0.013641565575646615,
+      "solvedStretch": null,
+      "stretchUnreachable": false,
+      "clipLow": 96,
+      "clipHigh": 0,
+      "highlightCut": 0.30365453574425877
+    },
+    "colourFidelity": {
+      "ratiosBefore": {
+        "rOverG": 1.0014798313705893,
+        "bOverG": 1.0098153736933375
+      },
+      "ratiosAfter": {
+        "rOverG": 1.003303096473966,
+        "bOverG": 1.0104267887783125
+      },
+      "maxRatioDrift": 4.440892098500626e-16,
+      "driftSamples": 196493,
+      "highlightPixels": 1967,
+      "pixelsRescaled": 93
+    }
+  },
+  "view": {
+    "width": 512,
+    "height": 384,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "digest": 6,
+    "header": 0,
+    "decode": 5,
+    "roworder": 0,
+    "preview": 1,
+    "stats": 11,
+    "background": 61,
+    "colour": 67,
+    "transfer": 99,
+    "saturation": 73,
+    "crop": 22,
+    "quantise": 14,
+    "downscale": 0,
+    "total": 316
+  },
+  "historyCards": [
+    "justyear: entrada sintetica da medicao de escritores, sem processamento",
+    "GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])"
+  ],
+  "allCards": [
+    "SIMPLE  =                    T / file does conform to FITS standard",
+    "BITPIX  =                  -32 / number of bits per data pixel",
+    "NAXIS   =                    3 / number of data axes",
+    "NAXIS1  =                  512 / length of data axis 1",
+    "NAXIS2  =                  384 / length of data axis 2",
+    "NAXIS3  =                    3 / length of data axis 3",
+    "EXTEND  =                    T / FITS dataset may contain extensions",
+    "COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy",
+    "COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H",
+    "BZERO   =                   0. / Offset data range to that of unsigned short",
+    "BSCALE  =                   1. / Default scaling factor",
+    "MIPS-FLO=                   0. / Lower visualization cutoff",
+    "PROGRAM = 'Siril 1.4.4'        / Software that created this HDU",
+    "DATE    = '2026-09-24T13:30:15' / UTC date that FITS file was created",
+    "HISTORY justyear: entrada sintetica da medicao de escritores, sem processamento",
+    "HISTORY GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])",
+    "CREATOR = 'justyear-sintetico 0 (dispositivo ficticio)' / valor sintetico",
+    "SWMODIFY= 'justyear-sintetico 0 (modificador ficticio)' / valor sintetico",
+    "COMMENT justyear: semente 20260923, gerada por medicao_escritores.py",
+    "END"
+  ]
+}

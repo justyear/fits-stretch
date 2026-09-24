@@ -1,0 +1,273 @@
+relatorio-medicao.txt -- medicao_escritores.py (medicao-escritores.md)
+
+entrada.fit        sha256 31cdd423200c2e79
+entrada-limpa.fit  sha256 be3b67740821e6e5
+PROGRAM nas saidas do Siril: ['Siril 1.4.4']
+controle afim, 1 - r2 (maior canal): 1.55e-15
+
+=== RESUMO ===
+saida                        BITPIX novas  1-r2      x ctrl    veredito
+s00-base                     -32    0      0         0         BASE: pixels identicos a entrada
+s00b-base-limpa              -32    0      0         0         BASE: pixels identicos a entrada
+s01-mtf                      -32    1      0.687     4.42e+14  DECLARADA E RECONHECIDA: Midtones transfer
+s02-autostretch              -32    1      0.803     5.17e+14  DECLARADA E RECONHECIDA: Autostretch
+s03-autostretch-linked       -32    1      0.791     5.09e+14  DECLARADA E RECONHECIDA: Autostretch
+s04-asinh                    -32    1      0.506     3.25e+14  DECLARADA E RECONHECIDA: Asinh stretch
+s05-asinh-human              -32    1      0.528     3.4e+14   DECLARADA E RECONHECIDA: Asinh stretch
+s06-ght                      -32    1      0.675     4.34e+14  DECLARADA E RECONHECIDA: GHS
+s07-autoghs                  -32    1      0.386     2.48e+14  DECLARADA, CATALOGO NAO RECONHECE
+s08-modasinh                 -32    1      0.33      2.12e+14  DECLARADA E RECONHECIDA: Asinh stretch, GHS
+s09-log                      -32    0      0.00841   5.41e+12  MUDA: mudou os pixels e nao escreveu HISTORY
+s10-clahe                    -32    0      0.0272    1.75e+13  MUDA: mudou os pixels e nao escreveu HISTORY
+s11-pixelmath                -32    0      0.175     1.13e+14  MUDA: mudou os pixels e nao escreveu HISTORY
+s20-linstretch-controle      -32    1      1.55e-15  1         CONTROLE FALHOU: o catalogo casa (GHS)
+s21-subsky-controle          -32    0      0.000426  2.74e+11  CONTROLE OK: nenhuma entrada casa
+s30-satu                     -32    1      0.00227   1.46e+12  informativo
+
+=== REGRAS PRE-REGISTRADAS ===
+1. Cobertura da declaracao (secao 3.1 da investigacao), por operacao:
+   8 de 11 operacoes tonais medidas deixaram linha de HISTORY.
+   mudas: s09-log, s10-clahe, s11-pixelmath
+   declaradas que o catalogo nao reconhece: s07-autoghs
+   autoridade estrita do silencio: NAO (ha operacao muda)
+   nao medidas (nada se conclui sobre elas): g01, g02, g03, g04, g05, g06, g07, g08, g09
+2. Controles (preservam a classe; nenhuma entrada do catalogo pode casar):
+   s20-linstretch-controle: CONTROLE FALHOU: o catalogo casa (GHS) ; pixels no minimo por canal: 1 (ref 1), 1 (ref 1), 1 (ref 1)
+   s21-subsky-controle: CONTROLE OK: nenhuma entrada casa ; pixels no minimo por canal: 1 (ref 1), 1 (ref 1), 1 (ref 1)
+3. Cadeias (o ultimo escritor se identifica?):
+   (nenhuma cadeia medida)
+
+=== POR SAIDA ===
+
+--- s00-base.fit  (referencia: entrada ; papel: base)
+sha256 a6d93461a7e04224 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (0), em ordem:
+COMMENT novas (2):
+      FITS (Flexible Image Transport System) format is defined in 'Astronomy
+      and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+chaves novas: {'MIPS-FLO': [0.0], 'DATE': ['2026-09-24T13:30:15']}
+chaves mudadas: {'PROGRAM': {'antes': ['justyear-sintetico 0 (programa ficticio)'], 'depois': ['Siril 1.4.4']}}
+chaves removidas: {'SWCREATE': ['justyear-sintetico 0 (captura ficticia)'], 'DATAMAX': [0.8711464405059814]}
+canal 0: min 0.00353853 max 0.726338 mediana 0.00532183 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0044283 max 0.77369 mediana 0.00575646 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.00322776 max 0.871146 mediana 0.00456396 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico True
+   canal 0: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+   canal 1: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+   canal 2: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+
+--- s00b-base-limpa.fit  (referencia: entrada-limpa ; papel: base)
+sha256 4f1b622613d3dd76 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4']}
+HISTORY novas (0), em ordem:
+COMMENT novas (2):
+      FITS (Flexible Image Transport System) format is defined in 'Astronomy
+      and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+chaves novas: {'MIPS-FLO': [0.0], 'PROGRAM': ['Siril 1.4.4'], 'DATE': ['2026-09-24T13:30:15']}
+canal 0: min 0.00353853 max 0.726338 mediana 0.00532183 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0044283 max 0.77369 mediana 0.00575646 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.00322776 max 0.871146 mediana 0.00456396 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico True
+   canal 0: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+   canal 1: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+   canal 2: 1-r2 0 ; rho 1.000000 ; ganho 1 offset 0 ; max|dif| 0
+
+--- s01-mtf.fit  (referencia: s00-base ; papel: tonal)
+sha256 804236d4d60c3317 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Midtones transfer (0.003, 0.0123, 1.000)
+catalogo: linhas novas -> ['Midtones transfer'] ; todas as linhas -> ['Midtones transfer']
+canal 0: min 0.041593 max 0.995311 mediana 0.157854 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.103303 max 0.996356 mediana 0.182089 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0180179 max 0.998155 mediana 0.112029 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.667 ; rho 1.000000 ; ganho 4.5421 offset 0.167068 ; max|dif| 0.797
+   canal 1: 1-r2 0.652 ; rho 1.000000 ; ganho 3.63839 offset 0.186665 ; max|dif| 0.797
+   canal 2: 1-r2 0.687 ; rho 1.000000 ; ganho 3.98928 offset 0.128568 ; max|dif| 0.797
+
+--- s02-autostretch.fit  (referencia: s00-base ; papel: tonal)
+sha256 e90379f924cd30af ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Autostretch (shadows: -2.80, target bg: 0.25, unlinked)
+catalogo: linhas novas -> ['Autostretch'] ; todas as linhas -> ['Autostretch']
+canal 0: min 0.0777681 max 0.997293 mediana 0.250558 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0534753 max 0.998589 mediana 0.250774 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0371865 max 0.999327 mediana 0.250564 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.731 ; rho 1.000000 ; ganho 4.4168 offset 0.262749 ; max|dif| 0.841
+   canal 1: 1-r2 0.79 ; rho 1.000000 ; ganho 3.79886 offset 0.264108 ; max|dif| 0.866
+   canal 2: 1-r2 0.803 ; rho 1.000000 ; ganho 3.83368 offset 0.276397 ; max|dif| 0.871
+
+--- s03-autostretch-linked.fit  (referencia: s00-base ; papel: tonal)
+sha256 322007ca2d7c8852 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Autostretch (shadows: -2.80, target bg: 0.25, linked)
+catalogo: linhas novas -> ['Autostretch'] ; todas as linhas -> ['Autostretch']
+canal 0: min 0.0276993 max 0.99792 mediana 0.261541 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.160257 max 0.998385 mediana 0.302516 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0 max 0.999183 mediana 0.177374 ; pixels no min 10 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.764 ; rho 1.000000 ; ganho 4.56548 offset 0.274642 ; max|dif| 0.859
+   canal 1: 1-r2 0.762 ; rho 1.000000 ; ganho 3.4335 offset 0.313248 ; max|dif| 0.859
+   canal 2: 1-r2 0.791 ; rho 1.000000 ; ganho 4.14853 offset 0.204457 ; max|dif| 0.859
+
+--- s04-asinh.fit  (referencia: s00-base ; papel: tonal)
+sha256 f764394a6867d3ff ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Asinh stretch (amount: 150.0, offset: 0.0, human: no)
+catalogo: linhas novas -> ['Asinh stretch'] ; todas as linhas -> ['Asinh stretch']
+canal 0: min 0.088011 max 1 mediana 0.12866 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.10982 max 0.955407 mediana 0.139171 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0796843 max 1 mediana 0.110455 ; pixels no min 1 (ref 1) ; no max 14 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.506 ; rho 0.999692 ; ganho 3.05046 offset 0.128632 ; max|dif| 0.599
+   canal 1: 1-r2 0.38 ; rho 0.998388 ; ganho 2.54443 offset 0.133689 ; max|dif| 0.525
+   canal 2: 1-r2 0.43 ; rho 0.998668 ; ganho 2.70273 offset 0.111108 ; max|dif| 0.592
+
+--- s05-asinh-human.fit  (referencia: s00-base ; papel: tonal)
+sha256 877c55f83ce58f18 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Asinh stretch (amount: 150.0, offset: 0.0, human: yes)
+catalogo: linhas novas -> ['Asinh stretch'] ; todas as linhas -> ['Asinh stretch']
+canal 0: min 0.0641376 max 0.989657 mediana 0.106319 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0867642 max 0.969198 mediana 0.11701 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0555621 max 1 mediana 0.0878229 ; pixels no min 1 (ref 1) ; no max 20 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.528 ; rho 0.999711 ; ganho 3.21224 offset 0.107214 ; max|dif| 0.595
+   canal 1: 1-r2 0.407 ; rho 0.999798 ; ganho 2.66434 offset 0.112326 ; max|dif| 0.53
+   canal 2: 1-r2 0.456 ; rho 0.998911 ; ganho 2.83087 offset 0.0894256 ; max|dif| 0.605
+
+--- s06-ght.fit  (referencia: s00-base ; papel: tonal)
+sha256 369ddfa8619e7edc ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    GHS (pivot: 0.004, amount: 53.60, local: 6.0 [0.00, 1.00])
+catalogo: linhas novas -> ['GHS'] ; todas as linhas -> ['GHS']
+canal 0: min 0.125133 max 0.972302 mediana 0.233856 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.178168 max 0.977892 mediana 0.255881 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.109731 max 0.988233 mediana 0.18766 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.647 ; rho 1.000000 ; ganho 3.42477 offset 0.236451 ; max|dif| 0.665
+   canal 1: 1-r2 0.615 ; rho 1.000000 ; ganho 2.76101 offset 0.25691 ; max|dif| 0.665
+   canal 2: 1-r2 0.675 ; rho 1.000000 ; ganho 3.11203 offset 0.199958 ; max|dif| 0.665
+
+--- s07-autoghs.fit  (referencia: s00-base ; papel: tonal)
+sha256 f6ffbd2914597387 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    AutoGHS (linked, k.sigma: 0.00, amount: 5.00, local: 13.0 [0.00, 0.70])
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+canal 0: min 0.0473311 max 0.926835 mediana 0.0753632 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0609076 max 0.939494 mediana 0.0824063 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.042768 max 0.96555 mediana 0.0630481 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.386 ; rho 1.000000 ; ganho 2.92962 offset 0.071756 ; max|dif| 0.477
+   canal 1: 1-r2 0.344 ; rho 1.000000 ; ganho 2.5903 offset 0.0763177 ; max|dif| 0.477
+   canal 2: 1-r2 0.385 ; rho 1.000000 ; ganho 2.63547 offset 0.0625468 ; max|dif| 0.477
+
+--- s08-modasinh.fit  (referencia: s00-base ; papel: tonal)
+sha256 dfcdc7da74646022 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])
+catalogo: linhas novas -> ['Asinh stretch', 'GHS'] ; todas as linhas -> ['Asinh stretch', 'GHS']
+canal 0: min 0.0381741 max 0.934537 mediana 0.0576366 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0478839 max 0.947476 mediana 0.0623744 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0347871 max 0.97177 mediana 0.0493651 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.33 ; rho 1.000000 ; ganho 2.89886 offset 0.0521883 ; max|dif| 0.469
+   canal 1: 1-r2 0.292 ; rho 1.000000 ; ganho 2.60153 offset 0.054663 ; max|dif| 0.469
+   canal 2: 1-r2 0.323 ; rho 1.000000 ; ganho 2.60694 offset 0.0463712 ; max|dif| 0.469
+
+--- s09-log.fit  (referencia: s00-base ; papel: tonal)
+sha256 758d578be898ddb1 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (0), em ordem:
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+canal 0: min 0 max 0.693147 mediana 0.00246417 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0 max 0.693147 mediana 0.00172505 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0 max 0.693147 mediana 0.00153837 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.00841 ; rho 1.000000 ; ganho 1.15031 offset -0.00330216 ; max|dif| 0.0439
+   canal 1: 1-r2 0.00766 ; rho 1.000000 ; ganho 1.07733 offset -0.00422923 ; max|dif| 0.0805
+   canal 2: 1-r2 0.00764 ; rho 1.000000 ; ganho 0.963848 offset -0.00261043 ; max|dif| 0.178
+
+--- s10-clahe.fit  (referencia: s00-base ; papel: tonal)
+sha256 497a126cd34dce39 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (0), em ordem:
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+canal 0: min 0.00253099 max 0.751927 mediana 0.00554425 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.00431363 max 0.803571 mediana 0.00571093 ; pixels no min 2 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.00239038 max 0.901965 mediana 0.0055866 ; pixels no min 2 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.0217 ; rho 0.590737 ; ganho 1.11919 offset 0.000673019 ; max|dif| 0.0361
+   canal 1: 1-r2 0.0272 ; rho 0.707157 ; ganho 1.10414 offset 0.00072503 ; max|dif| 0.0354
+   canal 2: 1-r2 0.0219 ; rho 0.606282 ; ganho 1.10027 offset 0.00124004 ; max|dif| 0.0367
+
+--- s11-pixelmath.fit  (referencia: s00-base ; papel: tonal)
+sha256 454f5a890daae4b7 ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (0), em ordem:
+HISTORY da referencia que SUMIRAM (1):
+    justyear: entrada sintetica da medicao de escritores, sem processamento
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+chaves novas: {'STACKCNT': [1]}
+canal 0: min 0.0594856 max 0.852255 mediana 0.0729509 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0665455 max 0.879596 mediana 0.0758713 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0568134 max 0.933352 mediana 0.0675571 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.175 ; rho 1.000000 ; ganho 1.80475 offset 0.0674164 ; max|dif| 0.25
+   canal 1: 1-r2 0.141 ; rho 1.000000 ; ganho 1.68015 offset 0.0692743 ; max|dif| 0.25
+   canal 2: 1-r2 0.171 ; rho 1.000000 ; ganho 1.6928 offset 0.0638516 ; max|dif| 0.25
+
+--- s20-linstretch-controle.fit  (referencia: s00-base ; papel: controle)
+sha256 c77d58fd76a9159c ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    GHS BP shift (new BP: 0.001)
+catalogo: linhas novas -> ['GHS'] ; todas as linhas -> ['GHS']
+canal 0: min 0.00254107 max 0.726064 mediana 0.00432616 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.00343173 max 0.773463 mediana 0.00476122 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.00222999 max 0.871017 mediana 0.00356753 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 1.22e-15 ; rho 1.000000 ; ganho 1.001 offset -0.001001 ; max|dif| 0.000997
+   canal 1: 1-r2 1.55e-15 ; rho 1.000000 ; ganho 1.001 offset -0.001001 ; max|dif| 0.000997
+   canal 2: 1-r2 8.88e-16 ; rho 1.000000 ; ganho 1.001 offset -0.001001 ; max|dif| 0.000998
+
+--- s21-subsky-controle.fit  (referencia: s00-base ; papel: controle)
+sha256 e2538b0a4572f1fa ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (0), em ordem:
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+chaves mudadas: {'DATE': {'antes': ['2026-09-24T13:30:15'], 'depois': ['2026-09-24T13:30:16']}}
+canal 0: min 0.00410608 max 0.726677 mediana 0.00508499 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.00420752 max 0.772728 mediana 0.00509289 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.0041607 max 0.871405 mediana 0.00509047 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.000426 ; rho 0.804524 ; ganho 0.999054 offset -8.18683e-05 ; max|dif| 0.000854
+   canal 1: 1-r2 0.000191 ; rho 0.827419 ; ganho 0.999586 offset -0.000594763 ; max|dif| 0.00113
+   canal 2: 1-r2 0.000135 ; rho 0.865849 ; ganho 0.999703 offset 0.000591187 ; max|dif| 0.00111
+
+--- s30-satu.fit  (referencia: s00-base ; papel: info)
+sha256 6ff33564412f308d ; HDUs 1 (imagem na 0) ; BITPIX -32 BZERO 0.0 BSCALE 1.0 ; NAXIS 512 x 384 x 3
+escritor: {'PROGRAM': ['Siril 1.4.4'], 'CREATOR': ['justyear-sintetico 0 (dispositivo ficticio)'], 'SWMODIFY': ['justyear-sintetico 0 (modificador ficticio)']}
+HISTORY novas (1), em ordem:
+    Color saturation 50%, threshold 1.00
+catalogo: linhas novas -> nenhum ; todas as linhas -> nenhum
+chaves mudadas: {'DATE': {'antes': ['2026-09-24T13:30:15'], 'depois': ['2026-09-24T13:30:16']}}
+canal 0: min 0.00353853 max 0.741683 mediana 0.00532183 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 1: min 0.0044283 max 0.773922 mediana 0.00575646 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+canal 2: min 0.00322776 max 0.920107 mediana 0.00456396 ; pixels no min 1 (ref 1) ; no max 1 (ref 1)
+relacao com a referencia: orientacao identidade ; identico False
+   canal 0: 1-r2 0.00227 ; rho 1.000000 ; ganho 0.993496 offset 7.24632e-05 ; max|dif| 0.049
+   canal 1: 1-r2 0.00028 ; rho 0.999998 ; ganho 0.99915 offset -1.93397e-05 ; max|dif| 0.00481
+   canal 2: 1-r2 0.00165 ; rho 1.000000 ; ganho 1.01494 offset -0.000109585 ; max|dif| 0.049

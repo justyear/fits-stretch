@@ -388,6 +388,7 @@ when you run it:
 |---|---|
 | `test\compare-golden.ps1` | is today's output the same as yesterday's? And, as assertions rather than comparisons — so they hold even if a stored copy shares the defect: no value in any output is NaN or infinite, and no header summary carries a keyword outside the permitted list, the value of an identifying one, or the file name (110 checks across twenty-two runs) |
 | `test\compare-reference.ps1` | do the numbers agree with a separate implementation, written in Python, that shares none of this code? (752 comparisons across twenty-two runs, 0 failures; the sixty that stay unanswered are the ones the Python declines to cover, plus paths neither side exercises -- and each says so in its own line rather than being excused here) |
+| `test\compare-catalogo.ps1` | does every `HISTORY` line a writer has actually been measured writing get the stretch label it must get — including *none*? Twenty-six lines, from Siril 1.2.1 and 1.4.4 and from real files, each run through the same function the page uses and checked against a label written by hand from the measurement. A line that records a black-point shift must not read as a stretch, and a line that names one operation must not count as two. (New since v1.5.0.) |
 | `test\negative-controls.ps1` | can those checks still fail? (28 deliberate breakages, each of which must be caught) |
 | `test\negative-controls-reference.ps1` | can the *reference* comparison still fail? Every quota it carries is a number, so this sets the stored value to exactly 0.5x and 3x that quota and demands a pass then a failure. A line that survives both is a quota that cannot fail, and it is reported under that name (401 of the 449 lines that carry a quota, and it found one on its first run — about itself) |
 | `test\compare-malformed.ps1` | what happens to a file that lies about itself? (34 broken files — impossible dimensions, a header with no end, a compressed table pointing outside the file — each with the verdict it must keep getting) |
@@ -398,7 +399,9 @@ when you run it:
 | `build\build.ps1 -Check` | is the published file exactly what this source builds — and is every number written down about it still true? |
 
 The test images are synthetic and generated from a fixed seed, so they are
-reproducible and no one has to trust them either. **No frame from anyone else
+reproducible and no one has to trust them either. Five of them then went through
+Siril once, so that their header is the one Siril really writes; those cannot be
+regenerated without Siril, and are pinned by SHA-256 in the MANIFEST instead. **No frame from anyone else
 is in this repository.**
 
 `test/golden/MANIFEST.md` is the long version: what each test image covers, what

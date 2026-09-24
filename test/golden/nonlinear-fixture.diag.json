@@ -45,8 +45,7 @@
     "globalMedian": 0.2467180387070522,
     "historyHits": [
       "Autostretch",
-      "Histogram Transf.",
-      "Midtones transfer"
+      "Histogram Transf."
     ],
     "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
     "verdict": "NON-LINEAR — reduced stretch"
@@ -138,18 +137,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
+    "digest": 18,
     "header": 1,
-    "decode": 9,
-    "preview": 1,
-    "stats": 22,
-    "background": 119,
-    "colour": 157,
-    "transfer": 204,
-    "saturation": 105,
-    "crop": 25,
-    "quantise": 30,
+    "decode": 10,
+    "preview": 2,
+    "stats": 33,
+    "background": 133,
+    "colour": 187,
+    "transfer": 242,
+    "saturation": 126,
+    "crop": 29,
+    "quantise": 34,
     "downscale": 0,
-    "total": 574
+    "total": 683
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

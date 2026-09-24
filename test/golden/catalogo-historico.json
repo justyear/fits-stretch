@@ -1,0 +1,227 @@
+{
+  "_leia": [
+    "O CATALOGO DE ESTICAMENTO CONTRA O TEXTO MEDIDO. Quem roda: __captureCatalogo,",
+    "em test/capture-golden.js, passa cada linha UMA A UMA pela historyLabels do",
+    "pipeline publicado. Quem compara: test/compare-catalogo.ps1.",
+    "",
+    "A linha e copiada do relatorio de cada fonte, nao redigitada. O rotulo",
+    "esperado foi escrito a mao a partir de medicao-escritores-resultado-a.md,",
+    "secao 4(b) -- nunca calculado pelo catalogo, ou o teste provaria a si mesmo.",
+    "[] quer dizer NENHUM rotulo, e e afirmacao tao forte quanto as outras.",
+    "",
+    "sem_linha_medida: as regras da tabela que nenhuma linha medida exercita, cada",
+    "uma com o motivo. O comparador exige as duas metades: regra sem linha e sem",
+    "declaracao reprova, e declaracao cuja regra passou a ter linha reprova tambem.",
+    "",
+    "ASCII apenas: o PowerShell 5.1 le este arquivo sem -Encoding."
+  ],
+  "fontes": {
+    "ensaio-1.2.1": "Siril 1.2.1, siril-cli, Ubuntu 24.04 -- medicao-escritores-ensaio.txt. A linha do AutoGHS sai cortada em dois cartoes; o segundo e so o parentese.",
+    "parte-a-1.4.4": "Siril 1.4.4, siril-cli, Windows -- medicao-escritores-relatorio-a.txt",
+    "real-1.4.4": "Siril 1.4.4, dois arquivos de um parceiro de teste, com o texto ja citado em src/pipeline/run.js (STRETCH_HISTORY, entradas 1 e 2) e no NOTAS. A linha de empilhamento esta citada ELIDIDA nos dois lugares, e e a forma elidida que entra aqui: o texto completo nao esta no repositorio."
+  },
+  "linhas": [
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s01-mtf",
+      "espera": [
+        "Midtones transfer"
+      ],
+      "linha": "Midtones transfer (0.003, 0.0123, 1.000)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s02-autostretch",
+      "espera": [
+        "Autostretch"
+      ],
+      "linha": "Autostretch (shadows: -2.80, target bg: 0.25, unlinked)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s03-autostretch-linked",
+      "espera": [
+        "Autostretch"
+      ],
+      "linha": "Autostretch (shadows: -2.80, target bg: 0.25, linked)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s04-asinh",
+      "espera": [
+        "Asinh stretch"
+      ],
+      "linha": "Asinh stretch (amount: 150.0, offset: 0.0, human: no)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s05-asinh-human",
+      "espera": [
+        "Asinh stretch"
+      ],
+      "linha": "Asinh stretch (amount: 150.0, offset: 0.0, human: yes)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s06-ght",
+      "espera": [
+        "GHS"
+      ],
+      "linha": "GHS (pivot: 0.004, amount: 53.60, local: 6.0 [0.00, 1.00])"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s07-autoghs",
+      "espera": [
+        "GHS"
+      ],
+      "linha": "AutoGHS (linked, k.sigma: 0.00, amount: 147.41, local: 13.0 [0.00, 0.70]"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s07-autoghs",
+      "espera": [],
+      "linha": ")"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s08-modasinh",
+      "espera": [
+        "Modified asinh"
+      ],
+      "linha": "GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s20-linstretch-controle",
+      "espera": [],
+      "linha": "GHS BP shift (new BP: 0.001)"
+    },
+    {
+      "fonte": "ensaio-1.2.1",
+      "saida": "s30-satu",
+      "espera": [],
+      "linha": "Color saturation 50%, threshold 1.00"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s01-mtf",
+      "espera": [
+        "Midtones transfer"
+      ],
+      "linha": "Midtones transfer (0.003, 0.0123, 1.000)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s02-autostretch",
+      "espera": [
+        "Autostretch"
+      ],
+      "linha": "Autostretch (shadows: -2.80, target bg: 0.25, unlinked)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s03-autostretch-linked",
+      "espera": [
+        "Autostretch"
+      ],
+      "linha": "Autostretch (shadows: -2.80, target bg: 0.25, linked)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s04-asinh",
+      "espera": [
+        "Asinh stretch"
+      ],
+      "linha": "Asinh stretch (amount: 150.0, offset: 0.0, human: no)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s05-asinh-human",
+      "espera": [
+        "Asinh stretch"
+      ],
+      "linha": "Asinh stretch (amount: 150.0, offset: 0.0, human: yes)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s06-ght",
+      "espera": [
+        "GHS"
+      ],
+      "linha": "GHS (pivot: 0.004, amount: 53.60, local: 6.0 [0.00, 1.00])"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s07-autoghs",
+      "espera": [
+        "GHS"
+      ],
+      "linha": "AutoGHS (linked, k.sigma: 0.00, amount: 5.00, local: 13.0 [0.00, 0.70])"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s08-modasinh",
+      "espera": [
+        "Modified asinh"
+      ],
+      "linha": "GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s20-linstretch-controle",
+      "espera": [],
+      "linha": "GHS BP shift (new BP: 0.001)"
+    },
+    {
+      "fonte": "parte-a-1.4.4",
+      "saida": "s30-satu",
+      "espera": [],
+      "linha": "Color saturation 50%, threshold 1.00"
+    },
+    {
+      "fonte": "real-1.4.4",
+      "saida": "arquivo A",
+      "espera": [],
+      "linha": "mean stacking with winsorized sigma clipping ... normalized output ..."
+    },
+    {
+      "fonte": "real-1.4.4",
+      "saida": "arquivo A",
+      "espera": [],
+      "linha": "TOP-DOWN mirror"
+    },
+    {
+      "fonte": "real-1.4.4",
+      "saida": "arquivo A",
+      "espera": [],
+      "linha": "Assigned ICC profile: sRGB-elle-V4-srgbtrc.icc"
+    },
+    {
+      "fonte": "real-1.4.4",
+      "saida": "arquivo A",
+      "espera": [
+        "Histogram Transf."
+      ],
+      "linha": "Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)"
+    },
+    {
+      "fonte": "real-1.4.4",
+      "saida": "arquivo B",
+      "espera": [
+        "Histogram Transf."
+      ],
+      "linha": "Histogram Transf. (mid=0.002, lo=0.000, hi=1.000)"
+    }
+  ],
+  "sem_linha_medida": [
+    {
+      "regra": "/\\bcurves?\\b/i",
+      "motivo": "SUPOSTO: nenhum escritor medido grava curvas por comando; o dialogo e parte B."
+    },
+    {
+      "regra": "/modasinh/i",
+      "motivo": "SUPOSTO: o 1.2.1 e o 1.4.4 gravam GHS asinh, nunca o nome do comando."
+    }
+  ]
+}

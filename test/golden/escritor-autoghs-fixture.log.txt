@@ -1,0 +1,35 @@
+Processed with Stretch, a one-page FITS autostretch that runs in the browser.
+Nothing was uploaded. The file never left this machine.
+
+Processing log — SHA-256 f6ffbd2914597387 (identifies the file, not its name)
+512 × 384 · 32-bit float · 3 channels · 2026-09-05
+
+• Read the FITS: 32-bit IEEE float, 3 image planes, no row-order keyword, so the FITS default of bottom-up was assumed and the rows flipped the right way up. Pixel values were already on a 0–1 scale, and the data spans 0.04277 to 0.96555.
+• No colour filter array: the file carries 3 separate colour planes (NAXIS3 = 3) and is already demosaiced. No debayer applied.
+• Data is already non-linear: the header records GHS, the measured median sits at 0.0736, over the 0.05 this rule compares against. Stretch reduced accordingly — black point taken at the 0.050% percentile instead of a sigma clip, and each channel’s median held where it already sits, so existing tonal placement is preserved. This verdict compares that median against a fixed level, and the scale that level sits on was chosen by this tool, not declared by the file — so it holds given that choice rather than on its own.
+• Background extraction: measured the sky in 108 boxes of 25 pixels on a 12 × 9 grid and used 84 of them (24 brighter than the background were left out). A thin-plate spline through those points is the model that was removed.
+    Each channel got its own model median back as a pedestal (R 0.07482, G 0.08184, B 0.06257), so the background level is preserved and only its variation was removed.
+    The ratio between channels is therefore unchanged: no colour grading, no white balance, nothing was decided about the colour of the sky.
+• Colour calibration: the sky background was levelled between channels (R 0.001787, G 0.008733, B -0.010520 subtracted, additively, so only the floor moved), and the colour balance was measured from 5,611 star pixels in your own frame — red ×0.979, green ×1.000, blue ×0.948.
+    Pixels between 0.11037 and 0.85 in luminance were taken as stars; 46 brighter than the upper cut were left out, because a saturated star is 1.0 in all three channels and carries no colour; 18,851 were left out as extended source, being pixels whose neighbourhood is also mostly lit — a galaxy body, not stars.
+    That upper cut is a fixed level, and the scale it sits on was chosen by this tool rather than declared by the file — so how many pixels fall above it holds given that choice.
+    The ratio was taken above the sky, not against the raw pixel: the sky is a level common to all three channels and leaving it in drags every ratio toward 1. Star medians R 0.21214, G 0.20917, B 0.21655; above a sky of 0.07416 that is R 0.13798, G 0.13501, B 0.14239.
+    Checked for stability before applying: a 10% error in the sky estimate would move the gains by at most 0.30% (in blue). A ratio taken above the sky is only worth applying if it barely moves when the sky estimate does.
+    Nothing here was a preference: the numbers came from the stars you photographed. Star colour is the reference because sky has no colour of its own to measure against. No catalogue was consulted, no astrometry was solved, and nothing left this machine.
+    This assumes the stars in your frame average to a neutral colour reference. A field dominated by unusually red or blue stars can bias the result, and nothing here can detect that from the frame alone.
+    Star selection is a brightness cut, not star detection: bright unsaturated pixels are predominantly stars in a star field. Pixels whose neighbourhood is also mostly selected are rejected as extended, which removes a galaxy core but would also remove a star field dense enough to look like one.
+• Autostretch — midtones transfer function (PixInsight STF / Siril autostretch), target background held at the luminance median. Applied LINKED: one curve, derived from the luminance, and every channel multiplied by the same number. Highlights untouched at 1.000.
+    Luminance  median 0.07326  MADN 0.00374  →  shadows 0.06459  midtones 0.10579
+    Because one curve governs all three channels, the ratio between them is unchanged by construction. Measured on this frame, the largest change to any channel ratio was 4.4e-16 across 196,496 pixels — float rounding, nothing else. In the highlights, R/G 0.9903 → 0.9919 and B/G 0.9805 → 0.9816.
+    0.049% of pixels were clipped by the transfer itself — luminance at or below the black point, or at or above 1.0. That is a different count from the line above: this one is the curve, that one is the overflow.
+• Selective saturation: chroma was scaled by up to ×1.437 (the ceiling in use is ×1.45), strongest where the signal is well above the noise and rolled off in the highlights so a bright core does not turn into a flat disc of colour.
+    The mask is driven by signal-to-noise, never by brightness: a pixel is left alone below 3.0σ above the sky and gets the full factor above 25.0σ. On this frame the sky sits at 0.07332 with a noise of 0.02982, so 158,948 pixels (80.8%) were not touched at all. Average factor across the frame: ×1.030.
+    Hue was not changed — all three channels were scaled by the same number, so the direction of the colour is untouched and only its strength moved. Measured on this frame, the largest hue change was 8.0e-15 of a turn across 196,511 pixels. Background chroma noise grew 0.00%.
+    1 pixels came out above 1.0 in one channel and 0 below 0.0. All three channels were moved together in both cases rather than the offending one being clipped on its own: clipping one channel changes the colour of the pixel, which is the one thing this step promises not to do.
+    This is the one step here that is a preference rather than a measurement, and it says so. The mask and the roll-off are measured — they are what stops a preference from colouring noise or flattening a core — but how much colour you want is a choice, and it was made for you at ×1.45.
+• Output: 8-bit sRGB, full resolution, no resampling. Rounded with ±0.5 of a level of dither, from the fixed seed 20260906, which breaks the banding a subtracted surface would otherwise leave. The seed is fixed, so the same file always produces the same image.
+• A crop was suggested and NOT applied: 512 × 384 → 293 × 220 would take the object from 16% of the frame to 50%.
+    The object was found by neighbourhood occupancy — the same measurement that keeps a galaxy body out of the star selection — and it is 32,495 pixels in 83 connected regions, of which 1 is large enough to be the subject. Framing is authorship, so the rectangle is offered and nothing was done to your file.
+• Not applied: noise reduction, sharpening, deconvolution, cropping, star removal, colour grading, or any AI or generative step.
+
+Every number above was measured from the file itself.

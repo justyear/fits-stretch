@@ -1,0 +1,79 @@
+# medicao-escritores.ssf -- medicao-escritores.md, parte A (comandos)
+#
+# Roda na pasta da medicao, onde estao entrada.fit e entrada-limpa.fit.
+# Cada operacao parte de s00-base, nunca da anterior: uma saida, uma operacao.
+# Parametros iguais aos da parte B (dialogos), para comparar comando e dialogo.
+#
+# Se o script parar num comando, anote a linha e a mensagem, ponha # na frente
+# dela e rode de novo. Comando que mudou de sintaxe no 1.4.4 tambem e medicao.
+#
+# Testado no Siril 1.2.1 (siril-cli, Ubuntu 24.04): roda inteiro.
+
+requires 1.2.0
+set32bits
+
+# bases: o que o Siril carimba ao salvar sem operar
+load entrada
+save s00-base
+load entrada-limpa
+save s00b-base-limpa
+
+# operacoes tonais (s01-s11)
+load s00-base
+mtf 0.0030 0.0123 1
+save s01-mtf
+
+load s00-base
+autostretch
+save s02-autostretch
+
+load s00-base
+autostretch -linked
+save s03-autostretch-linked
+
+load s00-base
+asinh 150
+save s04-asinh
+
+load s00-base
+asinh -human 150 0.001
+save s05-asinh-human
+
+load s00-base
+ght -D=4 -B=6 -SP=0.0045
+save s06-ght
+
+load s00-base
+autoghs -linked 0 5
+save s07-autoghs
+
+load s00-base
+modasinh -D=4 -SP=0.0045
+save s08-modasinh
+
+load s00-base
+log
+save s09-log
+
+load s00-base
+clahe 2 8
+save s10-clahe
+
+load s00-base
+pm "$s00-base$ ^ 0.5"
+save s11-pixelmath
+
+# controles (s20-s21): mudam pixel e preservam a classe; nenhuma entrada do
+# catalogo pode casar no HISTORY deles
+load s00-base
+linstretch -BP=0.0010
+save s20-linstretch-controle
+
+load s00-base
+subsky 1
+save s21-subsky-controle
+
+# informativo (s30): operacao de cor, nao e curva de tom
+load s00-base
+satu 0.5
+save s30-satu

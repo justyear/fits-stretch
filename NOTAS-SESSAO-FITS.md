@@ -2759,6 +2759,325 @@ processamento é `PROGRAM`. Se o corpus sustentar, o degrau 4 não lê "o escrit
 > cada"* — o que obrigou a reler a fonte em vez de repetir o que eu achava que
 > ela dizia.
 
+## A medição de escritores, parte A — o que o Siril grava, em duas versões (2026-09-24)
+
+Protocolo: `medicao-escritores.md` — destrava o item 1, nas palavras dele, "pelo
+lado que não depende de ninguém": o que cada escritor grava. Resultado:
+`medicao-escritores-resultado-a.md`. Relatório bruto:
+`medicao-escritores-relatorio-a.txt` (a cópia do relatório original, gerado com o
+catálogo de antes desta rodada). Ensaio do 1.2.1: `medicao-escritores-ensaio.txt`.
+Todos na raiz.
+
+**Procedência de tudo nesta seção:** MEDIDO, com pixels sintéticos de
+`medicao_escritores.py` (semente 20260923) e o header gravado pelo próprio
+programa. Duas rodadas, **com a mesma entrada byte a byte** (SHA-256
+`31cdd423…` e `be3b6774…`), então toda diferença entre elas é do Siril:
+
+```
+Siril 1.2.1   siril-cli, Ubuntu 24.04   o ensaio, rodado pelo chat   medicao-escritores-ensaio.txt
+Siril 1.4.4   siril-cli, Windows        rodado por quem conduz       medicao-escritores-relatorio-a.txt
+```
+
+**Escopo:** operações por COMANDO, entrada RGB float32, estes parâmetros. Os
+diálogos (parte B) e a cadeia com o GraXpert (parte C) não foram medidos, e
+nada aqui vale para eles.
+
+### A decisão, com data e momento
+
+**Política da autoridade do silêncio: COM COBERTURA DECLARADA**
+(`medicao-escritores.md`, §6). Decidida por quem conduz em 2026-09-24, **depois**
+de a parte A rodar no Siril 1.4.4 e **antes** de o relatório ser gerado. O
+resultado-a registra a decisão numa seção própria, a §0, com o título *"Decisão
+registrada antes de ler este relatório"*.
+
+### O que o Siril grava, operação por operação
+
+| operação | HISTORY no Siril 1.4.4 | igual no 1.2.1? | catálogo de antes desta rodada |
+|---|---|---|---|
+| `mtf` | `Midtones transfer (0.003, 0.0123, 1.000)` | sim | Midtones transfer |
+| `autostretch` | `Autostretch (shadows: -2.80, target bg: 0.25, unlinked)` / `linked` | sim | Autostretch |
+| `asinh` | `Asinh stretch (amount: 150.0, offset: 0.0, human: no)` / `yes` | sim | Asinh stretch |
+| `ght` | `GHS (pivot: 0.004, amount: 53.60, local: 6.0 [0.00, 1.00])` | sim | GHS |
+| `autoghs` | `AutoGHS (linked, k.sigma: 0.00, amount: 5.00, local: 13.0 [0.00, 0.70])` | **não** | **nada** |
+| `modasinh` | `GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])` | sim | **Asinh stretch + GHS** |
+| `log`, `clahe`, `pm` | nenhuma linha | sim | — |
+| `linstretch` (controle, afim) | `GHS BP shift (new BP: 0.001)` | sim | **GHS — falso positivo** |
+| `subsky` (controle) | nenhuma linha | sim | nada |
+| `satu` (informativo) | `Color saturation 50%, threshold 1.00` | sim | nada |
+
+**Cobertura, só comandos, nas duas versões:** 8 de 11 operações tonais deixam
+linha de HISTORY. **Mudas: log, CLAHE e PixelMath.** Pela regra pré-registrada,
+a autoridade ESTRITA do silêncio do Siril é **não** — e é por isso que a política
+escolhida é a de cobertura declarada.
+
+**O parâmetro declarado não reproduz a operação:** o offset 0.001 do asinh sai
+`offset: 0.0` nas duas versões, e foi aplicado. O HISTORY do Siril diz QUE houve
+esticamento, nunca QUAL.
+
+### O que mudou do 1.2.1 para o 1.4.4
+
+**A string do escritor:** `PROGRAM = 'Siril v1.2.1'` virou `'Siril 1.4.4'`, sem o
+`v`. Quem identificar o escritor por texto tem que aceitar as duas formas.
+
+**O carimbo, ao carregar e salvar:**
+
+| | Siril 1.2.1 | Siril 1.4.4 |
+|---|---|---|
+| `PROGRAM` | sobrescreve | sobrescreve |
+| `CREATOR` | **apaga** | **preserva** |
+| `SWCREATE` | apaga | apaga |
+| `SWMODIFY` | apaga | **preserva**, e não acrescenta o seu |
+| `DATAMAX` | apaga | apaga |
+| COMMENT alheio | apaga | preserva |
+| HISTORY alheio | preserva | preserva |
+| acrescenta | `DATE`, `XBINNING`, `YBINNING` | `DATE`, `MIPS-FLO` |
+
+Consequências, todas MEDIDAS no caminho carregar-e-salvar e só nele:
+
+- **A pista dos dois escritores é comportamento do Siril 1.4.4:** `CREATOR`
+  nomeia a captura, `PROGRAM` nomeia quem salvou. Uma captura que se identifica
+  por `SWCREATE` (o N.I.N.A., no exemplo público) **perde a identidade** ao passar
+  pelo Siril 1.4.4; por `CREATOR` (o ASIAIR), mantém.
+- **`SWMODIFY` num arquivo do Siril não é "o último a modificar":** o herdado
+  sobrevive e o Siril não acrescenta o seu. A leitura da SBFITSEXT só vale quando
+  o último escritor a segue.
+- **`DATAMAX`:** as duas versões apagam. Arquivo que passou pelo Siril não traz
+  `DATAMAX` desatualizado — não traz nenhum.
+
+**O `autoghs` mudou de sentido.** Os mesmos argumentos (`autoghs -linked 0 5`)
+esticam bem menos no 1.4.4:
+mediana do canal 0 de 0,298 para 0,075, `1 − r²` de 0,812 para 0,386, e a linha
+declara `amount: 5.00` contra `147.41` (= e⁵ − 1). **MEDIDO:** o efeito.
+**SUPOSTO:** que o segundo argumento passou de D para amount. Um script antigo com
+`autoghs` dá outro resultado no 1.4.4, sem erro nenhum. A linha também deixou de
+ser cortada em dois cartões. O resultado-a destina esta frase ao `confusoes.md`,
+que não está nesta árvore — fica aqui até ter onde morar.
+
+### O que vale igual nas duas, e pesa
+
+**O PixelMath não se declara E APAGA o HISTORY herdado** — a linha da entrada some
+da saída nas duas versões; no 1.4.4 aparece `STACKCNT = 1`. Não é só uma operação
+muda: ela apaga a declaração das anteriores. E é o caminho comum para recombinar
+as estrelas depois do StarNet, então um arquivo esticado e declarado pode chegar
+mudo depois dela. O SUPOSTO da política de cobertura — *"operações mudas são
+raras no esticamento principal"* — não cobre esse caso: o PixelMath não estica,
+mas apaga quem esticou.
+
+**PROPOSTA, a confirmar por quem conduz antes do item 2, e NÃO decidida:** o
+silêncio do Siril só tem autoridade quando o HISTORY mostra a origem — a linha de
+empilhamento do próprio Siril. Forma MEDIDA nos dois arquivos reais do Siril
+1.4.4: `mean stacking with winsorized sigma clipping … normalized output …`. Como
+o PixelMath apaga tudo, inclusive essa linha, a presença dela prova que a cadeia
+desde o empilhamento não foi apagada — mesmo que depois da recombinação outras
+operações tenham escrito linhas novas. Sem a linha, o arquivo vai para o caminho
+do mudo, com a declaração de hoje. SUPOSTO: a forma da linha para outros métodos
+de empilhamento (mediana, soma, outras rejeições) — medir quando houver um
+empilhamento de cada.
+
+**Também igual nas duas:** o falso positivo do `GHS BP shift`; o `AutoGHS` não
+reconhecido; a dupla contagem do `GHS asinh`; e o **comando** `autostretch` se
+declara — o REFUTADO da entrada 1 vale só para o modo de visualização.
+
+### O que esta rodada fez com isso
+
+**O catálogo mudou, e cada mudança tem o fixture que a faz disparar:**
+
+- `GHS` passou a reconhecer `AutoGHS` e a recusar `GHS BP shift`. **O falso
+  positivo está fechado** — o que a regra de ordem do protocolo exigia antes de
+  qualquer versão do item 2;
+- **um rótulo por linha**: cada linha de HISTORY recebe o rótulo da primeira regra
+  que casa nela. Entrada nova, MEDIDA, antes das de asinh e GHS: `GHS asinh` →
+  `Modified asinh`;
+- a última entrada rotulava `modasinh` como `Autostretch`: virou `Modified asinh`,
+  SUPOSTO, e a alternativa `|autostretch` (código morto) saiu;
+- a procedência dos comentários foi atualizada com o texto medido nas duas
+  versões. `curves` e o nome por extenso de GHS continuam SUPOSTO.
+
+**Os fixtures**, com o header gravado pelo Siril 1.4.4, e a afirmação no
+`compare-golden.ps1` do rótulo que cada um tem que receber:
+
+```
+fixture-escritor-controle-bp   GHS BP shift        nenhum rotulo
+fixture-escritor-autoghs       AutoGHS             GHS
+fixture-escritor-ghs-asinh     GHS asinh           so Modified asinh
+fixture-escritor-base          a entrada, salva    nenhum
+fixture-escritor-pixelmath     PixelMath           nenhum (HISTORY apagado)
+```
+
+**O que a ferramenta diz de cada um, hoje** — a regra atual, sem o item 2,
+conferido no navegador e fixado nos goldens:
+
+```
+controle-bp   mediana 0,00421   linear       nada declara; a mediana decide
+autoghs       mediana 0,0736    nao-linear   declara GHS
+ghs-asinh     mediana 0,0565    nao-linear   declara Modified asinh
+base          mediana 0,00521   linear       nada declara; a mediana decide
+pixelmath     mediana 0,0721    nao-linear   nada declara; a mediana decide, a 30,7% de virar
+```
+
+O último é o caso do §3 visto pela ferramenta: **esticado, mudo, e acertado só
+pela mediana** — o eixo que a curva fina já mostrou que não é invariante. É o
+fixture que o item 2 vai ter que decidir sem ele.
+
+**Dois fixtures antigos mudaram de rótulo, e o veredito de nenhum mudou:** o
+`nonlinear` e o `declaraestica` perderam `Midtones transfer`. A linha que eu
+escrevi neles, *"Autostretch (midtones transfer function) applied"*, nomeia duas
+operações numa linha só — coisa que nenhuma linha real medida faz. Com um rótulo
+por linha ela recebe um. O `nonlinear` continua não-linear (mediana 0,247), o
+`declaraestica` continua linear (0,0101).
+
+**A cópia do catálogo em `medicao_escritores.py`** acompanhou, com a mesma
+semântica, e o relatório da pasta foi regerado com ela: o controle `s20` passou a
+`CONTROLE OK`, o `s07` a `DECLARADA E RECONHECIDA: GHS`, e o `s08` recebe um
+rótulo só. O original ficou preservado na pasta como
+`relatorio-medicao-catalogo-antigo.txt`, e **é o original que está no
+repositório** — é ele que o resultado-a descreve, e ele mostra o falso positivo
+que foi consertado.
+
+**As duas cópias do relatório original, com os bytes de cada uma.** O Python
+gravou o relatório em modo texto no Windows, com CRLF; o `.gitattributes` desta
+árvore guarda tudo em LF. O conteúdo é o mesmo — conferido: sem os CR, as duas
+são idênticas byte a byte.
+
+```
+CRLF  pasta da medicao   relatorio-medicao-catalogo-antigo.txt   21.198 B
+      sha256 54a9764b410f9ddcc2506099f97b340ffb0279066a652b04666bbc2b719421bb
+LF    raiz do repositorio  medicao-escritores-relatorio-a.txt    20.925 B
+      sha256 27cd195a307ae6de2549229267bec80c83e553d70b014c83b3c38dbfcde58db8
+```
+
+A diferença é de 273 bytes, um CR por linha. **Daqui em diante ela não se
+repete:** o `medicao_escritores.py` passou a gravar o `.txt` e o `.json` com
+`newline='\n'`, e os bytes deixam de depender do sistema. Conferido regerando o
+relatório da pasta: `.txt` de 273 CR para 0, `.json` de 1.751 para 0, e o resto
+igual byte a byte ao anterior. O `entrada.json` que o mesmo script grava na
+etapa `gera` continua sem `newline` — ninguém pediu, e ele não está no
+repositório.
+
+**O `medicao_escritores.py` do repositório contra o original que o chat
+entregou.** O original não estava na pasta Downloads: nenhum arquivo de 26.641
+bytes lá. Foi reconstruído desfazendo, sobre o arquivo atual, as duas edições
+que eu fiz nele, na ordem inversa, com o texto exato de cada uma tirado do
+registro desta sessão. O resultado tem **26.641 bytes e sha256
+`dede2e390d04742fe51a46d6585d932539fc7785bb86075d86ea82445afe81d5`** — os dois
+números que o chat deu. A reconstrução é o original, e o diff contra ela muda
+três coisas: o comentário da cópia, três regras (`GHS asinh` nova, GHS e
+`modasinh`) e o laço de `casa_catalogo`. O `newline='\n'` veio depois, em
+edição própria.
+
+### Achado ao rodar a suíte: a referência Python tem outro casador — anotado, não mexido
+
+`reference.py` (e `chain.py`, com a mesma lista repetida) não usa o catálogo: casa linha de
+HISTORY por palavra — `stretch`, `histogram`, `asinh`, `curve`, `ght`. MEDIDO nos
+fixtures, rodando o casador dela sobre o HISTORY de cada um:
+
+```
+escritor-autoghs      AutoGHS (...)                nao casa   o nosso: GHS
+escritor-controle-bp  GHS BP shift (...)           nao casa   o nosso: nada (certo nos dois)
+escritor-ghs-asinh    GHS asinh (...)              casa, pelo "asinh"
+escritor-pixelmath    (sem HISTORY nenhum)         -
+declaraestica         4 das 8 linhas DECLARA       casa, pelo "stretch" do texto explicativo
+```
+
+**Hoje não pesa, e está medido por que:** a declaração só decide na janela
+0,02–0,05, e dos 28 fixtures nenhum com declaração cai nela — o único na janela
+é o `bigobject` (0,04938), que não declara nada. Os 28 vereditos de linearidade
+batem entre as duas implementações.
+
+**Pesa no item 2.** Com o HISTORY decidindo sozinho, o `fixture-escritor-autoghs`
+seria não-linear por declaração no nosso código e sem declaração na referência.
+A referência vai precisar conhecer as linhas MEDIDAS — escritas por conta dela a
+partir do relatório, não copiadas do `STRETCH_HISTORY`, ou deixa de ser
+referência e passa a ser eco.
+
+### O que NÃO foi feito, de propósito
+
+**O item 2** — a regra nova da linearidade, (e) da seção 4 do resultado-a. Ele
+espera a parte B (curvas, o botão do histograma, CLAHE e PixelMath por diálogo
+podem mudar a lista das mudas), a parte C (o GraXpert decide a ressalva do último
+escritor) e a confirmação da condição da linha de empilhamento.
+
+**A tabela de formatos da `spec-escala-decisao.md`** ficou de fora na primeira
+passada, por não estar na seção 4 do resultado-a — e entrou na revisão, a pedido:
+ver *"O teste de texto do catálogo, e a linha do Siril na spec"*, abaixo.
+
+### O teste de texto do catálogo, e a linha do Siril na spec — revisão do chat
+
+**Os fixtures afirmavam o rótulo de cinco saídas; o texto medido tinha mais.** O
+GHS simples, o asinh, o midtone e o autostretch estavam medidos com texto real e
+nenhum teste os lia. Agora lê: `test/golden/catalogo-historico.json` tem **26
+linhas** de HISTORY — 11 do ensaio no 1.2.1, 10 da parte A no 1.4.4 e 5 de
+arquivo real já citadas no `run.js` e aqui — cada uma com o rótulo que tem que
+receber. **8 delas esperam NENHUM:** `GHS BP shift` e a saturação nas duas
+versões, o `)` do AutoGHS cortado no 1.2.1, a linha de empilhamento (na forma
+elidida em que está citada; o texto completo não está no repositório), o
+`TOP-DOWN mirror` e o perfil ICC.
+
+- **Roda o código publicado, não uma cópia.** O laço dos rótulos saiu de dentro
+  do pipeline para duas funções, `historyRule` e `historyLabels`, e a captura
+  (`__captureCatalogo`) as tira do mesmo `pipeline-src` que o worker roda — o
+  caminho que o corpus malformado já usava para o decodificador. A mudança não
+  mexeu na saída: 140 de 140 goldens byte a byte.
+- **O rótulo esperado foi escrito à mão**, a partir da §4(b) do resultado-a, e a
+  linha foi copiada do relatório, não redigitada.
+- **`test/compare-catalogo.ps1`** afirma quatro coisas: a captura é deste
+  catálogo (as regras gravadas por ela contra as lidas do texto do `run.js`, na
+  ordem — captura velha reprova); rodou esta tabela; cada linha recebe o rótulo
+  esperado; e toda regra é a primeira a casar em alguma linha medida ou está
+  declarada em `sem_linha_medida` — hoje `curves` e `modasinh`, as duas SUPOSTO.
+  As duas metades: regra sem linha e sem declaração reprova, declaração de regra
+  que ganhou linha reprova.
+
+**Ele pegou um defeito meu na primeira rodada.** Ao gerar a tabela, o `\b` da
+regra de `curves` virou um caractere de backspace no JSON, e a declaração passou
+a citar uma regra que não existe. Quem pegou foi a metade da cobertura que eu
+achava a menos necessária — *"sem_linha_medida cita uma regra que não é do
+catálogo"*. Consertado no arquivo; as 26 linhas conferidas sem caractere de
+controle.
+
+**Os dois testes disparam contra o catálogo antigo — mostrado, não suposto.** Uma
+variante do `run.js` com exatamente duas trocas, a tabela do HEAD e o laço do HEAD
+(uma regra por vez, pulando rótulo já visto), montada, capturada e comparada:
+
+```
+compare-catalogo   6 linhas com rotulo errado, as tres classes nas duas versoes:
+                     AutoGHS        esperado GHS             recebeu nenhum
+                     GHS asinh      esperado Modified asinh  recebeu Asinh stretch + GHS
+                     GHS BP shift   esperado nenhum          recebeu GHS
+                   + 2 de cobertura: /modasinh|autostretch/i sem linha medida e
+                     sem declaracao; a declaracao de /modasinh/i sem regra
+compare-golden     CATALOGO FAIL nos tres fixtures que a medicao aponta:
+                     controle-bp   recebeu [GHS], a medicao diz [-]
+                     autoghs       recebeu [-], a medicao diz [GHS]
+                     ghs-asinh     recebeu [Asinh stretch + GHS], a medicao diz [Modified asinh]
+```
+
+Depois o `run.js` voltou, conferido pelo sha256, o build foi remontado e a
+captura inteira refeita: 140 de 140, `CATALOGO PASS`.
+
+**A linha do Siril na `spec-escala-decisao.md`**, §2.1 — a primeira da tabela de
+escritores. MEDIDO no 1.4.4 (Windows) e no 1.2.1 (Linux): float32, `BZERO 0` e
+`BSCALE 1` gravados mesmo em float, carregar e salvar deixa os pixels idênticos,
+`DATAMAX` apagado. A consequência para a escada está escrita lá: os degraus 2 e 3
+não decidem num float do Siril, e ele cai no 4 ou no 5.
+
+### A contagem do `compare-reference` que não fecha
+
+```
+comparados 764  |  PASS 583  KNOWN 0  N/A 72  FAIL 0
+```
+
+583 + 72 = 655. **Os outros 109 são `PASS~`** — dentro da cota, sem ser byte a
+byte — e a linha de resumo não imprime essa categoria, embora o script a produza
+em sete lugares. Contado pelo `-Csv`: 30 de cor, 26 de recorte, 23 de saturação,
+12 de stretch, 9 do canal R, 9 do canal B.
+
+Não é falha, e o veredito de cada linha está certo. É **uma contagem que parece
+medição** — a classe que este arquivo já registrou: quem lê o resumo e soma não
+chega ao total, e a conclusão natural ("109 linhas sem veredito") é falsa.
+**Proposta, anotada e não feita:** a linha passa a imprimir `PASS~`, e a soma das
+categorias é afirmada igual ao total. Uma linha de código.
+
 ## Em aberto
 
 
@@ -2797,9 +3116,11 @@ investigações agora esperam o mesmo corpus, e nenhuma outra coisa.
   população: que fração declara o esticamento em palavras. A mediana já está
   descartada como eixo (§8), então **não existe mais um plano B de dentro de
   casa** — é o corpus ou nada;
-- as **cinco entradas SUPOSTO** do `STRETCH_HISTORY` — cada uma fecha com um
-  arquivo do programa correspondente com a operação aplicada;
-- a entrada **`\bcurves?\b`**, que é a única não-técnica das sete e cujo risco
+- as **entradas SUPOSTO** do `STRETCH_HISTORY` — cada uma fecha com um arquivo
+  do programa correspondente com a operação aplicada. Eram cinco; a medição de
+  escritores (parte A, 2026-09-24) mediu asinh, GHS e midtone no Siril, e
+  sobraram **duas**: `curves` e `modasinh`;
+- a entrada **`\bcurves?\b`**, que é a única não-técnica das oito e cujo risco
   está medido (janela de mediana 0,02–0,05, com o `bigobject` dentro dela).
 
 **E uma quinta, condicional:** se o corpus trouxer arquivos **esticados** de
@@ -2859,6 +3180,12 @@ escala** — ele para de esperar por si mesmo e passa a esperar pelo item 1, igu
 - **a correção que a medição impôs à proposta:** o degrau 5 não é um empate
   honesto. Quando ele decidir, o log tem que dizer que decidiu **por ausência de
   declaração** e a que distância do limiar ficou — contingência, como a escala.
+
+**Depois da medição de escritores (2026-09-24):** a regra nova tem política —
+autoridade do silêncio **com cobertura declarada** — e espera a parte B, a parte
+C e a confirmação da condição da linha de empilhamento. A condição de ordem do
+protocolo, o falso positivo do `GHS BP shift` fechado com fixture, **está
+cumprida**. Ver *"A medição de escritores, parte A"*, acima.
 
 ### 3. A moeda do `fixture-saturation`
 
@@ -2999,6 +3326,11 @@ comportamento do N.I.N.A.
 
 **Decisão de quem conduz: registrar as três e não unificar ainda.** A escada muda
 quando o corpus disser, não antes.
+
+**Primeiro dado MEDIDO do lado do Siril (2026-09-24, carregar e salvar):** o
+1.4.4 preserva `CREATOR` e apaga `SWCREATE`; o 1.2.1 apagava os dois. `PROGRAM`
+é sobrescrito nas duas. Ver *"A medição de escritores, parte A"*. Continua sem
+unificar.
 
 ---
 

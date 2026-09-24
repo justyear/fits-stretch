@@ -31,6 +31,11 @@
 !test/fixtures/fixture-ceuclaro.fit
 !test/fixtures/fixture-caminho.fit
 !test/fixtures/fixture-swcreate.fit
+!test/fixtures/fixture-escritor-base.fit
+!test/fixtures/fixture-escritor-controle-bp.fit
+!test/fixtures/fixture-escritor-autoghs.fit
+!test/fixtures/fixture-escritor-ghs-asinh.fit
+!test/fixtures/fixture-escritor-pixelmath.fit
 
 # Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
 !.claude/notfits.fit

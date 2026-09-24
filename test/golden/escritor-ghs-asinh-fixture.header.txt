@@ -1,0 +1,49 @@
+Stretch — FITS header summary
+Built on your machine, for the open catalogue of what FITS writers
+actually declare. Nothing was sent. Read it before you paste it.
+
+tool     Stretch, build pinned-for-goldens
+
+--- header keys (absent ones are shown as absent, on purpose) ---
+BITPIX   = -32
+NAXIS    = 3
+NAXIS1   = 512
+NAXIS2   = 384
+NAXIS3   = 3
+BZERO    = 0
+BSCALE   = 1
+DATAMIN  = (absent)
+DATAMAX  = (absent)
+BUNIT    = (absent)
+ROWORDER = (absent)
+BAYERPAT = (absent)
+XBAYROFF = (absent)
+YBAYROFF = (absent)
+PROGRAM  = 'Siril 1.4.4'
+CREATOR  = 'justyear-sintetico 0 (dispositivo ficticio)'
+SWCREATE = (absent)
+PRODUCER = (absent)
+
+--- data, in the file’s own units (after BZERO/BSCALE) ---
+min      0.0347871408
+max      0.97176981
+median   0.0564532947
+         the median is the mean of the per-channel medians, taken
+         after debayer and before any background model was removed.
+
+--- HISTORY (2 lines, in file order) ---
+  justyear: entrada sintetica da medicao de escritores, sem processamento
+  GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])
+
+--- COMMENT (3 lines, in file order) ---
+    FITS (Flexible Image Transport System) format is defined in 'Astronomy
+    and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+  justyear: semente 20260923, gerada por medicao_escritores.py
+
+--- what is deliberately not here ---
+No OBJECT, DATE-OBS, DATE-END, TELESCOP, INSTRUME, OBSERVER, no sky
+coordinates, no site position, no file name and no path. This block is
+assembled from the fixed list of keys printed above — anything else in
+your header was never read into it. The two free-text sections are the
+one exception, and they are copied as they are because they are what
+the catalogue is asking about.

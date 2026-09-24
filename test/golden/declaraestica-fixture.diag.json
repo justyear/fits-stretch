@@ -43,8 +43,7 @@
   "linearity": {
     "globalMedian": 0.010101472495613032,
     "historyHits": [
-      "Autostretch",
-      "Midtones transfer"
+      "Autostretch"
     ],
     "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
     "verdict": "LINEAR — full autostretch"
@@ -136,18 +135,19 @@
     "downscaleFactor": 1
   },
   "timingsMs": {
+    "digest": 22,
     "header": 1,
-    "decode": 10,
-    "preview": 1,
-    "stats": 23,
-    "background": 126,
-    "colour": 205,
-    "transfer": 267,
-    "saturation": 137,
-    "crop": 41,
-    "quantise": 35,
+    "decode": 17,
+    "preview": 2,
+    "stats": 44,
+    "background": 192,
+    "colour": 299,
+    "transfer": 507,
+    "saturation": 387,
+    "crop": 109,
+    "quantise": 78,
     "downscale": 1,
-    "total": 685
+    "total": 1402
   },
   "historyCards": [
     "Autostretch (midtones transfer function) applied",

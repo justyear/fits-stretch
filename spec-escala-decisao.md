@@ -216,6 +216,49 @@ comportamento de terceiro envelhece — se o Siril mudar de convenção, a entra
 fica errada. Imprimir o texto que casou faz a entrada velha aparecer **no
 artefato**, onde alguém lê, em vez de só no código, onde ninguém olha.
 
+#### A primeira linha da tabela: o Siril — MEDIDO, 2026-09-24
+
+A representação que o escritor grava, medida na parte A de
+`medicao-escritores.md`: pixels sintéticos de `medicao_escritores.py` (semente
+20260923), o header e os pixels de saída gravados pelo próprio Siril, a mesma
+entrada byte a byte nas duas versões.
+
+| escritor | identifica-se por | representação gravada | carregar e salvar | `DATAMAX` da entrada | procedência |
+|---|---|---|---|---|---|
+| Siril 1.4.4 | `PROGRAM = 'Siril 1.4.4'` | float32 (`BITPIX -32`); `BZERO 0` e `BSCALE 1` **gravados**, mesmo em float | pixels **idênticos** à entrada | **apagado** | MEDIDO — Windows, `siril-cli` |
+| Siril 1.2.1 | `PROGRAM = 'Siril v1.2.1'` | idem | idem | **apagado** | MEDIDO — Linux (Ubuntu 24.04), `siril-cli` |
+
+**Como sei, verbatim** (`medicao-escritores-relatorio-a.txt` para o 1.4.4,
+`medicao-escritores-ensaio.txt` para o 1.2.1):
+
+```
+as 16 saidas, nas duas versoes   BITPIX -32 BZERO 0.0 BSCALE 1.0
+s00-base e s00b-base-limpa       BASE: pixels identicos a entrada
+s00-base                         chaves removidas: { ... 'DATAMAX': [...] }
+```
+
+`BZERO` e `BSCALE` estão **no arquivo**, não são o padrão que o leitor supõe
+quando a chave falta: o relatório os lê do header e imprimiria `None` se
+faltassem, e o bloco de header desta ferramenta mostra `BZERO = 0` e
+`BSCALE = 1` no `fixture-escritor-base`, e não `(absent)`.
+
+**O que a linha diz sobre a escada, neste caminho:**
+
+- **degrau 2 não decide.** `BZERO 0` e `BSCALE 1` gravados são a identidade, e o
+  degrau só consulta valores *diferentes* de (1, 0). A presença das duas chaves
+  num float do Siril **não** é o contêiner declarando a escala;
+- **degrau 3 não decide.** O `DATAMAX` que a entrada trazia sai apagado — um
+  arquivo que passou pelo Siril não chega com faixa declarada desatualizada,
+  chega sem nenhuma;
+- então um float do Siril cai no **degrau 4 ou no 5**, e o 4 precisa aceitar as
+  duas formas da string, com e sem o `v`.
+
+**Escopo — o que a linha NÃO cobre:** entrada float32 RGB com valores dentro de
+[0, 1] (de 0,0032 a 0,871); operações por comando. Não medidos: entrada inteira,
+mono, float fora de [0, 1], o diálogo *Salvar como* (parte B), o arquivo que sai
+do empilhamento. "Pixels idênticos" vale para esta entrada e não diz o que o
+Siril faz com um float fora de [0, 1].
+
 ### 2.2 O degrau 5 não some
 
 Ele continua existindo para o arquivo mudo, e continua sendo o que é hoje. O que

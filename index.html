@@ -5002,7 +5002,7 @@ function buildLog(ctx){
  * A captura de golden o fixa, como ja fixa a data -- senao todo golden deste
  * bloco mudaria a cada mexida em qualquer fonte, e um diff que muda sempre e um
  * diff que ninguem le. */
-var BUILD_STAMP = '7af5c383074050fb';
+var BUILD_STAMP = '5f39a514e014363a';
 
 /* AS CHAVES QUE O CATALOGO PRECISA.
  *
@@ -5214,45 +5214,61 @@ function buildHeaderSummary(ctx){
  * indistinguivel do verde de uma coisa medida.
  *
  * A defesa nao e desconfiar mais: e anotar DE ONDE VEIO, entrada por entrada.
- * Tres niveis, e a diferenca entre eles muda o que a proxima pessoa faz:
+ * Quatro niveis, e a diferenca entre eles muda o que a proxima pessoa faz:
  *
- *   MEDIDO       lido de um arquivo real, com o texto verbatim
+ *   MEDIDO       lido de um arquivo que o proprio programa gravou, com o texto
+ *                verbatim -- um arquivo de parceiro, ou uma saida da medicao de
+ *                escritores (pixels sinteticos, header escrito pelo programa)
+ *   OBSERVADO EM EXEMPLO PUBLICO
+ *                alguem publicou o header; ninguem aqui abriu o arquivo nem
+ *                conferiu que ele nao foi editado. Mais fraco que MEDIDO
  *   DOCUMENTADO  esta escrito na documentacao do programa
  *   SUPOSTO      ninguem verificou; e o que se acredita
  *
- * Estado hoje: UMA MEDIDA, UMA REFUTADA, cinco SUPOSTO. As duas primeiras sao o
- * mesmo arquivo do Siril 1.4.4 -- ele NAO escreve "autostretch" e escreve
- * "Histogram Transf.", entao uma medicao fechou duas entradas em direcoes
- * opostas.
+ * A MEDICAO DE ESCRITORES (medicao-escritores.md, parte A) mediu as operacoes
+ * tonais do Siril por comando, em duas versoes: 1.2.1 (Ubuntu 24.04, o ensaio) e
+ * 1.4.4 (Windows, siril-cli). A entrada e a mesma byte a byte nas duas, entao
+ * toda diferenca e do Siril. Relatorio: medicao-escritores-relatorio-a.txt.
+ * Os textos citados abaixo sao o que cada versao gravou; o que diverge entre as
+ * duas esta dito na entrada.
  *
- * O que fecha cada uma das cinco restantes e um arquivo do programa
- * correspondente com a operacao aplicada, reportando so as linhas de HISTORY.
+ * Estado hoje: SEIS MEDIDAS -- uma delas tambem REFUTADA para o modo de
+ * visualizacao --, duas SUPOSTO. Escopo do MEDIDO: Siril, estas duas versoes,
+ * operacao por COMANDO. Os dialogos (parte B) e a cadeia com o GraXpert (parte C)
+ * nao foram medidos, e nada aqui vale para eles.
  *
- * A ORDEM IMPORTA: o laco pula uma regra cujo rotulo ja esta em `historyHits`.
+ * UM ROTULO POR LINHA. Cada linha de HISTORY recebe no maximo UM rotulo: o da
+ * primeira regra que casa NELA. Medido: o Siril grava uma operacao por linha, e
+ * a linha `GHS asinh (...)` do asinh modificado casava ao mesmo tempo em `asinh`
+ * e em `GHS` -- dupla contagem de uma operacao so. Por isso A ORDEM IMPORTA: a
+ * regra mais especifica vem antes da mais geral (`GHS asinh` antes de `asinh` e
+ * de `GHS`).
+ *
+ * E os rotulos saem na ordem DESTA TABELA, nao na ordem das linhas do arquivo:
+ * o log que os lista nao muda de ordem conforme o escritor ordenou o HISTORY.
  */
 var STRETCH_HISTORY = [
-  /* REFUTADO -- e a refutacao e a primeira medicao que esta tabela recebeu.
+  /* MEDIDO PARA O COMANDO, REFUTADO PARA O MODO DE VISUALIZACAO -- os dois,
+   * e a distincao e a entrada inteira.
    *
-   * Um arquivo do Siril 1.4.4 com a transformacao de histograma APLICADA DE
-   * VERDADE (mediana 0,001177 -> 0,250309) NAO contem a palavra `autostretch`
-   * em lugar nenhum do HISTORY. As quatro linhas que ele grava sao:
+   * O COMANDO `autostretch` se declara, com o mesmo texto nas duas versoes:
+   *
+   *     Siril 1.2.1 e 1.4.4   Autostretch (shadows: -2.80, target bg: 0.25, unlinked)
+   *                           Autostretch (shadows: -2.80, target bg: 0.25, linked)
+   *
+   * O MODO DE VISUALIZACAO do Siril 1.4.4 chamado "autostretch" NAO toca nos
+   * pixels e nao deixa rastro -- medido num arquivo de parceiro: olhar em
+   * autostretch e salvar devolve a mediana original, 0,001177. E o esticamento
+   * DE VERDADE feito pelo dialogo de histograma grava outra coisa (entrada 2):
    *
    *     mean stacking with winsorized sigma clipping ... normalized output ...
    *     TOP-DOWN mirror
    *     Assigned ICC profile: sRGB-elle-V4-srgbtrc.icc
    *     Histogram Transf. (mid=0.001, lo=0.001, hi=1.000)
    *
-   * E o motivo e o que torna isto uma licao e nao um detalhe: no Siril o
-   * "autostretch" e um MODO DE VISUALIZACAO. Ele muda como a tela mostra o
-   * quadro e nao toca nos pixels -- medido tambem, num segundo arquivo: olhar em
-   * autostretch e salvar devolve a mediana original, 0,001177, e nenhum rastro.
-   *
-   * O botao de visualizacao e a operacao de arquivo tem o mesmo nome, e so a
-   * segunda deixa rastro -- COM OUTRO NOME. A entrada mais provavel de ser
-   * confirmada primeiro era a que nao tinha candidato.
-   *
-   * Fica no lugar porque outro programa pode gravar a palavra, e remover uma
-   * entrada refutada para UM escritor seria trocar uma suposicao por outra.
+   * O botao de visualizacao, o comando e o dialogo tem nomes parecidos e deixam
+   * rastros diferentes. Botao de auto-stretch DENTRO do dialogo de histograma:
+   * nao medido (parte B).
    */
   [/autostretch/i,            'Autostretch'],
 
@@ -5267,7 +5283,9 @@ var STRETCH_HISTORY = [
    * torna esta entrada MEDIDA e nao apenas vista uma vez: o que ela reconhece e
    * a forma, e a forma repetiu.
    *
-   * Unica das sete que casa os arquivos medidos, e a unica MEDIDA das sete.
+   * Foi a primeira entrada MEDIDA da tabela, e por muito tempo a unica: casa os
+   * dois arquivos de parceiro, e a medicao de escritores nao a exercitou (o
+   * dialogo de histograma e parte B).
    *
    * E ELA ACERTA POR UM DETALHE QUE NINGUEM REGISTROU: o padrao usa o PREFIXO
    * `transf`, nao a palavra inteira. Conferido -- `histogram\s*transf` casa
@@ -5318,18 +5336,72 @@ var STRETCH_HISTORY = [
    * outro caminho. A ferramenta de referencia do campo faz a mesma escolha.
    */
   [/histogram\s*transf/i,     'Histogram Transf.'],
-  // SUPOSTO -- o Siril tem um esticamento asinh. A palavra tambem aparece em
-  // contexto que NAO e esticamento (discussao de escala), e isso nao foi medido.
+
+  /* MEDIDO -- Siril 1.2.1 e 1.4.4, o mesmo texto nas duas. ENTRADA NOVA.
+   *
+   *     GHS asinh (pivot: 0.004, amount: 53.60 [0.00, 1.00])
+   *
+   * E o asinh modificado do Siril (comando `modasinh`). Vem ANTES das regras de
+   * `asinh` e de `GHS` porque a linha casa nas duas: sem ela, uma operacao so
+   * recebia dois rotulos. Fixture: `fixture-escritor-ghs-asinh` recebe
+   * exatamente um rotulo, este.
+   */
+  [/GHS asinh/i,              'Modified asinh'],
+  /* MEDIDO -- Siril 1.2.1 e 1.4.4, o mesmo texto nas duas:
+   *
+   *     Asinh stretch (amount: 150.0, offset: 0.0, human: no)
+   *     Asinh stretch (amount: 150.0, offset: 0.0, human: yes)
+   *
+   * O OFFSET DECLARADO NAO E O APLICADO: o comando recebeu 0.001, a linha diz
+   * `0.0`, e o offset foi aplicado -- com e sem ele as medianas saem 0,1085 e
+   * 0,1299, com o mesmo HISTORY. Mesma familia do arredondamento de tres casas:
+   * a declaracao diz QUE houve esticamento, nunca reconstroi QUAL.
+   *
+   * A palavra `asinh` tambem pode aparecer em contexto que nao e esticamento;
+   * isso nao foi medido.
+   */
   [/asinh/i,                  'Asinh stretch'],
-  // SUPOSTO -- GHS e um script de terceiro, nao uma operacao nativa; se ele
-  // grava HISTORY, e com que texto, e a entrada com menos base das sete.
-  [/generalised hyperbolic|generalized hyperbolic|\bGHS\b/i, 'GHS'],
-  // SUPOSTO -- "Midtones Transfer Function" e o nome da operacao nas duas
-  // ferramentas; a forma abreviada no HISTORY nao foi vista.
+  /* MEDIDO -- Siril 1.2.1 e 1.4.4. Tres textos, e a regra mudou por causa deles.
+   *
+   *     GHS (pivot: 0.004, amount: 53.60, local: 6.0 [0.00, 1.00])     casa
+   *     AutoGHS (linked, k.sigma: 0.00, amount: 5.00, local: 13.0 [0.00, 0.70])
+   *                                                                  casa AGORA
+   *     GHS BP shift (new BP: 0.001)                                   NAO casa
+   *
+   * A regra antiga, `\bGHS\b`, errava nos dois sentidos:
+   *
+   *   `AutoGHS`       nao tem fronteira de palavra antes de `GHS`, entao uma
+   *                   operacao que ESTICA passava sem rotulo. Fixture:
+   *                   `fixture-escritor-autoghs` recebe `GHS`.
+   *   `GHS BP shift`  e o deslocamento do ponto preto -- operacao AFIM, que
+   *                   preserva a classe (1 - r2 = 1,6e-15 contra a base). Era
+   *                   FALSO POSITIVO num controle. Hoje o custo seria trocar o
+   *                   limiar de 0,05 por 0,02; depois do item 2 o HISTORY decide
+   *                   sozinho, e o falso positivo viraria veredito. Fixture:
+   *                   `fixture-escritor-controle-bp` nao recebe rotulo nenhum.
+   *
+   * O `AutoGHS` MUDOU DE SENTIDO entre as versoes: os mesmos argumentos esticam
+   * bem menos no 1.4.4 (mediana do canal 0: 0,298 no 1.2.1, 0,075 no 1.4.4), e a
+   * linha declara `amount: 5.00` contra `147.41` (= e^5 - 1). MEDIDO: o efeito.
+   * SUPOSTO: que o segundo argumento passou de D para amount. No 1.2.1 a linha
+   * era longa demais e o Siril a cortou em dois cartoes, com o `)` no segundo;
+   * o termo esta no comeco, entao o corte nao o alcanca.
+   *
+   * O nome por extenso (`generalised hyperbolic`) continua SUPOSTO: nenhuma
+   * versao medida o escreve.
+   */
+  [/generalised hyperbolic|generalized hyperbolic|\b(?:auto)?GHS\b(?!\s+BP shift)/i, 'GHS'],
+  /* MEDIDO -- Siril 1.2.1 e 1.4.4, o mesmo texto nas duas:
+   *
+   *     Midtones transfer (0.003, 0.0123, 1.000)
+   *
+   * Comando `mtf`. Os tres numeros sao preto, meio-tom e branco, e o arredondamento
+   * da entrada 2 vale aqui tambem.
+   */
   [/midtone/i,                'Midtones transfer'],
-  // SUPOSTO, E A MAIS ARRISCADA DAS SETE -- e o risco esta medido, nao suposto.
+  // SUPOSTO, E A MAIS ARRISCADA DAS OITO -- e o risco esta medido, nao suposto.
   //
-  // `curves` e a unica das sete que NAO e termo tecnico: e palavra comum em
+  // `curves` e a unica das oito que NAO e termo tecnico: e palavra comum em
   // ingles e pode casar numa linha de HISTORY que nao fala de esticamento.
   //
   // O CUSTO DO FALSO POSITIVO, e ele so existe numa janela estreita: casar aqui
@@ -5346,17 +5418,46 @@ var STRETCH_HISTORY = [
   // projeto ainda nao tem (n=3). Ate la fica SUPOSTO com o risco escrito -- que
   // e exatamente para o que a procedencia serve.
   [/\bcurves?\b/i,            'Curves'],
-  // SUPOSTO para `modasinh` (asinh modificado, do Siril).
+  // SUPOSTO -- o asinh modificado do Siril com o NOME DO COMANDO no texto.
   //
-  // E a alternativa `|autostretch` daqui e CODIGO MORTO, por construcao: a regra
-  // 1 casa a mesma palavra e poe o mesmo rotulo, e o laco pula uma regra cujo
-  // rotulo ja esta em `historyHits`. Esta linha so e alcancada quando a regra 1
-  // NAO casou -- ou seja, quando `autostretch` nao esta no texto. Fica anotado
-  // em vez de removido: remover e mudanca de comportamento zero, e mexer numa
-  // tabela sem procedencia enquanto ela esta sendo medida e trocar a ordem das
-  // coisas.
-  [/modasinh|autostretch/i,   'Autostretch']
+  // Nenhuma versao medida escreve `modasinh`: o 1.2.1 e o 1.4.4 gravam
+  // `GHS asinh (...)`, que a entrada nova, acima, reconhece. Esta fica para um
+  // escritor que use o nome do comando, e sem evidencia de que ele exista.
+  //
+  // O ROTULO ESTAVA ERRADO: era `Autostretch`, para uma regra que casava
+  // `modasinh`. E a alternativa `|autostretch` saiu -- era codigo morto por
+  // construcao, porque a regra 1 casa a mesma palavra com o mesmo rotulo.
+  [/modasinh/i,               'Modified asinh']
 ];
+
+// A regra que fica com uma linha de HISTORY: a primeira da tabela que casa
+// nela, ou -1. Ver UM ROTULO POR LINHA, no comentario de STRETCH_HISTORY.
+function historyRule(line){
+  for (var hi = 0; hi < STRETCH_HISTORY.length; hi++){
+    if (STRETCH_HISTORY[hi][0].test(line)) return hi;
+  }
+  return -1;
+}
+
+// Os rotulos que um HISTORY declara: um por linha, na ordem DA TABELA, sem
+// repetir -- duas regras podem dar o mesmo rotulo.
+//
+// Funcao, e nao laco dentro do pipeline, porque o teste de texto do catalogo
+// (test/compare-catalogo.ps1) chama ESTA funcao com cada linha medida. Um teste
+// que rodasse uma copia da tabela provaria a copia.
+function historyLabels(lines){
+  var seen = {};
+  for (var li = 0; li < lines.length; li++){
+    var r = historyRule(lines[li]);
+    if (r >= 0) seen[STRETCH_HISTORY[r][1]] = true;
+  }
+  var out = [];
+  for (var hj = 0; hj < STRETCH_HISTORY.length; hj++){
+    var lab = STRETCH_HISTORY[hj][1];
+    if (seen[lab] && out.indexOf(lab) < 0) out.push(lab);
+  }
+  return out;
+}
 
 
 /* OS DOIS LIMIARES DA REGRA LINEAR, COM NOME.
@@ -5650,14 +5751,7 @@ async function openFile(buffer, fileName, opts, post){
   for (c = 0; c < channels.length; c++) globalMedian += channels[c].median;
   globalMedian /= channels.length;
 
-  var historyHits = [];
-  for (var hi = 0; hi < STRETCH_HISTORY.length; hi++){
-    var rule = STRETCH_HISTORY[hi];
-    if (historyHits.indexOf(rule[1]) >= 0) continue;
-    for (var li = 0; li < hdu.history.length; li++){
-      if (rule[0].test(hdu.history[li])){ historyHits.push(rule[1]); break; }
-    }
-  }
+  var historyHits = historyLabels(hdu.history);
   var nonLinear = (globalMedian >= NONLINEAR_MEDIAN) ||
                   (historyHits.length > 0 && globalMedian >= NONLINEAR_MEDIAN_WITH_HISTORY);
 
