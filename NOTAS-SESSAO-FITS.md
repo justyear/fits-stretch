@@ -2437,6 +2437,125 @@ uma linha desde `7bb4623`**. As seções de fixtures e artefatos descrevem a su�
 daquela época. É a mesma classe outra vez — um documento que se apresenta como
 *"the long version"* e parou no tempo.
 
+## O caso mudo é o padrão sendo seguido: `should`, não `shall`
+
+**O achado que fecha a pergunta que a spec da escala deixou aberta.**
+
+A entrada de `HISTORY` no dicionário do FITS Standard mantido pelo FITS Support
+Office da NASA,
+<https://heasarc.gsfc.nasa.gov/docs/fcg/standard_dict.html>, diz:
+
+> *"This keyword shall have no associated value; columns 9-80 may contain any
+> ASCII text. The text **should** contain a history of steps and procedures
+> associated with the processing of the associated data. Any number of HISTORY
+> card images may appear in a header."*
+
+A primeira frase é `shall` — obrigação de forma. A segunda é **`should`** —
+recomendação de conteúdo. **O padrão recomenda registrar o processamento e não
+obriga.** Um arquivo que não diz nada sobre o que sofreu **está em
+conformidade**.
+
+Consequências, e elas são de desenho:
+
+- **O caso mudo não é defeito do escritor.** É o padrão sendo seguido. Tratá-lo
+  como arquivo malfeito seria cobrar do escritor uma obrigação que o padrão não
+  impõe.
+- **O degrau 5 existe para sempre.** Não é um remendo até o corpus chegar: é o
+  ramo que um arquivo conforme ao padrão pode exigir, e nenhum volume de corpus
+  o elimina.
+- **A pergunta que resta é uma só:** que fração dos arquivos reais declara. O
+  corpus responde isso; ele não pode responder "dá para exigir", porque essa
+  resposta já está no padrão e é não.
+
+**Onde está a citação completa, com a tabela de procedência das outras chaves:**
+`spec-escala-decisao.md`, *"A procedência dos degraus, medida no FITS Support
+Office"*.
+
+## O digest no lugar do nome: com o nome era promessa, com o digest é conta
+
+**Registro da decisão, com o argumento que a sustenta.**
+
+O log trocou `Processing log — <nome do arquivo>` por
+`Processing log — SHA-256 <16 dígitos> (identifies the file, not its name)`. A
+proposta de usar o digest veio de quem conduz o projeto; o argumento que decide
+veio depois:
+
+> **Com o nome, "este log é do seu arquivo?" era uma promessa. Com o digest, é
+> uma conta.** `certutil -hashfile x SHA256`, `shasum -a 256 x` — os dezesseis
+> primeiros caracteres são o que o log imprime. Quem tem o arquivo confere;
+> quem não tem vê um número.
+
+**O detalhe que decide se o número é reproduzível: calcular ANTES do decode.**
+`toNormalisedFloat` escreve no próprio buffer. Um digest calculado depois seria
+de outros bytes — ainda deterministico, ainda com cara de sha256, e **impossível
+de reproduzir com qualquer ferramenta de linha de comando**, que é a única razão
+de ele existir. É o tipo de defeito que nenhum teste de igualdade pegaria: o
+golden guardaria o número errado e a captura o reproduziria.
+
+**Medido no build publicado:** os 20 fixtures soltos na página, e o digest do log
+conferido contra um sha256 calculado fora do pipeline, sobre os bytes antes de a
+página tocá-los. 20/20 batem.
+
+**Dezesseis dígitos** porque são os mesmos do carimbo do build — dois
+comprimentos para a mesma ideia no mesmo produto seria uma escolha a explicar sem
+ganho.
+
+**E o outro lado está escrito:** `crypto.subtle` exige contexto seguro. `file://`
+conta como seguro em Chrome e Firefox; Safari nunca foi testado. Sem a API, a
+linha diz que não conseguiu, em vez de sair em branco.
+
+## A reescrita do histórico: preparada, ensaiada, esperando leitura
+
+**Autorizada, e o custo foi medido antes:** 0 forks, 0 stars, 0 watchers,
+`network_count` 0. Os downloads de release são do `index.html` solto, e baixar
+asset não é clone. **Não medível sem token:** `git clone` não aparece em API
+pública.
+
+**Bloqueada, e de propósito, duas vezes.** A primeira pelo classificador de ações
+destrutivas da sessão. A segunda por quem conduz: *"não vou rodar um comando que
+executa um script de uma pasta temporária sem ler o script"*. Os scripts foram
+para `D:\justyear image s2\reescrita\`, fora do repositório, com um `PASSOS.txt`
+na ordem exata.
+
+**O ensaio foi feito num clone descartável** (`--no-hardlinks`, independente do
+repositório real, nada empurrado), porque a pergunta que decidia a segurança da
+operação só se responde vendo: **para onde vai a v1.5.0?**
+
+A tag apontava para o commit que só trocava a linha do nome no NOTAS. Com o
+filtro aplicado em todo o histórico, esse commit fica vazio e o `--prune-empty`
+o remove. **Medido no ensaio:** a tag desce para o commit logo antes — o do
+README, mesma mensagem, mesma data — e o `index.html` lá é **303.390 bytes, sha256
+`676b2cf0eadaabef…`, o mesmo do asset publicado**. O asset da release continua
+correspondendo à tag.
+
+E as seis releases já correspondiam antes de qualquer reescrita: a API do GitHub
+dá o sha256 de cada asset, e os seis batem com o `index.html` da tag
+correspondente. A conferência usa isso **sem baixar nada** — baixar incrementa o
+contador de downloads, que era um dos números que a decisão pedia.
+
+**O nome entrou no commit raiz.** Então TODOS os hashes do repositório mudam, não só
+os posteriores a um ponto.
+
+**Uma consequência medida que não estava no pedido:** 8 citações de commit em
+arquivo (7 no NOTAS, 1 no MANIFEST) e 5 em mensagens de commit apontam para
+hashes que deixam de existir. As de arquivo se consertam num commit depois; as de
+mensagem ficam mortas — visivelmente, não erradas.
+
+**E a conferência achou um defeito nela mesma antes de rodar.** As suposições
+dela foram checadas à mão no clone de ensaio, uma por uma, sem executar o script
+— e uma estava errada: a checagem do exemplo mascarado do `CLAUDE.md` comparava
+com o fragmento sem o sublinhado inicial, e o padrão casa com ele — o `>` do
+marcador fica fora da classe de caracteres e o casamento começa no sublinhado
+logo depois. **Teria reprovado um resultado correto** e feito parecer que a
+reescrita estragou o `CLAUDE.md`. Uma conferência que reprova o certo é tão
+inútil quanto uma que aprova o errado, e mais cara: ela é a que faz alguém
+desfazer uma operação que tinha dado certo.
+
+**E este parágrafo quase repetiu o erro por outro lado.** A primeira versão dele
+escrevia o fragmento por extenso — e a conferência exige ZERO casamentos do
+padrão no NOTAS. Gravado aqui, o registro da reescrita faria a reescrita
+reprovar. O fragmento fica descrito, não escrito.
+
 ## Em aberto
 
 
@@ -2622,22 +2741,18 @@ calculado fora do pipeline.
 O nome continua na tela e nos arquivos baixados. O que mudou é só o que a pessoa
 é convidada a publicar.
 
-### 11. Um nome de arquivo original no histórico público
+### 11. Um nome de arquivo original no histórico público — pronto, esperando leitura
 
-Consertado na árvore em `51ec35a`. **Continua em toda tag desde a v1.0.0.**
+Consertado na árvore. **Continua em toda tag desde a v1.0.0**, e entrou no commit
+raiz, então a reescrita muda TODOS os hashes do repositório.
 
-**A reescrita foi autorizada e está medida:** 0 forks, 0 stars, 0 watchers,
-`network_count` 0. Os downloads de release são do `index.html` solto (9 no total
-entre as seis versões), e baixar um asset não é clone — nada que uma reescrita
-quebre. **O que não dá para medir sem token:** `git clone` não aparece em API
-pública; 0 forks é o melhor indicador disponível e não é prova.
+**Autorizada, medida, ensaiada.** Ver *"A reescrita do histórico: preparada,
+ensaiada, esperando leitura"*, acima. Em uma linha: no ensaio, a v1.5.0 desce um
+commit e o `index.html` dela continua sendo o asset publicado, byte a byte.
 
-**Bloqueado por permissão, não por decisão:** `git filter-branch` é recusado
-pelo classificador de ações destrutivas desta sessão. O escopo já está apurado:
-54 blobs, **um único formato de linha**, só em `NOTAS-SESSAO-FITS.md`; o hit no
-`CLAUDE.md` é fragmento do exemplo mascarado e **tem que ficar**. Filtro escrito
-e testado nos dois sentidos (no-op byte a byte onde não há token; uma linha onde
-há). Bundle de backup de 442 MB em `../backup-antes-da-reescrita/`.
+**O que falta é de quem conduz:** ler `filtro-nome.sh` e
+`conferencia-reescrita.sh` em `D:\justyear image s2\reescrita\`, e seguir o
+`PASSOS.txt`. Nenhum dos dois scripts rodou no repositório real.
 
 ### 12. O MANIFEST parou em `7bb4623` — adiado por decisão
 
@@ -2652,7 +2767,7 @@ ninguém. O comentário no código registra que entraram **por decisão de quem
 pediu o botão**, e não por conta própria — que é o movimento que uma lista de
 permissão existe para impedir.
 
-### 14. `PROGRAM` e `CREATOR` não são equivalentes, e a escada os trata como se fossem
+### 14. `PROGRAM` e `CREATOR` não são equivalentes, e a escada os trata como se fossem — ANOTADO, NÃO MEXER AINDA
 
 Medido no dicionário do FITS Support Office (spec da escala, *"A procedência dos
 degraus"*): `CREATOR` é recomendação **HEASARC**; `PROGRAM` tem como única origem
@@ -2662,6 +2777,9 @@ nenhum. O degrau 4 cita os três na mesma linha.
 **Destrava:** saber qual deles os programas de astrofotografia realmente gravam
 — e isso é o corpus outra vez. Os fixtures todos trazem `PROGRAM` porque foi o
 que o gerador escreveu: mais uma população que confirma quem a escreveu.
+
+**Decisão de quem conduz: anotar e não mexer ainda.** A escada muda quando o
+corpus disser qual das duas os escritores usam, não antes.
 
 ---
 
