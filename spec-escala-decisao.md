@@ -122,6 +122,79 @@ SUPOSTO, e só fecham com arquivos de cada programa.
 fixtures da suíte trazem `PROGRAM`, porque foi o que o gerador escreveu — outra
 população que confirma quem a escreveu. **Anotado, não consertado:** qual das
 duas os programas de astrofotografia realmente gravam é pergunta para o corpus.
+
+### As três chaves de escritor, com a procedência de cada — 2026-09-23
+
+**Um nível de procedência novo entra aqui, e ele vale para o projeto inteiro:**
+
+```
+MEDIDO                        abrimos o arquivo e lemos o header
+OBSERVADO EM EXEMPLO PUBLICO  alguem publicou o header; ninguem aqui abriu o
+                              arquivo nem conferiu que o header nao foi
+                              editado antes de publicado
+DOCUMENTADO                   esta escrito num dicionario ou numa documentacao
+SUPOSTO                       ninguem verificou
+```
+
+`OBSERVADO EM EXEMPLO PÚBLICO` é **mais fraco que `MEDIDO`**, e a diferença é
+uma só: quem mede aqui não pode excluir que o header tenha sido editado. Em
+relação a `DOCUMENTADO` ele não é mais forte nem mais fraco — responde outra
+pergunta. A documentação diz o que um programa **deveria** gravar; a observação
+diz o que **um** arquivo, uma vez, mostrou.
+
+A origem são dois headers públicos de programas de **captura**, encontrados por
+um parceiro de teste:
+
+```
+N.I.N.A.   SWCREATE = 'N.I.N.A. 2.0.0.9001'   BITPIX 16  BZERO 32768  BSCALE 1
+ASIAIR     CREATOR  = 'ZWO ASIAIR Plus'       BITPIX 16  BZERO 32768  BSCALE 1
+```
+
+| chave | dicionários do FITS Support Office | arquivo real aberto aqui | exemplo público |
+|---|---|---|---|
+| `PROGRAM` | UCOLICK, convenção local — FRACO | MEDIDO: nomeia o programa que **salvou** o arquivo (Siril) | — |
+| `CREATOR` | recomendação HEASARC — DOCUMENTADO | MEDIDO: nomeia o **dispositivo de captura**, não o Siril | ASIAIR, nomeando a captura |
+| `SWCREATE` | **em nenhum dos dois** — SEM ORIGEM | — | N.I.N.A., nomeando a captura |
+| `PRODUCER` | em nenhum dos dois — SEM ORIGEM | MEDIDO: o fabricante | — |
+
+**Não equivalentes, e agora por dois motivos.** Um é de procedência: cada uma tem
+a sua, e elas não se somam. O outro é de **sentido**, e apareceu ao reler o
+arquivo real: os dicionários definem `PROGRAM` e `CREATOR` com **o mesmo texto**
+— *"the program that originally created the current FITS HDU"* — e no único
+arquivo real aberto aqui as duas nomeiam **escritores diferentes**. `PROGRAM`
+diz quem salvou; `CREATOR`, de onde veio a captura. A definição diz uma coisa e a
+prática diz outra.
+
+**Pista, com n=3 e não conclusão:** nos três headers vistos, a chave que nomeia a
+*captura* é `CREATOR` ou `SWCREATE`, e a que nomeia o *processamento* é
+`PROGRAM`. Se isso se sustentar no corpus, o degrau 4 não lê "o escritor" — lê
+**dois**, e eles respondem perguntas diferentes.
+
+**Decisão de quem conduz: registrar as três e não unificar ainda.** A linha do
+degrau 4 na escada continua como está.
+
+#### A representação numérica dos dois exemplos, e o que ela já tem
+
+`BITPIX 16 + BZERO 32768 + BSCALE 1` é o inteiro de 16 bits sem sinal, e é o
+**degrau 1**: o contêiner declara a escala. O ramo `int` de `normalisePhysical` o
+trata assim, conferido sem mudar nada: `lo = 0`, `hi = 65535`, divisor 65535,
+`scaleSource = container`. No `fixture-seestar`, que tem **exatamente** essa
+representação, o máximo observado (20650) vai para 0,315 — **não** é esticado
+para 1,0. E a implementação Python independente concorda nas dez linhas de decode
+desse fixture, `rawMin` e `rawMax` exatos.
+
+#### O que os dois exemplos NÃO resolvem, e isto vai escrito
+
+**Linear contra esticado continua aberto.** São capturas cruas: lineares por
+física, e mudas por declaração — o `HISTORY` deles, se existe, não foi mostrado.
+**Nenhuma entrada do `STRETCH_HISTORY` se move por causa deles.**
+
+**O que eles sugerem, com n=2, como pista:** o problema da normalização de float
+mora nos **empilhamentos processados**, e não nas capturas cruas, que chegam como
+inteiro de escala declarada. Os casos difíceis da investigação da escala — float
+sem declaração, o ramo `/max` — são todos saídas de empilhador. Anotado como
+pista, não como conclusão.
+
 ### 2.1 O degrau 4, com a única forma que ele pode ter
 
 Uma tabela de escritores, na forma da `STRETCH_HISTORY` que já existe em

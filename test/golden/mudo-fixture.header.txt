@@ -20,6 +20,7 @@ XBAYROFF = (absent)
 YBAYROFF = (absent)
 PROGRAM  = (absent)
 CREATOR  = (absent)
+SWCREATE = (absent)
 PRODUCER = (absent)
 
 --- data, in the file’s own units (after BZERO/BSCALE) ---

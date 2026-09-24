@@ -563,3 +563,25 @@ Enquanto forem, **qualquer divisor é uma escolha com consequência**.
    contradição da §3.D.4 desde o primeiro dia, porque é ela que separa *"confiar
    no header"* de *"confiar no header e conferir contra os pixels"*.
 6. Só então o conserto, com o que ele mudar na spec do Módulo 0.
+
+---
+
+## Pista, n=2: o problema mora nos empilhamentos, não nas capturas — 2026-09-23
+
+Dois headers públicos de programas de captura (N.I.N.A. e ZWO ASIAIR),
+procedência OBSERVADO EM EXEMPLO PÚBLICO, mostram a mesma representação:
+`BITPIX 16`, `BZERO 32768`, `BSCALE 1` — inteiro sem sinal, **escala declarada
+pelo contêiner**, degrau 1. O ramo `int` já trata isso certo, conferido sem mudar
+nada.
+
+**A pista:** os casos difíceis desta investigação — float sem declaração de
+escala, o ramo `/max`, o penhasco do `mx <= 1.5` — são todos saídas de
+**empilhador**. As capturas cruas chegam como inteiro de escala declarada e não
+passam por nenhum deles.
+
+**Não é conclusão.** n=2, os dois de programas de captura, e nenhum arquivo foi
+aberto aqui. O que isso sugere para o corpus: a população que decide a §1 é a dos
+arquivos **processados**, e é ela que tem que estar no corpus — um corpus só de
+capturas cruas responderia a pergunta errada.
+
+Detalhe e procedência: `spec-escala-decisao.md`, *"As três chaves de escritor"*.

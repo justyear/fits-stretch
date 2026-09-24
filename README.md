@@ -184,10 +184,11 @@ press it.
 **What it copies:**
 
 - a fixed list of header keywords — `BITPIX`, `NAXIS` and its axes, `BZERO`,
-  `BSCALE`, `DATAMIN`, `DATAMAX`, `BUNIT`, `ROWORDER`, `BAYERPAT`, `PROGRAM`,
-  `CREATOR`, `PRODUCER`, and the two Bayer offsets `XBAYROFF` and `YBAYROFF` —
-  with the ones your file does not have printed as `(absent)`, because which
-  keywords are *missing* is half of what the catalogue needs to know;
+  `BSCALE`, `DATAMIN`, `DATAMAX`, `BUNIT`, `ROWORDER`, `BAYERPAT`, the two Bayer
+  offsets `XBAYROFF` and `YBAYROFF`, and the three keywords different programs
+  use to sign a file, `PROGRAM`, `CREATOR` and `SWCREATE`, plus `PRODUCER` — with
+  the ones your file does not have printed as `(absent)`, because which keywords
+  are *missing* is half of what the catalogue needs to know;
 - every `HISTORY` and `COMMENT` line, in the order the file has them;
 - three numbers that are not pixels: the minimum, the maximum and the median,
   in the file's own units;
@@ -238,6 +239,7 @@ XBAYROFF = 0
 YBAYROFF = 0
 PROGRAM  = 'make-fixture.ps1'
 CREATOR  = (absent)
+SWCREATE = (absent)
 PRODUCER = (absent)
 
 --- data, in the file’s own units (after BZERO/BSCALE) ---

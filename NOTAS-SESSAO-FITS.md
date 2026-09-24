@@ -2153,9 +2153,14 @@ que vai e o que não vai antes de ela apertar.
 ### A decisão que carrega o resto: permissão, não proibição
 
 A tentação é listar o que não pode sair. **Uma lista de proibição exige
-antecipar cada chave identificadora que existe ou que vai existir** — `SWCREATE`,
-`SITELAT`, `OBJCTRA`, `FOCUSER`, a chave privada que o próximo programa
-inventar. E antecipar é exatamente o que falha.
+antecipar cada chave identificadora que existe ou que vai existir** — `SITELAT`,
+`OBJCTRA`, `FOCUSER`, a chave privada que o próximo programa inventar. E
+antecipar é exatamente o que falha.
+
+*(Corrigido depois: a primeira versão desta lista incluía `SWCREATE` como chave
+identificadora. Foi classificação sem evidência, e errada — `SWCREATE` nomeia o
+software de captura, e entrou na lista de PERMISSÃO quando um header público do
+N.I.N.A. a mostrou. Ver "Três chaves de escritor", adiante.)*
 
 > **Errar por omissão numa lista de proibição VAZA. Errar por omissão numa lista
 > de permissão só perde um dado.**
@@ -2671,6 +2676,89 @@ as duas pastas fora do repositório que ainda têm o nome:
 
 O `PASSOS.txt` já foi corrigido com o mesmo comando.
 
+## Três chaves de escritor, e um nível de procedência novo — 2026-09-23
+
+**A primeira evidência de fora que o corpus recebeu.** Dois headers públicos de
+programas de **captura**, encontrados por um parceiro de teste:
+
+```
+N.I.N.A.   SWCREATE = 'N.I.N.A. 2.0.0.9001'   BITPIX 16  BZERO 32768  BSCALE 1
+ASIAIR     CREATOR  = 'ZWO ASIAIR Plus'       BITPIX 16  BZERO 32768  BSCALE 1
+```
+
+### O nível novo: OBSERVADO EM EXEMPLO PÚBLICO
+
+Mais fraco que MEDIDO, e por um motivo só: **ninguém aqui abriu o arquivo nem
+conferiu que o header não foi editado antes de publicado.** Em relação a
+DOCUMENTADO não é mais forte nem mais fraco — responde outra pergunta: a
+documentação diz o que um programa deveria gravar; a observação diz o que um
+arquivo, uma vez, mostrou.
+
+A escala completa, com a definição de cada nível, está na spec da escala
+(*"As três chaves de escritor, com a procedência de cada"*). É a primeira vez que
+a procedência deste projeto tem quatro níveis em vez de três, e o quarto nasceu
+de uma distinção que quem conduz fez antes de eu classificar: *"são exemplos
+públicos, não arquivos que abrimos"*.
+
+### O que eles resolvem
+
+**`SWCREATE` entrou na lista de permissão do bloco de header.** Nomeia software,
+não pessoa — a mesma categoria de `PROGRAM` e `CREATOR`. Sem ela, num arquivo do
+N.I.N.A., o bloco imprimiria `(absent)` nas duas chaves de escritor que conhecia e
+perderia a única que diz quem escreveu.
+
+**O fixture `fixture-swcreate.fit` exercita o CAMINHO DO CÓDIGO e não prova que o
+N.I.N.A. grava a chave.** Ele tem só as chaves dos dois exemplos mais as
+estruturais — `SIMPLE`, `BITPIX`, `NAXIS`, `NAXIS1`, `NAXIS2`, `BZERO`,
+`BSCALE`, `SWCREATE` — e nenhum `HISTORY`, porque os exemplos não mostraram um. O
+valor de `SWCREATE` se anuncia sintético e **não imita** o do exemplo: um fixture
+meu confirmaria qualquer coisa que eu escrevesse nele. A evidência sobre o
+N.I.N.A. é o header público; o fixture é meu.
+
+**A representação numérica é o degrau 1, e o ramo que a trata ficou intocado.**
+`BITPIX 16 + BZERO 32768 + BSCALE 1` é o inteiro sem sinal; o ramo `int` de
+`normalisePhysical` dá `lo = 0`, `hi = 65535`, divisor 65535,
+`scaleSource = container`. Conferido sem mudar nada, no `fixture-seestar`, que
+tem exatamente essa representação: o máximo observado, 20650, vai para 0,315 e
+não é esticado para 1,0, e a implementação Python independente concorda nas dez
+linhas de decode. O fixture novo é a mesma representação num quadro mono.
+
+### O que eles NÃO resolvem
+
+**Linear contra esticado continua aberto.** São capturas cruas — lineares por
+física, mudas por declaração. O `HISTORY` deles não foi mostrado. **Nenhuma
+entrada do `STRETCH_HISTORY` se moveu.**
+
+**Pista, n=2, não conclusão:** o problema da normalização de float mora nos
+empilhamentos processados, e não nas capturas cruas, que chegam como inteiro de
+escala declarada.
+
+### Dois erros meus, achados ao escrever a procedência
+
+**1. Eu tinha classificado `SWCREATE` como identificadora.** O comentário do
+`header-summary.js`, e o NOTAS, a listavam entre as chaves que uma lista de
+proibição teria que antecipar. Sem evidência nenhuma — e a primeira evidência
+que apareceu diz o contrário. Corrigido nos dois lugares, com nota.
+
+**2. Quase registrei `CREATOR` como "gravada pelo Siril".** Ao reler o arquivo real
+para escrever a procedência, o que ele diz é outra coisa: `PROGRAM` nomeia o
+Siril, o programa que **salvou**; `CREATOR` nomeia o **dispositivo de captura**.
+Os dois dicionários definem as duas com o mesmo texto — *"the program that
+originally created the current FITS HDU"* — e na prática elas nomeiam escritores
+diferentes.
+
+Isso deu ao item 14 um segundo motivo, além da procedência: **não são
+equivalentes nem no sentido.** E uma pista, com n=3: nos três headers vistos, a
+chave que nomeia a captura é `CREATOR` ou `SWCREATE`, e a que nomeia o
+processamento é `PROGRAM`. Se o corpus sustentar, o degrau 4 não lê "o escritor"
+— lê dois.
+
+> **A regra que os dois erros têm em comum:** procedência escrita de memória é
+> suposição com cara de registro. As duas frases erradas pareciam fatos, e as
+> duas só caíram porque a instrução era *"registre as três com a procedência de
+> cada"* — o que obrigou a reler a fonte em vez de repetir o que eu achava que
+> ela dizia.
+
 ## Em aberto
 
 
@@ -2888,19 +2976,29 @@ ninguém. O comentário no código registra que entraram **por decisão de quem
 pediu o botão**, e não por conta própria — que é o movimento que uma lista de
 permissão existe para impedir.
 
-### 14. `PROGRAM` e `CREATOR` não são equivalentes, e a escada os trata como se fossem — ANOTADO, NÃO MEXER AINDA
+### 14. `PROGRAM`, `CREATOR` e `SWCREATE` não são equivalentes — ANOTADO, NÃO MEXER AINDA
 
-Medido no dicionário do FITS Support Office (spec da escala, *"A procedência dos
-degraus"*): `CREATOR` é recomendação **HEASARC**; `PROGRAM` tem como única origem
-a convenção local de **um** observatório; `PRODUCER` não aparece em dicionário
-nenhum. O degrau 4 cita os três na mesma linha.
+Três chaves de escritor, e cada uma com a sua procedência:
 
-**Destrava:** saber qual deles os programas de astrofotografia realmente gravam
-— e isso é o corpus outra vez. Os fixtures todos trazem `PROGRAM` porque foi o
-que o gerador escreveu: mais uma população que confirma quem a escreveu.
+| chave | dicionários | arquivo real aberto | exemplo público |
+|---|---|---|---|
+| `PROGRAM` | UCOLICK, local — FRACO | MEDIDO: o programa que salvou | — |
+| `CREATOR` | HEASARC — DOCUMENTADO | MEDIDO: o dispositivo de captura | ASIAIR |
+| `SWCREATE` | nenhum — SEM ORIGEM | — | N.I.N.A. |
 
-**Decisão de quem conduz: anotar e não mexer ainda.** A escada muda quando o
-corpus disser qual das duas os escritores usam, não antes.
+**Dois motivos para não unificar, e o segundo é novo:** a procedência de cada
+uma é outra, e **o sentido também** — os dicionários definem `PROGRAM` e
+`CREATOR` com o mesmo texto, e no arquivo real elas nomeiam escritores
+diferentes. Pista com n=3: captura em `CREATOR`/`SWCREATE`, processamento em
+`PROGRAM`.
+
+**Destrava:** saber quem grava o quê — e é o corpus outra vez. Os fixtures todos
+trazem `PROGRAM` porque foi o que o gerador escreveu, exceto o
+`fixture-swcreate`, que traz só `SWCREATE` e prova o caminho do código, não o
+comportamento do N.I.N.A.
+
+**Decisão de quem conduz: registrar as três e não unificar ainda.** A escada muda
+quando o corpus disser, não antes.
 
 ---
 

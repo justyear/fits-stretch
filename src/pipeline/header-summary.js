@@ -22,8 +22,8 @@
  *
  * A tentacao e listar o que nao pode sair: OBJECT, DATE-OBS, TELESCOP... Uma
  * lista de proibicao exige ANTECIPAR cada chave identificadora que existe ou
- * que vai existir, e antecipar e exatamente o que falha: `SWCREATE`, `SITELAT`,
- * `OBJCTRA`, `FOCUSER`, a chave privada que o proximo programa inventar. Errar
+ * que vai existir, e antecipar e exatamente o que falha: `SITELAT`, `OBJCTRA`,
+ * `FOCUSER`, a chave privada que o proximo programa inventar. Errar
  * por omissao numa lista de proibicao VAZA; errar por omissao numa lista de
  * permissao so perde um dado.
  *
@@ -66,7 +66,34 @@ var HEADER_SUMMARY_KEYS = [
   // Sao convencao de CFA -- dizem onde o padrao Bayer comeca -- e um par de
   // inteiros 0 ou 1 nao identifica ninguem.
   'ROWORDER', 'BAYERPAT', 'XBAYROFF', 'YBAYROFF',
-  'PROGRAM', 'CREATOR', 'PRODUCER'
+  // AS CHAVES DE ESCRITOR. Tres, e NAO sao equivalentes -- cada uma com a sua
+  // procedencia, e a lista nao as unifica de proposito:
+  //
+  //   PROGRAM    convencao local de UM observatorio (UCOLICK, no dicionario
+  //              HEASARC de chaves comuns). MEDIDA no unico arquivo real
+  //              aberto aqui, nomeando o programa que o SALVOU (o Siril)
+  //   CREATOR    recomendacao HEASARC. MEDIDA no mesmo arquivo, nomeando o
+  //              DISPOSITIVO DE CAPTURA -- nao o Siril. E OBSERVADA EM EXEMPLO
+  //              PUBLICO do ZWO ASIAIR, tambem nomeando a captura
+  //   SWCREATE   em NENHUM dos dois dicionarios do FITS Support Office.
+  //              OBSERVADA EM EXEMPLO PUBLICO do N.I.N.A., nomeando a captura
+  //
+  // Os dicionarios definem PROGRAM e CREATOR com o MESMO texto -- "the program
+  // that originally created the current FITS HDU" -- e no unico arquivo real
+  // aberto as duas nomeiam escritores DIFERENTES. Definicao e pratica divergem,
+  // e isso e mais uma razao para nao unificar antes do corpus.
+  //
+  // OBSERVADA EM EXEMPLO PUBLICO e um nivel proprio, mais fraco que MEDIDA:
+  // alguem publicou o header, e ninguem aqui conferiu que ele nao foi editado
+  // antes de publicado. Nomeiam software ou dispositivo, nao pessoa -- a mesma
+  // categoria das tres.
+  //
+  // SWCREATE entrou porque sem ela, num arquivo do N.I.N.A., o bloco imprimiria
+  // `(absent)` nas duas chaves de escritor que conhece e perderia a unica que
+  // diz quem escreveu. E ela ja tinha aparecido NESTE arquivo, na lista de
+  // exemplos de chave identificadora que uma lista de proibicao teria que
+  // antecipar -- classificacao feita sem evidencia, e errada.
+  'PROGRAM', 'CREATOR', 'SWCREATE', 'PRODUCER'
 ];
 
 /* O QUE NUNCA SAI. Nao e o mecanismo -- a lista de permissao acima e. Esta e a

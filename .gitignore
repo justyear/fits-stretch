@@ -30,6 +30,7 @@
 !test/fixtures/fixture-bayerespelhado.fit
 !test/fixtures/fixture-ceuclaro.fit
 !test/fixtures/fixture-caminho.fit
+!test/fixtures/fixture-swcreate.fit
 
 # Texto renomeado para .fit, para o teste de erro amigável. Não é imagem.
 !.claude/notfits.fit

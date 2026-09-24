@@ -173,7 +173,12 @@ window.__GOLDEN = [
   // ali dentro. Este fixture traz duas linhas com cara de caminho e as unicas
   // linhas de COMMENT da suite -- sem ele, o aviso que aponta o buraco seria um
   // ramo que ninguem nunca viu impresso.
-  ['caminho-fixture', '/f/test/fixtures/fixture-caminho.fit']
+  ['caminho-fixture', '/f/test/fixtures/fixture-caminho.fit'],
+  // SWCREATE, a terceira chave de escritor, com as outras duas ausentes. Exercita
+  // o CAMINHO DO CODIGO -- a linha de SWCREATE com valor no bloco de header. NAO
+  // prova que o N.I.N.A. grava a chave: essa evidencia e um header publico, de
+  // procedencia propria, e este fixture foi escrito aqui.
+  ['swcreate-fixture', '/f/test/fixtures/fixture-swcreate.fit']
 ];
 
 /* ------------------------------------------------------------------ *

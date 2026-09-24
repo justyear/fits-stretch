@@ -21,6 +21,7 @@ XBAYROFF = (absent)
 YBAYROFF = (absent)
 PROGRAM  = 'make-fixture.ps1'
 CREATOR  = (absent)
+SWCREATE = (absent)
 PRODUCER = (absent)
 
 --- data, in the file’s own units (after BZERO/BSCALE) ---

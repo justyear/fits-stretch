@@ -1,0 +1,122 @@
+{
+  "file": "fixture-swcreate.fit",
+  "hduIndex": 0,
+  "dataStart": 2880,
+  "header": {
+    "BITPIX": 16,
+    "NAXIS": 2,
+    "NAXIS1": 900,
+    "NAXIS2": 600,
+    "BZERO": 32768,
+    "BSCALE": 1,
+    "compressedHDU": false
+  },
+  "decoded": {
+    "bitpix": 16,
+    "kind": "16-bit unsigned integer (BZERO 32768)",
+    "bzero": 32768,
+    "bscale": 1,
+    "width": 900,
+    "height": 600,
+    "planes": 1,
+    "rawMin": 829,
+    "rawMax": 65535,
+    "nonFinite": 0,
+    "normMin": 0.012649729152361334,
+    "normMax": 1,
+    "scaleBasis": "container range [0, 65535]",
+    "scaleMode": "int",
+    "scaleLo": 0,
+    "scaleHi": 65535,
+    "scaleDiv": 65535,
+    "scaleSource": "container"
+  },
+  "rowOrder": {
+    "keyword": null,
+    "flipApplied": true
+  },
+  "cfa": {
+    "evenDims": true,
+    "isMosaic": false,
+    "headerDeclared": false,
+    "trustedHeader": false,
+    "decidedBy": "lattice statistics (no usable BAYERPAT)",
+    "ratioH": 0.5768433440251032,
+    "ratioV": 0.5768506088579668,
+    "threshold": 1.15,
+    "latticeMedians": {
+      "r0c0": 0.016361416361416362,
+      "r0c1": 0.016361416361416362,
+      "r1c0": 0.016361416361416362,
+      "r1c1": 0.016361416361416362
+    },
+    "latticeContrast": 0,
+    "greenAxis": "main",
+    "stackedHistory": false
+  },
+  "pattern": "no debayer",
+  "linearity": {
+    "globalMedian": 0.01654077973601892,
+    "historyHits": [],
+    "rule": "nonLinear = median >= 0.05 OR (history stretch AND median >= 0.02)",
+    "verdict": "LINEAR — full autostretch"
+  },
+  "channels": [
+    {
+      "channel": "L",
+      "median": 0.01641870756084535,
+      "madn": 0.0004871743569220741,
+      "q1": 0.016098268101014723,
+      "q3": 0.01675440604257267,
+      "shadows": 0.015054619361463543,
+      "midtones": 0.014709524866377183,
+      "target": 0.085,
+      "pixelsBlack": 0,
+      "pixelsWhite": 0,
+      "totalPixels": 540000,
+      "statSamples": 540000,
+      "statStride": 1,
+      "nonFinite": 0
+    }
+  ],
+  "stretchMode": {
+    "linked": false,
+    "operator": null,
+    "luminance": null,
+    "colourFidelity": null
+  },
+  "view": {
+    "width": 900,
+    "height": 600,
+    "downscaleFactor": 1
+  },
+  "timingsMs": {
+    "digest": 3,
+    "header": 0,
+    "decode": 10,
+    "roworder": 1,
+    "cfa": 9,
+    "preview": 0,
+    "stats": 15,
+    "background": 43,
+    "colour": 0,
+    "transfer": 10,
+    "saturation": 6,
+    "crop": 30,
+    "quantise": 18,
+    "downscale": 0,
+    "total": 177
+  },
+  "historyCards": [],
+  "allCards": [
+    "SIMPLE  =                    T / conforms to FITS standard",
+    "BITPIX  =                   16 / unsigned 16-bit via BZERO",
+    "NAXIS   =                    2",
+    "NAXIS1  =                  900",
+    "NAXIS2  =                  600",
+    "BZERO   =                32768 / offset for unsigned data",
+    "BSCALE  =                    1",
+    "SWCREATE= 'make-fixture.ps1 (synthetic)' / not a capture program",
+    "END"
+  ]
+}

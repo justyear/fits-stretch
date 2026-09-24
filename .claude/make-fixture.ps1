@@ -38,7 +38,7 @@
 #
 # Not part of the deliverable — test fixtures only.
 
-param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer', 'ceuclaro', 'caminho')][string]$Only = 'all')
+param([ValidateSet('all', 'seestar', 'rice', 'nonlinear', 'gradient', 'edge', 'colour', 'saturation', 'crop', 'escala', 'nobayer', 'escritor', 'declara', 'bayer', 'ceuclaro', 'caminho', 'swcreate')][string]$Only = 'all')
 
 $ErrorActionPreference = 'Stop'
 
@@ -687,6 +687,32 @@ public static class FitsFixture
                 {
                     var bs = BitConverter.GetBytes(img[c * N + y * W + x]);
                     outb[p++] = bs[3]; outb[p++] = bs[2]; outb[p++] = bs[1]; outb[p++] = bs[0];
+                }
+            }
+        return outb;
+    }
+
+    // Inteiro de 16 bits SEM SINAL pela convencao FITS: BITPIX 16, BZERO 32768,
+    // BSCALE 1. O valor fisico [0,1] vira [0,65535] e e gravado como
+    // (fisico - 32768) em int16 big-endian. E a representacao que os dois
+    // exemplos publicos de programas de captura mostram, e a mesma do seestar --
+    // mas o seestar sai de Build(), que monta um mosaico CFA, e esta monta um
+    // quadro MONO a partir de uma cena float.
+    public static byte[] UInt16Bytes(float[] img, int W, int H, int planes, bool bottomUp)
+    {
+        var outb = new byte[img.Length * 2];
+        int p = 0, N = W * H;
+        for (int c = 0; c < planes; c++)
+            for (int j = 0; j < H; j++)
+            {
+                int y = bottomUp ? (H - 1 - j) : j;
+                for (int x = 0; x < W; x++)
+                {
+                    double v = Math.Round(img[c * N + y * W + x] * 65535.0);
+                    if (v < 0) v = 0; else if (v > 65535) v = 65535;
+                    short s16 = (short)((int)v - 32768);
+                    outb[p++] = (byte)((s16 >> 8) & 0xFF);
+                    outb[p++] = (byte)(s16 & 0xFF);
                 }
             }
         return outb;
@@ -1998,6 +2024,53 @@ if ($Only -eq 'all' -or $Only -eq 'caminho') {
     )
     Write-Fits (Join-Path $outDir 'fixture-caminho.fit') $cardsP `
                ([FitsFixture]::FloatBytes($imgP, $W, $H, $planes, $false))
+}
+
+# ------------------------------------------------ SWCREATE, a terceira chave de escritor
+#
+# O QUE ESTE FIXTURE PROVA, E O QUE ELE NAO PROVA -- as duas coisas escritas,
+# porque a segunda e a que se perde.
+#
+# PROVA: o caminho do codigo. Um header com SWCREATE e SEM PROGRAM e SEM CREATOR
+# faz o bloco de header imprimir `(absent)` nas duas e o valor na terceira.
+# Sem este fixture, a linha de SWCREATE com valor seria um ramo que nenhum golden
+# imprime.
+#
+# NAO PROVA que o N.I.N.A. grava SWCREATE. A evidencia disso e um header
+# PUBLICO de um arquivo do N.I.N.A., e ela tem procedencia propria -- OBSERVADA
+# EM EXEMPLO PUBLICO, mais fraca que MEDIDA, porque ninguem aqui abriu o arquivo
+# nem conferiu que o header nao foi editado antes de publicado. Este fixture e
+# meu: ele confirmaria qualquer coisa que eu escrevesse nele. Por isso o valor de
+# SWCREATE aqui se anuncia como sintetico, e NAO imita o do exemplo publico.
+#
+# AS CHAVES SAO SO AS DOS DOIS EXEMPLOS PUBLICOS, mais as estruturais que o
+# padrao exige: SIMPLE, BITPIX, NAXIS, NAXIS1, NAXIS2, BZERO, BSCALE, SWCREATE.
+# Nenhuma outra -- nem ROWORDER, nem INSTRUME, nem HISTORY. Os exemplos nao
+# mostram HISTORY, e inventar um aqui seria inventar o que eles nao disseram.
+# Sem ROWORDER vale o padrao FITS (de baixo para cima), e a imagem e gravada
+# assim.
+#
+# E ele exercita, de carona, a mesma representacao numerica dos dois exemplos:
+# BITPIX 16 + BZERO 32768 + BSCALE 1, o inteiro sem sinal, em que o CONTEINER
+# declara a escala. O seestar ja cobria essa representacao -- num mosaico CFA.
+# Este e o caso mono, que e o de uma camera monocromatica.
+if ($Only -eq 'all' -or $Only -eq 'swcreate') {
+    $W = 900; $H = 600; $planes = 1
+
+    Write-Host "fixture-swcreate.fit  ($W x $H, BITPIX 16 + BZERO 32768, SWCREATE e nenhuma outra chave de escritor)"
+    $imgS = [FitsFixture]::Scene($W, $H, $planes, 20260923, 0.012, 0.0006, 0.30)
+    $cardsS = @(
+        (New-Card 'SIMPLE'   'T'   'conforms to FITS standard')
+        (New-Card 'BITPIX'   16    'unsigned 16-bit via BZERO')
+        (New-Card 'NAXIS'    2)
+        (New-Card 'NAXIS1'   $W)
+        (New-Card 'NAXIS2'   $H)
+        (New-Card 'BZERO'    32768 'offset for unsigned data')
+        (New-Card 'BSCALE'   1)
+        (New-Card 'SWCREATE' 'make-fixture.ps1 (synthetic)' 'not a capture program' -AsString)
+    )
+    Write-Fits (Join-Path $outDir 'fixture-swcreate.fit') $cardsS `
+               ([FitsFixture]::UInt16Bytes($imgS, $W, $H, $planes, $true))
 }
 Write-Host ''
 Get-ChildItem $outDir -File | ForEach-Object { "  {0,12:N0}  {1}" -f $_.Length, $_.Name }

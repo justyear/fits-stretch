@@ -5,41 +5,33 @@ actually declare. Nothing was sent. Read it before you paste it.
 tool     Stretch, build pinned-for-goldens
 
 --- header keys (absent ones are shown as absent, on purpose) ---
-BITPIX   = -32
-NAXIS    = 3
+BITPIX   = 16
+NAXIS    = 2
 NAXIS1   = 900
 NAXIS2   = 600
-NAXIS3   = 3
-BZERO    = (absent)
-BSCALE   = (absent)
+BZERO    = 32768
+BSCALE   = 1
 DATAMIN  = (absent)
 DATAMAX  = (absent)
 BUNIT    = (absent)
-ROWORDER = 'TOP-DOWN'
+ROWORDER = (absent)
 BAYERPAT = (absent)
 XBAYROFF = (absent)
 YBAYROFF = (absent)
-PROGRAM  = 'make-fixture.ps1'
+PROGRAM  = (absent)
 CREATOR  = (absent)
-SWCREATE = (absent)
+SWCREATE = 'make-fixture.ps1 (synthetic)'
 PRODUCER = (absent)
 
 --- data, in the file’s own units (after BZERO/BSCALE) ---
-min      0.0585582554
-max      1
-median   0.0805371176
+min      829
+max      65535
+median   1084
          the median is the mean of the per-channel medians, taken
          after debayer and before any background model was removed.
 
---- HISTORY (8 lines, in file order) ---
-  mean stacking with winsorized sigma clipping, 30 frames
-  SKY the sky sits near 0.080 of full scale -- a city sky, and
-  SKY the frame is LINEAR: no tonal operation was applied.
-  SKY Nothing above names a stretch, so the rule has only the
-  SKY median to go on, and the median says NON-LINEAR. That
-  SKY verdict is WRONG about this file, and the log has to say
-  SKY that it decided with nothing but the median.
-  SKY External truth, from neither implementation.
+--- HISTORY (0 lines, in file order) ---
+  (none)
 
 --- COMMENT (0 lines, in file order) ---
   (none)
