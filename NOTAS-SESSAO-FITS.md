@@ -2361,10 +2361,16 @@ Nenhum fixture cai nela hoje.
 
 `index.html` **303.390 bytes**, sha256
 `676b2cf0eadaabeffe0e79a4d4d077eec4c2110b2f993783fa0f3ba4ba9dcd5a`, carimbo de
-build `08f6b679024be3ae`. Tag anotada `v1.5.0` sobre `51ec35a`. O asset do
+build `08f6b679024be3ae`. Tag anotada `v1.5.0`, hoje sobre `322ccaf`. O asset do
 release no GitHub é criado à mão (não há `gh` nesta máquina), e tem que ser
 **este** arquivo — o do commit da tag, não o do master (ver *Regra de
 publicação*).
+
+*(Corrigido em 2026-09-24: a tag foi criada sobre o commit que tirou o nome de
+arquivo do NOTAS — o item 2, abaixo —, e ele foi **o único commit podado** na
+reescrita do histórico: a reescrita já deixava o pai com o mesmo conteúdo. A tag
+passou para o pai reescrito, `322ccaf`, de árvore idêntica à do commit original,
+conferida; o `index.html` do release é o mesmo.)*
 
 ### A auditoria do botão foi feita no build PUBLICADO, e o método fica
 
@@ -2409,9 +2415,13 @@ log. Está no *Em aberto*.
 
 **2. Um nome de arquivo original de terceiro estava no NOTAS**, na tabela
 *"Verificado contra dado real"* — as outras três linhas tinham sido anonimizadas,
-esta não. Consertado em `51ec35a`, no padrão das vizinhas. **Continua no
+esta não. Consertado num commit próprio, no padrão das vizinhas. **Continua no
 histórico, em toda tag desde a v1.0.0**, e tirar de lá é reescrever histórico e
 reempurrar cinco tags. Decisão do dono do repositório; está no *Em aberto*.
+
+*(Depois: a reescrita foi feita em 2026-09-23, e o commit deste conserto foi o
+único que ela podou — ver* A reescrita do histórico*. Por isso ele não é citado
+por SHA: o SHA dele não existe no histórico atual.)*
 
 **3. A cópia do log no README estava falsa** — erro meu da rodada anterior. O
 README diz *"the actual file"* e mostrava a frase velha do degrau 5. Consertado, e
@@ -2431,14 +2441,14 @@ Um número datado envelhece visivelmente em vez de mentir em silêncio.
 
 ### O MANIFEST: a codificação foi desfeita, o conteúdo não
 
-Commit próprio (`3269686`), só codificação: 436 linhas com o acento passado
+Commit próprio (`df2db27`), só codificação: 436 linhas com o acento passado
 **quatro** vezes por UTF-8→cp1252→UTF-8 (um "é" de 2 bytes tinha virado 42),
 desfeitas linha a linha até ponto fixo, com a volta exigida em UTF-8 estrito. A
-conferência foi contra a última versão limpa do histórico, `7bb4623`: 805 de 807
+conferência foi contra a última versão limpa do histórico, `d1b409f`: 805 de 807
 linhas idênticas, e as 2 diferentes são a tabela de hashes, que mudou de verdade.
 
 **E o que a conferência revelou:** fora a tabela de hashes, o MANIFEST **não mudou
-uma linha desde `7bb4623`**. As seções de fixtures e artefatos descrevem a suíte
+uma linha desde `d1b409f`**. As seções de fixtures e artefatos descrevem a suíte
 daquela época. É a mesma classe outra vez — um documento que se apresenta como
 *"the long version"* e parou no tempo.
 
@@ -2578,7 +2588,8 @@ reprovar. O fragmento fica descrito, não escrito.
    preservadas; 1 commit podado, o que só trocava a linha do nome.
 4. **Parada antes do push**, para mostrar o resultado. Dela saíram os dois
    defeitos do meu próprio plano, abaixo.
-5. `push --force` do master (`b266232` → `7f417b6`) e das seis tags.
+5. `push --force` do master (do topo antigo para `7f417b6`, o equivalente
+   reescrito dele) e das seis tags.
 6. Fase `remoto`: **PASS**.
 
 **E olhando o GitHub de fora, depois:**
@@ -3078,6 +3089,73 @@ chega ao total, e a conclusão natural ("109 linhas sem veredito") é falsa.
 **Proposta, anotada e não feita:** a linha passa a imprimir `PASS~`, e a soma das
 categorias é afirmada igual ao total. Uma linha de código.
 
+## As citações de commit, consertadas e guardadas — 2026-09-24
+
+**Nove citações apontavam para commits que o histórico atual não tem** — a
+reescrita de 2026-09-23 trocou o SHA de todo commit a partir do primeiro
+alterado. Achadas por uma varredura de todo token hexadecimal da árvore contra
+todos os objetos de commit do repositório: 7 no NOTAS, 1 no MANIFEST, 1 num
+comentário do `build.ps1`. Nenhuma em outro arquivo.
+
+**Nenhum SHA antigo passou pela conversa.** Os scripts da varredura imprimiam só
+SHAs vivos, contagens e arquivo:linha, com o contexto mascarado; a troca foi
+feita por script, e as três frases reescritas à mão receberam um marcador antes,
+para que nenhuma edição carregasse o SHA antigo.
+
+**Seis viraram o SHA do commit equivalente** — mesmo assunto, autor, e-mail e
+data do autor, achado pelo `refs/original`:
+
+```
+o commit que desfez a codificacao do MANIFEST   df2db27  MANIFEST: desfaz a codificacao quadrupla
+a ultima versao limpa do MANIFEST (2 citacoes)  d1b409f  Passo 7: compare-reference cobre a cadeia nova
+o titulo do item 12, "o MANIFEST parou em"      d1b409f  (o mesmo commit)
+desde quando a tabela de hashes envelheceu      509b705  Pedestal e a mediana do modelo SOBRE O QUADRO
+  (no build.ps1 e no MANIFEST)
+```
+
+**Três falavam do histórico antigo em si, e foram reescritas sem SHA:**
+
+- **duas eram o mesmo commit, o único podado dos 90** que a reescrita trocou: o
+  conserto do nome no NOTAS, sobre o qual a tag `v1.5.0` tinha sido criada. A
+  reescrita deixava o pai com o mesmo conteúdo, então ele ficou vazio e saiu, e a
+  tag passou para o pai reescrito, `322ccaf`. **Conferido:** as duas citações
+  são o mesmo SHA; a árvore dele é idêntica à do `322ccaf`; o pai reescrito dele
+  é o `322ccaf`. O release entrega o mesmo `index.html`;
+- **uma era o topo antigo** no registro do `push --force`. O equivalente dele é o
+  `7f417b6` da mesma frase — conferido —, e a frase agora diz "do topo antigo
+  para `7f417b6`".
+
+**E agora não voltam: `build.ps1 -Check` confere as citações do NOTAS e do
+MANIFEST contra o histórico atual.** A separação entre commit e sha256 é a
+convenção desta árvore, medida antes de virar regra: commit com 7 ou 40
+caracteres, sha256 com 8, 16 ou 64; qualquer outro comprimento com letra reprova
+como forma desconhecida. A falha diz arquivo, linha e comprimento — **nunca o
+SHA**, porque a citação morta típica é justamente um SHA do histórico antigo.
+
+**A primeira versão da checagem reprovou a árvore real, e o erro era meu.** Ela
+contava como commit todo token de sete dígitos, apoiada numa medição que dizia
+"nenhum número decimal dos dois arquivos tem sete dígitos seguidos". A medição
+tinha excluído os números precedidos de vírgula — que é exatamente onde mora a
+parte fracionária: três ganhos de cor, `1,2509612`, reprovaram. **A medição que
+sustenta uma regra tem que olhar o mesmo universo que a regra vai olhar**; um
+filtro a mais na medição é uma exceção que a regra não tem. A regra ficou com o
+que a medição sustenta de fato: toda citação de commit dos dois arquivos está
+entre crases, então um token só de dígitos conta como citação quando é o
+conteúdo inteiro de um trecho entre crases; token com letra conta em qualquer
+contexto.
+
+**Mostrada falhando antes de aceita,** com três citações inventadas no fim do
+NOTAS — prefixo de commit nenhum, vivo ou antigo, conferido antes: uma de 7 com
+letra, uma só de dígitos entre crases, um hex de 10. As três reprovaram, cada uma
+pelo seu ramo; um `1,7654321` na mesma linha passou. O NOTAS voltou byte a byte,
+e a árvore real passa: **9 citações, todas no histórico atual.**
+
+**O que não se conserta assim:** 6 citações de SHA antigo em 4 mensagens de
+commit do histórico atual (`7e6342a`, `548e2d2`, `df2db27` com três, `f403d76`).
+Mensagem não se edita sem outra reescrita; o caminho é o chamado ao suporte, que
+faz os SHAs antigos pararem de responder. Por isso a mensagem deste commit não
+cita nenhum.
+
 ## Em aberto
 
 
@@ -3279,18 +3357,29 @@ reescrita do histórico: feita, empurrada e conferida"*, acima.
 
 **O que ficou, em ordem de peso:**
 
-- **consertar as 8 citações de commit mortas** (7 no NOTAS, 1 no MANIFEST): elas
-  apontam para SHAs antigos que ainda respondem no GitHub, então são trilha para
-  o resíduo. Commit normal;
+- ~~**consertar as citações de commit mortas**~~ — **FEITO em 2026-09-24.** Eram
+  **9**, não 8: 7 no NOTAS, 1 no MANIFEST e 1 num comentário do `build.ps1`, que
+  a contagem anterior não olhou. Seis viraram o SHA do commit equivalente no
+  histórico atual (mesmo assunto, autor e data); três falavam do histórico antigo
+  em si — duas do commit podado, uma do topo antigo no registro do push — e
+  foram reescritas sem SHA. E **agora não voltam**: `build.ps1 -Check` confere
+  que toda citação de commit do NOTAS e do MANIFEST existe no histórico atual.
+  Ver *"As citações de commit, consertadas e guardadas"*, abaixo;
 - **pedir ao suporte do GitHub o expurgo dos commits antigos**, que continuam
-  alcançáveis por SHA direto — e as 5 citações em mensagem de commit são links
-  clicáveis para eles;
-- **o passo 5, a limpeza local** — adiada por decisão até a confirmação no
-  GitHub. O comando corrigido (8 refs, não 1) está na seção acima.
+  alcançáveis por SHA direto — e as **6** citações em mensagem de commit (não 5:
+  contadas, em 4 mensagens) são links clicáveis para eles. **Os dados do chamado
+  estão prontos, fora do repositório**, em `D:\justyear image s2\chamado-github.txt`:
+  dono e repositório, 0 pull requests, o primeiro commit alterado e 0 forks
+  (medido na página pública em 2026-09-23, confirmado pela API em 2026-09-24).
+  Quem abre o chamado é o dono do repositório;
+- **o passo 5, a limpeza local — NÃO FAZER, por decisão de 2026-09-24:** o
+  `refs/original` guarda o primeiro commit alterado, que o chamado pede. Fica até
+  o chamado ser resolvido. O comando corrigido (8 refs, não 1) está na seção
+  acima.
 
 E as três regras de permissão em `.claude/settings.local.json` podem sair.
 
-### 12. O MANIFEST parou em `7bb4623` — adiado por decisão
+### 12. O MANIFEST parou em `d1b409f` — adiado por decisão
 
 Só a tabela de hashes é atualizada; as seções de fixtures e artefatos descrevem a
 suíte de semanas atrás. Ou reescreve, ou reduz ao que é verificado por máquina —

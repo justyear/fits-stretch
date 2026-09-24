@@ -235,7 +235,7 @@ function Test-Tracked {
 #
 # Ela existe para quem quer conferir o arquivo baixado sem montar o build, entao
 # nao pode sair -- e por ser escrita a mao, envelhece. Ficou desatualizada desde
-# 741f0e1 sem que nada reclamasse, porque nenhum comparador a lia.
+# 509b705 sem que nada reclamasse, porque nenhum comparador a lia.
 #
 # Le entre marcadores em vez de casar a prosa: um regex sobre o texto corrido
 # passaria a nao casar nada no dia em que alguem reescrevesse a frase, e uma
@@ -333,6 +333,87 @@ function Test-ReadmeCopies {
     return $problems
 }
 
+<#
+AS CITACOES DE COMMIT DO NOTAS E DO MANIFEST EXISTEM NO HISTORICO ATUAL?
+
+A reescrita do historico de 2026-09-23 trocou o SHA de todo commit a partir do
+primeiro alterado, e nove citacoes -- sete no NOTAS, uma no MANIFEST, uma num
+comentario deste arquivo -- ficaram apontando para commits que o historico atual
+nao tem. Nada reclamou: uma citacao morta continua perfeitamente plausivel no
+texto. E pior que plausivel: o GitHub ainda responde pelo SHA antigo, entao a
+citacao era trilha para o historico que a reescrita existiu para tirar.
+
+Como separar citacao de commit de sha256 de arquivo -- convencao desta arvore,
+medida nos dois arquivos antes de virar regra:
+
+  7 ou 40 hex    commit: a forma curta e a completa do git
+  8, 16 ou 64    sha256: 8 com reticencias na prosa, 16 nos logs e relatorios,
+                 64 completo
+
+Qualquer outro comprimento com letra reprova como forma desconhecida, em vez de
+passar sem conferencia: um commit citado com 9 caracteres escaparia de uma regra
+que so olhasse os 7.
+
+SO DIGITOS e o caso dificil: 3,7% dos SHAs curtos saem sem letra nenhuma, e a
+parte fracionaria de um numero tambem -- `1,2509612` tem sete digitos depois da
+virgula. A primeira versao desta checagem contava todo token de sete digitos e
+reprovou tres ganhos de cor numa tabela do NOTAS; a medicao que a sustentava
+tinha excluido, justamente, os numeros depois de virgula. A regra que a medicao
+sustenta: toda citacao de commit dos dois arquivos esta entre crases. Entao um
+token so de digitos conta como citacao quando e o conteudo inteiro de um trecho
+entre crases, e token com letra conta em qualquer contexto.
+
+A falha diz arquivo, linha e comprimento, e NAO o SHA. A citacao morta tipica e
+um SHA do historico antigo, e imprimi-la gravaria na saida exatamente o que se
+quer fora dela.
+#>
+function Test-Citacoes {
+    $probe = & git -C $root rev-parse --is-inside-work-tree 2>$null
+    if ($LASTEXITCODE -ne 0 -or $probe -ne 'true') {
+        Write-Host 'citacoes de commit: pulado (nao e um repositorio git)'
+        return @()
+    }
+    if ((& git -C $root rev-parse --is-shallow-repository 2>$null) -eq 'true') {
+        return @('clone raso: com o historico incompleto, nao da para conferir citacao de commit')
+    }
+    $historico = @(& git -C $root rev-list HEAD)
+    $problems = @()
+    $n = 0
+    foreach ($rel in @('NOTAS-SESSAO-FITS.md', 'test\golden\MANIFEST.md')) {
+        $path = Join-Path $root $rel
+        if (-not (Test-Path -LiteralPath $path)) { $problems += "$rel ausente"; continue }
+        $linhas = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes($path)) -split "`n"
+        for ($i = 0; $i -lt $linhas.Count; $i++) {
+            $l = $linhas[$i]
+            foreach ($m in [regex]::Matches($l, '(?<![0-9A-Za-z])[0-9a-f]{7,64}(?![0-9A-Za-z])')) {
+                $t = $m.Value
+                if ($t -notmatch '[a-f]') {
+                    $fim = $m.Index + $t.Length
+                    $entreCrases = ($m.Index -gt 0 -and $l[$m.Index - 1] -eq '`' -and $fim -lt $l.Length -and $l[$fim] -eq '`')
+                    if (-not $entreCrases) { continue }
+                }
+                if ($t.Length -eq 7 -or $t.Length -eq 40) {
+                    $n++
+                    $k = @($historico | Where-Object { $_.StartsWith($t) }).Count
+                    if ($k -eq 0) {
+                        $problems += ('{0}:{1}: citacao de commit ({2} caracteres) que nao existe no historico atual' -f $rel, ($i + 1), $t.Length)
+                    } elseif ($k -gt 1) {
+                        $problems += ('{0}:{1}: citacao de commit ({2} caracteres) ambigua: casa {3} commits' -f $rel, ($i + 1), $t.Length, $k)
+                    }
+                } elseif ($t.Length -in 8, 16, 64) {
+                    continue
+                } elseif ($t -match '[a-f]') {
+                    $problems += ('{0}:{1}: hex de {2} caracteres -- nem commit (7 ou 40) nem sha256 (8, 16 ou 64)' -f $rel, ($i + 1), $t.Length)
+                }
+            }
+        }
+    }
+    if ($problems.Count -eq 0) {
+        Write-Host ("citacoes de commit: {0} no NOTAS e no MANIFEST, todas no historico atual" -f $n)
+    }
+    return $problems
+}
+
 if ($Check) {
     $fail = 0
     foreach ($pair in @(@($outPublish, $bytesPublish, $hashPublish, 'publicacao'),
@@ -371,6 +452,13 @@ if ($Check) {
     if ($readme.Count) {
         Write-Host 'CHECK FAIL - o README diz que mostra o arquivo de verdade, e nao mostra:'
         foreach ($s in $readme) { Write-Host ("  {0}" -f $s) }
+        $fail++
+    }
+
+    $citacoes = Test-Citacoes
+    if ($citacoes.Count) {
+        Write-Host 'CHECK FAIL - citacao de commit que o historico atual nao confirma:'
+        foreach ($s in $citacoes) { Write-Host ("  {0}" -f $s) }
         $fail++
     }
 

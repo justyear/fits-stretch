@@ -28,7 +28,7 @@ marcadores acima e compara com o build que acabou de montar. Ela existe para
 quem quer conferir o download sem rodar o build; ser escrita à mão é o motivo
 pelo qual precisa ser verificada, não uma licença para não ser.
 
-Precisou existir: os números daqui ficaram desatualizados desde `741f0e1` — a
+Precisou existir: os números daqui ficaram desatualizados desde `509b705` — a
 correção do pedestal mudou `background.js`, logo mudou o build — e ninguém
 percebeu, porque nenhum comparador os lia. É a forma invertida do argumento que
 o próprio log usa: a frase do log não envelhece porque é gerada; estes números
