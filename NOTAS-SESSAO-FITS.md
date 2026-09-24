@@ -2556,6 +2556,121 @@ escrevia o fragmento por extenso — e a conferência exige ZERO casamentos do
 padrão no NOTAS. Gravado aqui, o registro da reescrita faria a reescrita
 reprovar. O fragmento fica descrito, não escrito.
 
+## A reescrita do histórico: feita, empurrada e conferida — 2026-09-23
+
+**O nome saiu do GitHub.** A sequência, na ordem em que aconteceu:
+
+1. Quem conduz leu `filtro-nome.sh` linha a linha e autorizou. A permissão veio
+   de três regras que quem conduz adicionou em `.claude/settings.local.json`:
+   `git filter-branch:*` e os dois `push --force` exatos. **Elas podem sair
+   agora.**
+2. `git filter-branch` no repositório real, com o filtro lido (sha256
+   `0811f7dca7ab50b7…`). **Os hashes das seis tags saíram idênticos aos do
+   ensaio** — a reescrita é determinística, e o ensaio mediu a operação de
+   verdade, não uma parecida.
+3. Fase `local` da conferência: **PASS**. 90 commits viraram 89; 89 pares
+   conferidos com árvores iguais fora da linha do NOTAS e autoria e datas
+   preservadas; 1 commit podado, o que só trocava a linha do nome.
+4. **Parada antes do push**, para mostrar o resultado. Dela saíram os dois
+   defeitos do meu próprio plano, abaixo.
+5. `push --force` do master (`b266232` → `7f417b6`) e das seis tags.
+6. Fase `remoto`: **PASS**.
+
+**E olhando o GitHub de fora, depois:**
+
+- o `NOTAS-SESSAO-FITS.md` servido pelo próprio GitHub (raw, endereçado por SHA
+  para não pegar cache) tem **0 casamentos** do padrão no master e nas seis
+  tags; o `CLAUDE.md` casa só com o fragmento do exemplo mascarado;
+- as seis releases, **baixadas de verdade** pelo link de cada tag, entregam cada
+  uma o `index.html` byte-idêntico ao da tag reescrita;
+- o link do README, `releases/latest/download/index.html`, entrega **303.390
+  bytes, sha256 `676b2cf0eadaabef…`**, e a API diz que o `latest` é a v1.5.0.
+
+A v1.5.0 aponta agora para `322ccaf` (o commit do README), e não mais para o
+commit podado. O asset publicado continua sendo exatamente o arquivo que a tag
+constrói.
+
+**Os downloads de verificação somaram 1 ao contador de cada release** — e a v1.5.0
+tem mais 1 da conferência do asset na rodada anterior. Os contadores já não
+medem só gente de fora.
+
+### O que a reescrita NÃO alcançou, medido
+
+**Os commits antigos continuam alcançáveis por SHA direto no GitHub** — HTTP 200
+para os três testados. Não estão em branch, tag nem em página de histórico, mas
+respondem a quem tiver o SHA, até a coleta de lixo do GitHub. Expurgo imediato,
+só pelo suporte do GitHub.
+
+**E o NOTAS aponta para eles.** As 7 citações de commit que morreram no NOTAS (e 1
+no MANIFEST) são exatamente SHAs antigos — viraram trilha para o resíduo. As 5
+citações dentro de mensagens de commit são piores: o GitHub transforma SHA em
+link em mensagem de commit, então elas são **links clicáveis** para commits
+antigos que ainda carregam o nome. Mensagem não se edita sem outra reescrita.
+
+Isso muda o peso de duas coisas que estavam como opcionais: **consertar as
+citações do NOTAS e do MANIFEST** deixa de ser arrumação, e **pedir o expurgo ao
+suporte do GitHub** deixa de ser excesso de zelo.
+
+### Dois defeitos no meu próprio plano, e os dois passariam despercebidos
+
+**1. O `git status` mentiu depois da reescrita.** O `-- --all` do filter-branch
+não reescreve só "o master e as tags": ele reescreve **toda ref**, incluindo a
+referência local de acompanhamento `refs/remotes/origin/master`. Depois da
+reescrita, com nada empurrado, o `git status` dizia `## master...origin/master`
+— sincronizado — enquanto o GitHub ainda tinha o histórico original inteiro.
+
+Apareceu porque, na parada antes do push, eu imprimi o `origin/master` para
+mostrar que "o GitHub ainda tem o original" — e o número contradizia a frase.
+Conferido com `git ls-remote`, que pergunta ao GitHub em vez de à cópia local.
+
+Não afetou o push (`--force` ignora a referência de acompanhamento) e se
+consertou sozinho depois dele. **Mas quem confiasse no `git status` para saber
+se o push já tinha acontecido teria a resposta errada** — e é exatamente a
+pergunta que alguém faz no meio de uma operação dessas.
+
+> **Depois de qualquer reescrita, a verdade sobre o remoto vem do
+> `ls-remote`, nunca da referência de acompanhamento.** A reescrita pode ter
+> mexido nela, e ela não avisa.
+
+**2. A limpeza apagava 1 de 8.** O passo 5 do `PASSOS.txt` mandava apagar
+`refs/original/refs/heads/master`. Pela mesma razão do defeito 1, o
+filter-branch guarda em `refs/original` **cada ref que reescreveu**: o master, o
+`origin/master` e as seis tags — **8**, e as 8 carregam o histórico antigo, com o
+nome.
+
+Rodado como estava escrito, o passo 5 apagaria uma, o `git gc` não coletaria nada
+que as outras sete ainda alcançam, **e a limpeza terminaria sem erro com o nome
+ainda no disco.** É a família registrada esta semana: uma operação que responde
+"feito" sobre um subconjunto, com a mesma cara de quando fez tudo.
+
+Apareceu porque, para explicar o defeito 1, eu listei o `refs/original` inteiro
+em vez de supor o que havia nele.
+
+**A raiz dos dois é a mesma:** eu escrevi o plano pensando "master e tags", e o
+`-- --all` significa "tudo". A conferência testava o que eu pedi que ela
+testasse; os dois defeitos estavam no que eu não pensei em pedir, e só
+apareceram porque a regra era **parar e mostrar antes do push** — mostrar exige
+imprimir, e imprimir mostra o que se supunha.
+
+### O passo 5, corrigido, para quando for autorizado
+
+**NÃO FEITO, por decisão:** o objetivo era tirar o nome do GitHub, que é
+público. O `refs/original` é local e fica como rede de segurança até quem
+conduz confirmar que tudo funciona no GitHub.
+
+```
+git for-each-ref --format='%(refname)' refs/original | xargs -n1 git update-ref -d
+git reflog expire --expire=now --all
+git gc --prune=now
+```
+
+Conferir depois: `git for-each-ref refs/original` tem que sair **vazio**. E apagar
+as duas pastas fora do repositório que ainda têm o nome:
+`D:\justyear image s2\backup-antes-da-reescrita\` e
+`D:\justyear image s2\ensaio-reescrita\`.
+
+O `PASSOS.txt` já foi corrigido com o mesmo comando.
+
 ## Em aberto
 
 
@@ -2741,18 +2856,24 @@ calculado fora do pipeline.
 O nome continua na tela e nos arquivos baixados. O que mudou é só o que a pessoa
 é convidada a publicar.
 
-### 11. Um nome de arquivo original no histórico público — pronto, esperando leitura
+### 11. ~~Um nome de arquivo original no histórico público~~ — FEITO, com três pendências
 
-Consertado na árvore. **Continua em toda tag desde a v1.0.0**, e entrou no commit
-raiz, então a reescrita muda TODOS os hashes do repositório.
+Reescrito, empurrado e conferido nas duas fases. O GitHub serve o master e as
+seis tags sem o nome, e as seis releases entregam o arquivo certo. Ver *"A
+reescrita do histórico: feita, empurrada e conferida"*, acima.
 
-**Autorizada, medida, ensaiada.** Ver *"A reescrita do histórico: preparada,
-ensaiada, esperando leitura"*, acima. Em uma linha: no ensaio, a v1.5.0 desce um
-commit e o `index.html` dela continua sendo o asset publicado, byte a byte.
+**O que ficou, em ordem de peso:**
 
-**O que falta é de quem conduz:** ler `filtro-nome.sh` e
-`conferencia-reescrita.sh` em `D:\justyear image s2\reescrita\`, e seguir o
-`PASSOS.txt`. Nenhum dos dois scripts rodou no repositório real.
+- **consertar as 8 citações de commit mortas** (7 no NOTAS, 1 no MANIFEST): elas
+  apontam para SHAs antigos que ainda respondem no GitHub, então são trilha para
+  o resíduo. Commit normal;
+- **pedir ao suporte do GitHub o expurgo dos commits antigos**, que continuam
+  alcançáveis por SHA direto — e as 5 citações em mensagem de commit são links
+  clicáveis para eles;
+- **o passo 5, a limpeza local** — adiada por decisão até a confirmação no
+  GitHub. O comando corrigido (8 refs, não 1) está na seção acima.
+
+E as três regras de permissão em `.claude/settings.local.json` podem sair.
 
 ### 12. O MANIFEST parou em `7bb4623` — adiado por decisão
 
